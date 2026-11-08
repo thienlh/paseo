@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import type { ParsedDiffFile } from "@getpaseo/protocol/messages";
 import {
+  buildLocalChangesReviewContext,
+  buildLocalChangesReviewPrompt,
   buildPullRequestReviewContext,
   buildPullRequestReviewPrompt,
   pullRequestReviewContextFileName,
   pullRequestReviewSubjectFromPane,
   selectPullRequestReviewSubject,
+  selectReviewSubject,
   type PullRequestReviewSubject,
 } from "./context";
+import { REVIEW_FINDINGS_INSTRUCTIONS } from "./findings";
 
 const pullRequest: PullRequestReviewSubject = {
   number: 42,
@@ -192,7 +196,9 @@ describe("buildPullRequestReviewPrompt", () => {
         "",
         "Read the attached context file `pr-42-review-context.md`. It has the pull request metadata, the changed files, and the diff. This workspace is checked out on the pull request branch.",
         "",
-        "Write a code review in this chat. Lead with the highest-risk findings. Cover correctness, regressions, missing tests, and unnecessary complexity. Cite file paths and line numbers. Skip praise and style nits unless they hide a defect. Do not edit the code.",
+        "Review the code. Cover correctness, regressions, missing tests, and unnecessary complexity. Skip praise and style nits unless they hide a defect. Do not edit the code.",
+        "",
+        REVIEW_FINDINGS_INSTRUCTIONS,
       ].join("\n"),
     );
   });
@@ -211,5 +217,104 @@ describe("pullRequestReviewSubjectFromPane", () => {
         headRefName: "feature/review",
       }),
     ).toBeNull();
+  });
+});
+
+describe("selectReviewSubject", () => {
+  it("prefers the open pull request", () => {
+    expect(
+      selectReviewSubject({
+        pullRequest,
+        isDirty: true,
+        branch: "feature/review",
+        baseRef: "main",
+      }),
+    ).toEqual({ kind: "pull_request", pullRequest });
+  });
+
+  it("reviews local changes when the workspace is dirty and has no pull request", () => {
+    expect(
+      selectReviewSubject({
+        pullRequest: null,
+        isDirty: true,
+        branch: "feature/review",
+        baseRef: "main",
+      }),
+    ).toEqual({ kind: "local_changes", changes: { branch: "feature/review", baseRef: "main" } });
+  });
+
+  it("treats a detached HEAD and a missing base as absent", () => {
+    expect(
+      selectReviewSubject({ pullRequest: null, isDirty: true, branch: "HEAD", baseRef: " " }),
+    ).toEqual({ kind: "local_changes", changes: { branch: null, baseRef: null } });
+  });
+
+  it("hides the review when there is no pull request and nothing changed", () => {
+    expect(
+      selectReviewSubject({ pullRequest: null, isDirty: false, branch: "main", baseRef: "main" }),
+    ).toBeNull();
+  });
+});
+
+describe("local changes review", () => {
+  it("names the branch and the comparison in the prompt", () => {
+    expect(
+      buildLocalChangesReviewPrompt({
+        fileName: "local-changes-review-context.md",
+        changes: { branch: "feature/review", baseRef: "main" },
+      }),
+    ).toContain(
+      "the commits on this branch since it left `main`, plus uncommitted and untracked changes",
+    );
+    expect(
+      buildLocalChangesReviewPrompt({
+        fileName: "local-changes-review-context.md",
+        changes: { branch: null, baseRef: null },
+      }),
+    ).toContain("Review the local changes in this workspace.");
+    expect(
+      buildLocalChangesReviewPrompt({
+        fileName: "local-changes-review-context.md",
+        changes: { branch: "feature/review", baseRef: "refs/remotes/origin/main" },
+      }),
+    ).toContain("since it left `origin/main`");
+  });
+
+  it("points at a merge-base diff when the context is truncated", () => {
+    const { markdown, truncated } = buildLocalChangesReviewContext({
+      changes: { branch: "feature/review", baseRef: "main" },
+      files: Array.from({ length: 10 }, (_, index) => file({ path: `src/file-${index}.ts` })),
+      maxChars: 1_200,
+    });
+    expect(truncated).toBe(true);
+    expect(markdown.length).toBeLessThanOrEqual(1_200);
+    expect(markdown).toContain("# Local changes review context");
+    expect(markdown).toContain("`git diff $(git merge-base main HEAD)`");
+  });
+});
+
+describe("diff rendering", () => {
+  it("writes each hunk header once when the host includes it among the lines", () => {
+    const { markdown } = buildLocalChangesReviewContext({
+      changes: { branch: "feature/review", baseRef: "main" },
+      files: [
+        file({
+          hunks: [
+            {
+              oldStart: 1,
+              oldCount: 1,
+              newStart: 1,
+              newCount: 1,
+              lines: [
+                { type: "header", content: "@@ -1,1 +1,1 @@" },
+                { type: "add", content: "return ready;" },
+              ],
+            },
+          ],
+        }),
+      ],
+    });
+    expect(markdown.match(/@@ -1,1 \+1,1 @@/g)).toHaveLength(1);
+    expect(markdown).toContain("@@ -1,1 +1,1 @@\n+return ready;");
   });
 });

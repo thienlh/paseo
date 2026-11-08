@@ -5,8 +5,13 @@ import { useCreateFlowStore } from "@/stores/create-flow-store";
 import { buildDraftStoreKey } from "@/stores/draft-keys";
 import { useDraftStore } from "@/stores/draft-store";
 import { useWorkspaceDraftSubmissionStore } from "@/stores/workspace-draft-submission-store";
-import { buildPullRequestReviewPrompt, type PullRequestReviewSubject } from "./context";
-import { startPullRequestReviewChat } from "./start";
+import {
+  buildLocalChangesReviewPrompt,
+  buildPullRequestReviewPrompt,
+  type PullRequestReviewSubject,
+} from "./context";
+import { REVIEW_FINDINGS_INSTRUCTIONS } from "./findings";
+import { startReviewChat } from "./start";
 
 const pullRequest: PullRequestReviewSubject = {
   number: 42,
@@ -49,17 +54,23 @@ function reviewClient(input?: { diffError?: string; uploadError?: string }): Pic
   "getCheckoutDiff" | "uploadFile"
 > & {
   uploads: Array<{ fileName: string; mimeType: string; bytes: Uint8Array | ArrayBuffer }>;
+  diffRequests: Array<Parameters<DaemonClient["getCheckoutDiff"]>[1]>;
 } {
   const uploads: Array<{ fileName: string; mimeType: string; bytes: Uint8Array | ArrayBuffer }> =
     [];
+  const diffRequests: Array<Parameters<DaemonClient["getCheckoutDiff"]>[1]> = [];
   return {
     uploads,
-    getCheckoutDiff: async () => ({
-      cwd: "/repo",
-      files: input?.diffError ? [] : [changedFile],
-      error: input?.diffError ? { code: "UNKNOWN" as const, message: input.diffError } : null,
-      requestId: "diff-1",
-    }),
+    diffRequests,
+    getCheckoutDiff: async (_cwd, compare) => {
+      diffRequests.push(compare);
+      return {
+        cwd: "/repo",
+        files: input?.diffError ? [] : [changedFile],
+        error: input?.diffError ? { code: "UNKNOWN" as const, message: input.diffError } : null,
+        requestId: "diff-1",
+      };
+    },
     uploadFile: async (file) => {
       uploads.push(file);
       return {
@@ -81,15 +92,15 @@ beforeEach(() => {
   useDraftStore.setState({ drafts: {}, createModalDraft: null });
 });
 
-describe("startPullRequestReviewChat", () => {
+describe("startReviewChat", () => {
   it("starts a new chat with the review prompt and the context file", async () => {
     const client = reviewClient();
-    const started = await startPullRequestReviewChat({
+    const started = await startReviewChat({
       client,
       serverId: "server-1",
       workspaceId: "workspace-1",
       cwd: "/repo",
-      pullRequest,
+      subject: { kind: "pull_request", pullRequest },
       preferences: {
         provider: "codex",
         providerPreferences: {
@@ -136,7 +147,9 @@ describe("startPullRequestReviewChat", () => {
         "",
         "Read the attached context file `pr-42-review-context.md`. It has the pull request metadata, the changed files, and the diff. This workspace is checked out on the pull request branch.",
         "",
-        "Write a code review in this chat. Lead with the highest-risk findings. Cover correctness, regressions, missing tests, and unnecessary complexity. Cite file paths and line numbers. Skip praise and style nits unless they hide a defect. Do not edit the code.",
+        "Review the code. Cover correctness, regressions, missing tests, and unnecessary complexity. Skip praise and style nits unless they hide a defect. Do not edit the code.",
+        "",
+        REVIEW_FINDINGS_INSTRUCTIONS,
       ].join("\n"),
       attachments: [
         { kind: "file", attachment: { ...uploadedFile, size: upload?.bytes.byteLength } },
@@ -157,12 +170,12 @@ describe("startPullRequestReviewChat", () => {
 
   it("opens a draft with the prompt and file when no provider is selected", async () => {
     const client = reviewClient();
-    const started = await startPullRequestReviewChat({
+    const started = await startReviewChat({
       client,
       serverId: "server-1",
       workspaceId: "workspace-1",
       cwd: "/repo",
-      pullRequest,
+      subject: { kind: "pull_request", pullRequest },
       preferences: {},
       draftId: "draft_review",
     });
@@ -196,19 +209,80 @@ describe("startPullRequestReviewChat", () => {
     expect(useWorkspaceDraftSubmissionStore.getState().pendingByDraftId).toEqual({});
   });
 
+  it("starts a pull request review when the pull request targets another base", async () => {
+    const client = reviewClient({
+      diffError: "Base ref mismatch: stored refs/heads/main, requested release",
+    });
+    const started = await startReviewChat({
+      client,
+      serverId: "server-1",
+      workspaceId: "workspace-1",
+      cwd: "/repo",
+      subject: { kind: "pull_request", pullRequest: { ...pullRequest, baseRef: "release" } },
+      preferences: { provider: "codex" },
+      draftId: "draft_review",
+    });
+
+    expect(started.submitted).toBe(true);
+    const context = new TextDecoder().decode(client.uploads[0]?.bytes);
+    expect(context).toContain(
+      "The host could not load the changed files or the diff, because the workspace compares against a different base than release. Read them with `git diff release...feature/review`.",
+    );
+    expect(context).not.toContain("No changed files.");
+  });
+
   it("does not upload a context file when the diff cannot be loaded", async () => {
     const client = reviewClient({ diffError: "diff failed" });
     await expect(
-      startPullRequestReviewChat({
+      startReviewChat({
         client,
         serverId: "server-1",
         workspaceId: "workspace-1",
         cwd: "/repo",
-        pullRequest,
+        subject: { kind: "pull_request", pullRequest },
         preferences: { provider: "codex" },
         draftId: "draft_review",
       }),
     ).rejects.toThrow("diff failed");
     expect(client.uploads).toEqual([]);
+  });
+
+  it("reviews the branch and working tree against the base when there is no pull request", async () => {
+    const client = reviewClient();
+    await startReviewChat({
+      client,
+      serverId: "server-1",
+      workspaceId: "workspace-1",
+      cwd: "/repo",
+      subject: { kind: "local_changes", changes: { branch: "feature/review", baseRef: "main" } },
+      preferences: { provider: "codex" },
+      draftId: "draft_local",
+    });
+
+    expect(client.diffRequests).toEqual([{ mode: "all", baseRef: "main" }]);
+    const upload = client.uploads[0];
+    expect(upload?.fileName).toBe("local-changes-review-context.md");
+    expect(new TextDecoder().decode(upload?.bytes)).toContain("### src/app.ts");
+    expect(useWorkspaceDraftSubmissionStore.getState().pendingByDraftId.draft_local?.text).toBe(
+      buildLocalChangesReviewPrompt({
+        fileName: "local-changes-review-context.md",
+        changes: { branch: "feature/review", baseRef: "main" },
+      }),
+    );
+  });
+
+  it("reviews only uncommitted changes when the workspace has no base branch", async () => {
+    const client = reviewClient();
+    await startReviewChat({
+      client,
+      serverId: "server-1",
+      workspaceId: "workspace-1",
+      cwd: "/repo",
+      subject: { kind: "local_changes", changes: { branch: null, baseRef: null } },
+      preferences: { provider: "codex" },
+      draftId: "draft_local",
+    });
+
+    expect(client.diffRequests).toEqual([{ mode: "uncommitted" }]);
   });
 });
