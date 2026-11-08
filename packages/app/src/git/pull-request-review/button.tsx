@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { StyleSheet } from "react-native-unistyles";
 import { TextSearch } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { create } from "zustand";
@@ -92,12 +93,13 @@ export function PullRequestReviewButton({
 
   return (
     <Button
-      variant="outline"
+      variant="default"
       size="sm"
       leftIcon={TextSearch}
       loading={inFlight}
       disabled={inFlight}
       onPress={startReview}
+      style={styles.button}
       testID="checks-review-start"
       accessibilityLabel={t("workspace.git.pr.actions.review")}
     >
@@ -105,3 +107,15 @@ export function PullRequestReviewButton({
     </Button>
   );
 }
+
+// Matches the toolbar's View button, so the two sit on one line at one height.
+const styles = StyleSheet.create((theme) => ({
+  button: {
+    gap: theme.spacing[1],
+    minHeight: 24,
+    height: 24,
+    paddingVertical: 0,
+    paddingHorizontal: theme.spacing[2],
+    borderRadius: theme.borderRadius.base,
+  },
+}));
