@@ -9,10 +9,13 @@ import { useDraftStore } from "@/stores/draft-store";
 import { useWorkspaceDraftSubmissionStore } from "@/stores/workspace-draft-submission-store";
 import type { WorkspaceDraftTabSetup, WorkspaceTabTarget } from "@/workspace-tabs/model";
 import {
+  LOCAL_CHANGES_REVIEW_CONTEXT_FILE_NAME,
+  buildLocalChangesReviewContext,
+  buildLocalChangesReviewPrompt,
   buildPullRequestReviewContext,
   buildPullRequestReviewPrompt,
   pullRequestReviewContextFileName,
-  type PullRequestReviewSubject,
+  type ReviewSubject,
 } from "./context";
 
 export interface StartedPullRequestReview {
@@ -24,28 +27,22 @@ export interface StartedPullRequestReview {
 type ReviewClient = Pick<DaemonClient, "getCheckoutDiff" | "uploadFile">;
 type ReviewFileAttachment = Extract<UserComposerAttachment, { kind: "file" }>;
 
-export async function startPullRequestReviewChat(input: {
+export async function startReviewChat(input: {
   client: ReviewClient;
   serverId: string;
   workspaceId: string;
   cwd: string;
-  pullRequest: PullRequestReviewSubject;
+  subject: ReviewSubject;
   preferences: FormPreferences;
   draftId?: string;
   now?: number;
 }): Promise<StartedPullRequestReview> {
-  const diff = await loadBaseDiff(input.client, input.cwd, input.pullRequest.baseRef);
-  const fileName = pullRequestReviewContextFileName(input.pullRequest.number);
-  const context = buildPullRequestReviewContext({
-    pullRequest: input.pullRequest,
-    files: diff.files,
-    diffTooLarge: diff.diffTooLarge === true,
-  });
-  const prompt = buildPullRequestReviewPrompt({
-    fileName,
-    pullRequest: input.pullRequest,
-  });
-  const file = await uploadContextFile(input.client, fileName, context.markdown);
+  const { fileName, markdown, prompt } = await buildReviewRequest(
+    input.client,
+    input.cwd,
+    input.subject,
+  );
+  const file = await uploadContextFile(input.client, fileName, markdown);
   const draftId = input.draftId ?? generateDraftId();
   const attachment = { kind: "file" as const, attachment: file };
   const providerId = input.preferences.provider?.trim() ?? "";
@@ -71,10 +68,73 @@ export async function startPullRequestReviewChat(input: {
   });
 }
 
-async function loadBaseDiff(client: ReviewClient, cwd: string, baseRef: string) {
-  const trimmedBaseRef = baseRef.trim();
+async function buildReviewRequest(
+  client: ReviewClient,
+  cwd: string,
+  subject: ReviewSubject,
+): Promise<{ fileName: string; markdown: string; prompt: string }> {
+  if (subject.kind === "pull_request") {
+    const { pullRequest } = subject;
+    const diff = await loadPullRequestDiff(client, cwd, pullRequest.baseRef);
+    const fileName = pullRequestReviewContextFileName(pullRequest.number);
+    const context = diff
+      ? buildPullRequestReviewContext({
+          pullRequest,
+          files: diff.files,
+          diffTooLarge: diff.diffTooLarge === true,
+        })
+      : buildPullRequestReviewContext({ pullRequest, files: [], baseMismatch: true });
+    return {
+      fileName,
+      markdown: context.markdown,
+      prompt: buildPullRequestReviewPrompt({ fileName, pullRequest }),
+    };
+  }
+
+  const { changes } = subject;
+  // "all" is the branch's commits since its base plus the working tree, untracked files included.
+  const diff = changes.baseRef
+    ? await loadDiff(client, cwd, "all", changes.baseRef)
+    : await loadDiff(client, cwd, "uncommitted", null);
+  const fileName = LOCAL_CHANGES_REVIEW_CONTEXT_FILE_NAME;
+  const context = buildLocalChangesReviewContext({
+    changes,
+    files: diff.files,
+    diffTooLarge: diff.diffTooLarge === true,
+  });
+  return {
+    fileName,
+    markdown: context.markdown,
+    prompt: buildLocalChangesReviewPrompt({ fileName, changes }),
+  };
+}
+
+/**
+ * A worktree diffs against the base it was created from, and the host refuses another one. A pull
+ * request can target a different branch (retargeted or stacked), so that diff comes back null and
+ * the review reads it with git instead.
+ */
+async function loadPullRequestDiff(client: ReviewClient, cwd: string, baseRef: string) {
+  try {
+    return await loadDiff(client, cwd, "base", baseRef);
+  } catch (error) {
+    // The host reports this without an error code; see baseRefMismatchError in checkout-git.ts.
+    if (error instanceof Error && error.message.includes("Base ref mismatch")) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function loadDiff(
+  client: ReviewClient,
+  cwd: string,
+  mode: "base" | "all" | "uncommitted",
+  baseRef: string | null,
+) {
+  const trimmedBaseRef = baseRef?.trim();
   const diff = await client.getCheckoutDiff(cwd, {
-    mode: "base",
+    mode,
     ...(trimmedBaseRef ? { baseRef: trimmedBaseRef } : {}),
   });
   if (diff.error) {
@@ -142,7 +202,7 @@ function queueReviewSubmission(input: {
     ...wireAttachments(wire.attachments),
   });
   if (!started) {
-    throw new Error("A review chat for this pull request is already starting.");
+    throw new Error("A review chat is already starting.");
   }
   useWorkspaceDraftSubmissionStore.getState().setPending({
     serverId: input.serverId,

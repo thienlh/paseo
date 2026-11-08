@@ -12,7 +12,7 @@ interface WorkspaceActionsProps {
 }
 
 export function WorkspaceActions({ serverId, workspaceId, cwd }: WorkspaceActionsProps) {
-  const { gitActions, pullRequestReview } = useGitActions({
+  const { gitActions, reviewSubject } = useGitActions({
     serverId,
     cwd,
     icons: GIT_ACTION_ICONS,
@@ -20,12 +20,12 @@ export function WorkspaceActions({ serverId, workspaceId, cwd }: WorkspaceAction
 
   return (
     <View style={styles.row}>
-      {pullRequestReview ? (
+      {reviewSubject ? (
         <PullRequestReviewButton
           serverId={serverId}
           workspaceId={workspaceId}
           cwd={cwd}
-          pullRequest={pullRequestReview}
+          subject={reviewSubject}
           placement="header"
         />
       ) : null}
