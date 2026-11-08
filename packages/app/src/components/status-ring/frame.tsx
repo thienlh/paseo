@@ -19,25 +19,38 @@ export interface StatusRingProps {
   // tab dot, the project tile under a sidebar badge. Leave it out where the ring sits on flat
   // background and has nothing to knock out.
   backdrop?: SurfaceBackdrop | null;
+  // "status" paints the running colour. "foreground" paints the text colour, for a ring that
+  // stands on its own beside a label instead of sitting on an agent icon.
+  tone?: StatusRingTone;
 }
+
+export type StatusRingTone = "status" | "foreground";
 
 /**
  * The static half of the running indicator: the knockout, the track, and the centre dot. The
  * platform entry points supply the rotating quarter and own only how it is driven.
  *
- * The ring has no colour prop. It only ever means one thing — an agent is running — so it reads
- * that one colour out of the theme itself. Passing the colour in would materialise it at the call
- * site, outside anything Unistyles tracks, and leave the mark in the old theme until something
- * incidental re-rendered the row.
+ * The ring takes a named tone, never a colour. Passing the colour in would materialise it at the
+ * call site, outside anything Unistyles tracks, and leave the mark in the old theme until
+ * something incidental re-rendered the row.
  */
-export function StatusRingFrame({ backdrop, children }: StatusRingProps & { children: ReactNode }) {
+export function StatusRingFrame({
+  backdrop,
+  tone = "status",
+  children,
+}: StatusRingProps & { children: ReactNode }) {
+  const foreground = tone === "foreground";
   return (
     <View style={[styles.frame, getBackdropStyle(backdrop)]}>
-      <View style={styles.track} />
+      <View style={[styles.track, foreground && styles.trackForeground]} />
       {children}
-      <View style={styles.centerDot} />
+      <View style={[styles.centerDot, foreground && styles.centerDotForeground]} />
     </View>
   );
+}
+
+export function getStatusRingArcStyle(tone: StatusRingTone = "status") {
+  return tone === "foreground" ? [styles.arc, styles.arcForeground] : styles.arc;
 }
 
 function getBackdropStyle(backdrop: SurfaceBackdrop | null | undefined) {
@@ -120,5 +133,9 @@ export const styles = StyleSheet.create((theme) => {
       borderRadius: theme.borderRadius.full,
       backgroundColor: runningColor,
     },
+
+    trackForeground: { borderColor: theme.colors.foreground },
+    arcForeground: { borderTopColor: theme.colors.foreground },
+    centerDotForeground: { backgroundColor: theme.colors.foreground },
   };
 });
