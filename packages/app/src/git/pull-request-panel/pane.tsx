@@ -44,6 +44,8 @@ import {
 } from "@/components/ui/pane-content-toolbar";
 import { ICON_SIZE, type Theme } from "@/styles/theme";
 import { getForgePresentation } from "@/git/forge";
+import { PullRequestReviewButton } from "@/git/pull-request-review/button";
+import { pullRequestReviewSubjectFromPane } from "@/git/pull-request-review/context";
 import { CLIENT_FORGE_VIEW_MODULES } from "@/git/forges/view";
 import type { PaneNativeContribution } from "@/git/client-forge-module";
 import { PrActivitySkeleton } from "./activity-skeleton";
@@ -185,14 +187,54 @@ function removeLoadingCheck(current: ReadonlySet<string>, checkKey: string): Rea
   return next;
 }
 
+function PullRequestPaneReviewAction({
+  serverId,
+  workspaceId,
+  cwd,
+  data,
+}: {
+  serverId: string;
+  workspaceId?: string | null;
+  cwd: string;
+  data: PrPaneData;
+}) {
+  const reviewSubject = useMemo(
+    () =>
+      pullRequestReviewSubjectFromPane({
+        number: data.number,
+        title: data.title,
+        url: data.url,
+        state: data.state,
+        forge: data.forge,
+        baseRefName: data.baseRefName,
+        headRefName: data.headRefName,
+      }),
+    [data],
+  );
+  if (!workspaceId || !reviewSubject) {
+    return null;
+  }
+  return (
+    <PullRequestReviewButton
+      serverId={serverId}
+      workspaceId={workspaceId}
+      cwd={cwd}
+      pullRequest={reviewSubject}
+      placement="pane"
+    />
+  );
+}
+
 export function PullRequestPane({
   serverId,
+  workspaceId,
   cwd,
   data,
   activityLoading,
   workspaceAttachmentScopeKey,
 }: {
   serverId: string;
+  workspaceId?: string | null;
   cwd: string;
   data: PrPaneData;
   activityLoading: boolean;
@@ -482,6 +524,12 @@ export function PullRequestPane({
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <PaneContentToolbar style={styles.toolbar} testID="pr-pane-toolbar">
           <View style={styles.toolbarActions}>
+            <PullRequestPaneReviewAction
+              serverId={serverId}
+              workspaceId={workspaceId}
+              cwd={cwd}
+              data={data}
+            />
             <Button
               variant="ghost"
               size="sm"
