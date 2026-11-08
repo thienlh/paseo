@@ -36,26 +36,20 @@ export interface ChecksReviewPullRequest {
 }
 
 /**
- * The Review section of the Checks panel: starts a review of the pull request or, without one, of
- * the local changes, and lists the newest review's findings from `.context/reviews`, each
- * addable to a chat like a forge comment.
+ * Starts a review of the pull request or, without one, of the local changes. It is the Checks
+ * panel's one accent action and sits in its toolbar, beside View.
  */
-export function ChecksReviewSection({
+export function ChecksReviewButton({
   serverId,
   workspaceId,
   cwd,
   pullRequest,
-  workspaceAttachmentScopeKey,
 }: {
   serverId: string;
   workspaceId?: string | null;
   cwd: string;
   pullRequest: ChecksReviewPullRequest | null;
-  workspaceAttachmentScopeKey?: string;
 }) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(true);
-  const toggle = useCallback(() => setOpen((current) => !current), []);
   const { status } = useCheckoutStatusQuery({ serverId, cwd });
   const gitStatus = status && status.isGit ? status : null;
   const subject = useMemo(
@@ -68,6 +62,35 @@ export function ChecksReviewSection({
       }),
     [gitStatus?.baseRef, gitStatus?.currentBranch, gitStatus?.isDirty, pullRequest],
   );
+  if (!subject || !workspaceId) {
+    return null;
+  }
+  return (
+    <PullRequestReviewButton
+      serverId={serverId}
+      workspaceId={workspaceId}
+      cwd={cwd}
+      subject={subject}
+    />
+  );
+}
+
+/**
+ * The Review section of the Checks panel: lists the newest review's findings from
+ * `.context/reviews`, each addable to a chat like a forge comment.
+ */
+export function ChecksReviewSection({
+  serverId,
+  cwd,
+  workspaceAttachmentScopeKey,
+}: {
+  serverId: string;
+  cwd: string;
+  workspaceAttachmentScopeKey?: string;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(true);
+  const toggle = useCallback(() => setOpen((current) => !current), []);
   const latest = useLatestReviewFindings({ serverId, cwd }).data ?? null;
   const findings = latest?.findings ?? [];
 
@@ -96,19 +119,9 @@ export function ChecksReviewSection({
 
   return (
     <Section title={t("checks.review.title")} open={open} onToggle={toggle} summary={summary}>
-      <View style={styles.actionRow}>
-        <Text style={styles.description} numberOfLines={2}>
-          {describeLatest(latest, t)}
-        </Text>
-        {subject && workspaceId ? (
-          <PullRequestReviewButton
-            serverId={serverId}
-            workspaceId={workspaceId}
-            cwd={cwd}
-            subject={subject}
-          />
-        ) : null}
-      </View>
+      <Text style={styles.description} numberOfLines={2}>
+        {describeLatest(latest, t)}
+      </Text>
       {findings.map((finding, index) => (
         <FindingRow
           key={`${latest?.fileName}:${finding.file}:${finding.line}:${finding.body}`}
@@ -198,17 +211,11 @@ export function buildReviewFindingAttachment(input: {
 }
 
 const styles = StyleSheet.create((theme) => ({
-  actionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[2],
-    paddingHorizontal: theme.spacing[3],
-    paddingBottom: theme.spacing[2],
-  },
   description: {
-    flex: 1,
     fontSize: theme.fontSize.sm,
     color: theme.colors.foregroundMuted,
+    paddingHorizontal: theme.spacing[3],
+    paddingBottom: theme.spacing[2],
   },
   row: {
     flexDirection: "row",
