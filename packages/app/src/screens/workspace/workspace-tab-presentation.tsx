@@ -115,6 +115,8 @@ interface WorkspaceTabIconProps {
    * it cannot work the colour out for itself.
    */
   backdrop: SurfaceBackdrop;
+  /** False when the running indicator is drawn beside the label instead of on the icon. */
+  showRunningRing?: boolean;
 }
 
 const ThemedCheckIcon = withUnistyles(Check);
@@ -126,6 +128,7 @@ export function WorkspaceTabIcon({
   strokeWidth,
   statusDotBorderColor,
   backdrop,
+  showRunningRing,
 }: WorkspaceTabIconProps): ReactElement {
   const Icon = presentation.icon;
   const iconColor = active ? styles.iconActive.color : styles.iconInactive.color;
@@ -135,6 +138,7 @@ export function WorkspaceTabIcon({
       size={size}
       statusDotBorderColor={statusDotBorderColor}
       backdrop={backdrop}
+      showRunningRing={showRunningRing}
     >
       <Icon size={size} color={iconColor} strokeWidth={strokeWidth} />
     </StatusIcon>

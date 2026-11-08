@@ -1,4 +1,6 @@
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { StatusRing } from "@/components/status-ring";
+import { STATUS_RING_FRAME_SIZE } from "@/components/status-ring/geometry";
 import React, {
   Fragment,
   createContext,
@@ -483,6 +485,7 @@ interface WorkspaceTabLabel {
   key: string;
   label: string;
   modified: boolean;
+  running: boolean;
 }
 
 interface WorkspaceTabLabelMeasurement {
@@ -513,7 +516,7 @@ function completeWorkspaceTabLabelWidths(
   measurements: Map<string, WorkspaceTabLabelMeasurement>,
 ): number[] | null {
   const widths: number[] = [];
-  for (const { key, label, modified } of labels) {
+  for (const { key, label, modified, running } of labels) {
     const measurement = measurements.get(key);
     if (!measurement || measurement.label !== label || measurement.width <= 0) {
       return null;
@@ -521,7 +524,11 @@ function completeWorkspaceTabLabelWidths(
     // The modified dot sits in the content row, so a modified tab needs that much more width
     // before its label starts truncating.
     const modifiedAllowance = modified ? TAB_CONTENT_GAP + TAB_MODIFIED_DOT_SIZE : 0;
-    widths.push(measurement.width + TAB_LABEL_LAYOUT_ALLOWANCE + modifiedAllowance);
+    // Same for the running ring, which trails the label rather than covering the agent icon.
+    const runningAllowance = running ? TAB_CONTENT_GAP + STATUS_RING_FRAME_SIZE : 0;
+    widths.push(
+      measurement.width + TAB_LABEL_LAYOUT_ALLOWANCE + modifiedAllowance + runningAllowance,
+    );
   }
   return widths;
 }
@@ -697,11 +704,19 @@ function TabHandleContent({
     () => ({ statusBucket: presentation.statusBucket ?? "none" }),
     [presentation.statusBucket],
   );
+  // With a label there is room to put the running ring after it, so it stops covering the agent's
+  // provider icon. Icon-only tabs have no room and keep the ring on the icon.
+  const showTrailingRunningRing = showLabel && presentation.statusBucket === "running";
 
   return (
     <View style={styles.tabHandle} dataSet={tabHandleDataSet}>
       <View style={styles.tabIcon}>
-        <WorkspaceTabIcon presentation={presentation} active={isHighlighted} backdrop={backdrop} />
+        <WorkspaceTabIcon
+          presentation={presentation}
+          active={isHighlighted}
+          backdrop={backdrop}
+          showRunningRing={!showTrailingRunningRing}
+        />
       </View>
       {showLabel && presentation.titleState === "loading" ? (
         <View style={tabLabelSkeletonStyle} />
@@ -719,6 +734,15 @@ function TabHandleContent({
           accessibilityLabel={t("workspace.tabs.modified")}
           testID={modifiedTestId}
         />
+      ) : null}
+      {showTrailingRunningRing ? (
+        <View
+          style={styles.tabRunningRing}
+          accessibilityRole="progressbar"
+          accessibilityLabel="Agent running"
+        >
+          <StatusRing tone="foreground" />
+        </View>
       ) : null}
     </View>
   );
@@ -1191,7 +1215,12 @@ function ResolvedWorkspaceDesktopTabsRow({
           tab.presentation.titleState === "loading"
             ? getFallbackTabLabel(tab.tab, fallbackTabLabels)
             : tab.presentation.label;
-        return { key: tab.tab.key, label, modified: tab.presentation.modified };
+        return {
+          key: tab.tab.key,
+          label,
+          modified: tab.presentation.modified,
+          running: tab.presentation.statusBucket === "running",
+        };
       }),
     [fallbackTabLabels, tabs],
   );
@@ -1799,6 +1828,9 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1,
+  },
+  tabRunningRing: {
+    flexShrink: 0,
   },
   tabModifiedDot: {
     width: TAB_MODIFIED_DOT_SIZE,
