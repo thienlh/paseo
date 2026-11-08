@@ -19,6 +19,8 @@ interface StatusIconProps {
   size?: number;
   statusDotBorderColor?: string;
   backdrop: SurfaceBackdrop;
+  /** False when the caller draws the running indicator elsewhere, off the icon. */
+  showRunningRing?: boolean;
 }
 const DEFAULT_STATUS_DOT_OFFSET = -2;
 const STATUS_ALERT_OFFSET = -3;
@@ -34,9 +36,10 @@ export function StatusIcon({
   size = 14,
   statusDotBorderColor,
   backdrop,
+  showRunningRing = true,
 }: StatusIconProps): ReactElement {
   const bucket = statusBucket;
-  const isRunning = bucket === "running";
+  const isRunning = showRunningRing && bucket === "running";
   let statusDotColor: string | undefined;
   if (bucket === "failed") statusDotColor = styles.statusDotFailed.color;
   else if (bucket === "attention") statusDotColor = styles.statusDotAttention.color;
