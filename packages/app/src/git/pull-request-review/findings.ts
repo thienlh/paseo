@@ -1,22 +1,11 @@
 import { z } from "zod";
 
 /**
- * Review chats end with their findings in a fenced block of this language, so the app can turn
- * them into inline comments on the Changes diff. The chat shows a findings card instead of the
- * block; see `splitReviewFindings`.
+ * Review chats save their findings as JSON in this directory of the workspace's `.context`, one
+ * file per review. The Checks panel reads the newest one and lists its findings, each addable to
+ * a chat, the way it lists forge comments.
  */
-export const REVIEW_FINDINGS_FENCE = "paseo-review-findings";
-
-export const REVIEW_FINDINGS_INSTRUCTIONS = [
-  `The app shows your findings from a fenced code block with the language \`${REVIEW_FINDINGS_FENCE}\`, each with a button that adds it to the diff as a comment. So do not list the findings in your prose: write a short summary of the review, then end your reply with the block, a JSON array:`,
-  "",
-  "```" + REVIEW_FINDINGS_FENCE,
-  '[{ "title": "Short title", "file": "src/example.ts", "line": 42, "side": "new", "body": "What is wrong, why it matters, and what to do." }]',
-  "```",
-  "",
-  "Put every finding in this list, highest risk first: correctness, regressions, test gaps, risks, and notes about code outside the diff. Do not leave any out, even minor ones.",
-  'Use repository-relative paths. Give the file and line the finding is about, even when the line is outside the diff. For a finding about the change as a whole, use `null` for both. Use "side": "old" with the old line number only for a removed line. Write the title and body as plain text. Write `[]` when there are none.',
-].join("\n");
+export const REVIEW_FINDINGS_DIR = ".context/reviews";
 
 export interface ReviewFinding {
   title: string | null;
@@ -28,11 +17,11 @@ export interface ReviewFinding {
   body: string;
 }
 
-export type ReviewFindingsBlock =
-  | { status: "none" }
-  /** The block has started streaming but is not closed yet. */
-  | { status: "pending" }
-  | { status: "ready"; findings: ReviewFinding[]; invalidCount: number };
+export interface ParsedReviewFindings {
+  findings: ReviewFinding[];
+  /** Entries that are not findings. */
+  invalidCount: number;
+}
 
 const FindingSchema = z.object({
   title: z.string().trim().min(1).nullable().optional(),
@@ -42,45 +31,48 @@ const FindingSchema = z.object({
   body: z.string().trim().min(1),
 });
 
-const OPENING_FENCE = new RegExp("(^|\\n)[ \\t]*```" + REVIEW_FINDINGS_FENCE + "[ \\t]*\\n");
-const CLOSING_FENCE = /\n[ \t]*```[ \t]*(\n|$)/;
+const PROVIDER_SEPARATOR = "--";
 
 /**
- * Splits a review reply into the prose to show and the findings block it ends with. While the
- * reply streams, an unclosed block is pending. Once it has `settled`, an unclosed block is read
- * if it parses, and otherwise left in the text so the user sees what the agent wrote.
+ * Names sort by time, so the newest review is the last name. The provider that ran the review
+ * rides in the name, after `--`, so the Checks panel can show its icon.
  */
-export function splitReviewFindings(
-  text: string,
-  options: { settled?: boolean } = {},
-): { text: string; block: ReviewFindingsBlock } {
-  const opening = OPENING_FENCE.exec(text);
-  if (!opening) {
-    return { text, block: { status: "none" } };
-  }
-  const blockStart = opening.index + opening[1].length;
-  const bodyStart = opening.index + opening[0].length;
-  const prose = text.slice(0, blockStart).trimEnd();
-  // Search from the newline that ended the opening fence, so an empty block still closes.
-  const rest = text.slice(bodyStart - 1);
-  const closing = CLOSING_FENCE.exec(rest);
-  if (!closing) {
-    if (!options.settled) {
-      return { text: prose, block: { status: "pending" } };
-    }
-    const block = parseFindings(rest);
-    return block ? { text: prose, block } : { text, block: { status: "none" } };
-  }
-  const json = rest.slice(0, closing.index);
-  const after = rest.slice(closing.index + closing[0].length).trim();
-  return {
-    text: after ? `${prose}\n\n${after}` : prose,
-    block: parseFindings(json) ?? { status: "ready", findings: [], invalidCount: 1 },
-  };
+export function reviewFindingsFileName(input: {
+  startedAt: Date;
+  subject: string;
+  provider?: string | null;
+}): string {
+  const stamp = input.startedAt.toISOString().replace(/[:.]/g, "-");
+  const provider = input.provider?.replace(/[^A-Za-z0-9_-]/g, "") ?? "";
+  return `${stamp}-${input.subject}${provider ? `${PROVIDER_SEPARATOR}${provider}` : ""}.json`;
 }
 
-/** Null when the block is not a JSON array. */
-function parseFindings(json: string): Extract<ReviewFindingsBlock, { status: "ready" }> | null {
+/** The provider that ran the review, or null when the review started without one. */
+export function reviewFindingsProvider(fileName: string): string | null {
+  const stem = fileName.replace(/\.json$/, "");
+  const index = stem.lastIndexOf(PROVIDER_SEPARATOR);
+  return index === -1 ? null : stem.slice(index + PROVIDER_SEPARATOR.length) || null;
+}
+
+/** One line that identifies a finding: its title, or the start of its body. */
+export function findingSummary(finding: ReviewFinding): string {
+  return finding.title ?? finding.body.split("\n")[0] ?? finding.body;
+}
+
+export function reviewFindingsInstructions(path: string): string {
+  return [
+    `Also save every finding to \`${path}\` as a JSON array, creating the directory if needed. The user reads them in Paseo's Checks panel and adds the ones they want to a chat:`,
+    "",
+    "```json",
+    '[{ "title": "Short title", "file": "src/example.ts", "line": 42, "side": "new", "body": "What is wrong, why it matters, and what to do." }]',
+    "```",
+    "",
+    'List them highest risk first and leave none out, including test gaps and notes about code outside the diff. Use repository-relative paths. Give the file and line the finding is about, or `null` for both when it is about the change as a whole. Use "side": "old" with the old line number only for a removed line. Write the title and body as plain text. Write `[]` when there are none.',
+  ].join("\n");
+}
+
+/** Null when the text is not a JSON array. */
+export function parseReviewFindings(json: string): ParsedReviewFindings | null {
   let value: unknown;
   try {
     value = JSON.parse(json);
@@ -106,10 +98,10 @@ function parseFindings(json: string): Extract<ReviewFindingsBlock, { status: "re
       body: parsed.data.body,
     });
   }
-  return { status: "ready", findings, invalidCount };
+  return { findings, invalidCount };
 }
 
-/** Makes a finding's path repository-relative, the form the diff uses. */
+/** Makes a finding's path repository-relative. */
 export function normalizeFindingPath(file: string, cwd: string): string {
   const path = file.trim().replace(/\\/g, "/");
   const root = cwd.trim().replace(/\\/g, "/").replace(/\/+$/, "");
@@ -117,4 +109,11 @@ export function normalizeFindingPath(file: string, cwd: string): string {
     return path.slice(root.length + 1);
   }
   return path.replace(/^\.\//, "");
+}
+
+/** `src/a.ts:12`, `src/a.ts`, or null for a finding about the whole change. */
+export function formatFindingLocation(finding: ReviewFinding, cwd: string): string | null {
+  if (finding.file === null) return null;
+  const path = normalizeFindingPath(finding.file, cwd);
+  return finding.line === null ? path : `${path}:${finding.line}`;
 }

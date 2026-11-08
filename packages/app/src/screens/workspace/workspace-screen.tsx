@@ -3259,11 +3259,7 @@ function WorkspaceScreenContent({
         ) : null}
         {workspaceDirectory ? (
           <>
-            <WorkspaceActions
-              serverId={normalizedServerId}
-              workspaceId={normalizedWorkspaceId}
-              cwd={workspaceDirectory}
-            />
+            <WorkspaceActions serverId={normalizedServerId} cwd={workspaceDirectory} />
             {workspaceActionsInBar ? null : (
               <WorkspaceHeaderExplorerToggle
                 owner={explorerToggleOwner}

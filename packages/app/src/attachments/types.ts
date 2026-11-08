@@ -60,7 +60,8 @@ export type PullRequestContextAttachmentKind =
   | "forge.change_request_check"
   | "github.pull_request_comment"
   | "github.pull_request_review"
-  | "github.pull_request_check";
+  | "github.pull_request_check"
+  | "paseo.review_finding";
 
 interface PullRequestContextAttachmentFields {
   id: string;
@@ -76,7 +77,9 @@ export type PullRequestContextAttachment =
   | ({ kind: "forge.change_request_check" } & PullRequestContextAttachmentFields)
   | ({ kind: "github.pull_request_comment" } & PullRequestContextAttachmentFields)
   | ({ kind: "github.pull_request_review" } & PullRequestContextAttachmentFields)
-  | ({ kind: "github.pull_request_check" } & PullRequestContextAttachmentFields);
+  | ({ kind: "github.pull_request_check" } & PullRequestContextAttachmentFields)
+  // A finding from a Paseo review chat, listed in the Checks panel beside forge comments.
+  | ({ kind: "paseo.review_finding" } & PullRequestContextAttachmentFields);
 
 export interface ChatHistoryContextAttachment {
   kind: "chat_history";

@@ -144,6 +144,11 @@ function useWorkspaceAttachmentBinding({
     [activeWorkspaceAttachments],
   );
 
+  const suppressWorkspaceAttachment = useCallback((attachment: WorkspaceComposerAttachment) => {
+    const key = getAttachmentKey(attachment);
+    setSuppressedKeys((current) => (current.includes(key) ? current : [...current, key]));
+  }, []);
+
   const clearSentAttachments = useCallback(
     (attachments: readonly ComposerAttachment[]) => {
       for (const attachment of attachments) {
@@ -169,16 +174,12 @@ function useWorkspaceAttachmentBinding({
           removeWorkspaceAttachmentsMatching(selectedKey);
           return true;
         }
-        if (selected.kind === "review") {
-          // Removing the review discards its comments, as sending it does, so findings added
-          // again afterwards make a fresh review instead of reviving the discarded comments.
-          clearReviewDraft({ key: selected.reviewDraftKey });
-          return true;
-        }
+        suppressWorkspaceAttachment(selected);
+        return true;
       }
       return false;
     },
-    [clearReviewDraft],
+    [suppressWorkspaceAttachment],
   );
 
   const openAttachment = useCallback(

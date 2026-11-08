@@ -17,6 +17,7 @@ import {
   pullRequestReviewContextFileName,
   type ReviewSubject,
 } from "./context";
+import { REVIEW_FINDINGS_DIR, reviewFindingsFileName } from "./findings";
 
 export interface StartedPullRequestReview {
   draftId: string;
@@ -37,10 +38,17 @@ export async function startReviewChat(input: {
   draftId?: string;
   now?: number;
 }): Promise<StartedPullRequestReview> {
+  const findingsPath = reviewFindingsPath({
+    cwd: input.cwd,
+    subject: input.subject,
+    startedAt: new Date(input.now ?? Date.now()),
+    provider: input.preferences.provider?.trim() || null,
+  });
   const { fileName, markdown, prompt } = await buildReviewRequest(
     input.client,
     input.cwd,
     input.subject,
+    findingsPath,
   );
   const file = await uploadContextFile(input.client, fileName, markdown);
   const draftId = input.draftId ?? generateDraftId();
@@ -68,10 +76,27 @@ export async function startReviewChat(input: {
   });
 }
 
+/** Where the review saves its findings, for the Checks panel to read. */
+export function reviewFindingsPath(input: {
+  cwd: string;
+  subject: ReviewSubject;
+  startedAt: Date;
+  provider?: string | null;
+}): string {
+  const fileName = reviewFindingsFileName({
+    startedAt: input.startedAt,
+    provider: input.provider,
+    subject:
+      input.subject.kind === "pull_request" ? `pr-${input.subject.pullRequest.number}` : "local",
+  });
+  return `${input.cwd.replace(/\/+$/, "")}/${REVIEW_FINDINGS_DIR}/${fileName}`;
+}
+
 async function buildReviewRequest(
   client: ReviewClient,
   cwd: string,
   subject: ReviewSubject,
+  findingsPath: string,
 ): Promise<{ fileName: string; markdown: string; prompt: string }> {
   if (subject.kind === "pull_request") {
     const { pullRequest } = subject;
@@ -87,7 +112,7 @@ async function buildReviewRequest(
     return {
       fileName,
       markdown: context.markdown,
-      prompt: buildPullRequestReviewPrompt({ fileName, pullRequest }),
+      prompt: buildPullRequestReviewPrompt({ fileName, findingsPath, pullRequest }),
     };
   }
 
@@ -105,7 +130,7 @@ async function buildReviewRequest(
   return {
     fileName,
     markdown: context.markdown,
-    prompt: buildLocalChangesReviewPrompt({ fileName, changes }),
+    prompt: buildLocalChangesReviewPrompt({ fileName, findingsPath, changes }),
   };
 }
 

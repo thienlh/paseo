@@ -11,7 +11,7 @@ import {
   selectReviewSubject,
   type PullRequestReviewSubject,
 } from "./context";
-import { REVIEW_FINDINGS_INSTRUCTIONS } from "./findings";
+import { reviewFindingsInstructions } from "./findings";
 
 const pullRequest: PullRequestReviewSubject = {
   number: 42,
@@ -189,16 +189,17 @@ describe("pull request review context", () => {
 describe("buildPullRequestReviewPrompt", () => {
   it("asks for a code review of the attached context file", () => {
     const fileName = pullRequestReviewContextFileName(42);
-    expect(buildPullRequestReviewPrompt({ fileName, pullRequest })).toBe(
+    const findingsPath = "/repo/.context/reviews/r.json";
+    expect(buildPullRequestReviewPrompt({ fileName, findingsPath, pullRequest })).toBe(
       [
         "Review pull request #42: Add review chat",
         "https://github.com/getpaseo/paseo/pull/42",
         "",
         "Read the attached context file `pr-42-review-context.md`. It has the pull request metadata, the changed files, and the diff. This workspace is checked out on the pull request branch.",
         "",
-        "Review the code. Cover correctness, regressions, missing tests, and unnecessary complexity. Skip praise and style nits unless they hide a defect. Do not edit the code.",
+        "Write a code review in this chat. Lead with the highest-risk findings. Cover correctness, regressions, missing tests, and unnecessary complexity. Cite file paths and line numbers. Skip praise and style nits unless they hide a defect. Do not edit the code; the findings file below is the only file you write.",
         "",
-        REVIEW_FINDINGS_INSTRUCTIONS,
+        reviewFindingsInstructions(findingsPath),
       ].join("\n"),
     );
   });
@@ -261,6 +262,7 @@ describe("local changes review", () => {
     expect(
       buildLocalChangesReviewPrompt({
         fileName: "local-changes-review-context.md",
+        findingsPath: "/repo/.context/reviews/r.json",
         changes: { branch: "feature/review", baseRef: "main" },
       }),
     ).toContain(
@@ -269,12 +271,14 @@ describe("local changes review", () => {
     expect(
       buildLocalChangesReviewPrompt({
         fileName: "local-changes-review-context.md",
+        findingsPath: "/repo/.context/reviews/r.json",
         changes: { branch: null, baseRef: null },
       }),
     ).toContain("Review the local changes in this workspace.");
     expect(
       buildLocalChangesReviewPrompt({
         fileName: "local-changes-review-context.md",
+        findingsPath: "/repo/.context/reviews/r.json",
         changes: { branch: "feature/review", baseRef: "refs/remotes/origin/main" },
       }),
     ).toContain("since it left `origin/main`");

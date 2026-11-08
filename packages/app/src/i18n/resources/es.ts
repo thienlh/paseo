@@ -2034,26 +2034,15 @@ export const es: TranslationResources = {
       stop: "Detener la voz en tiempo real e interrumpir el turno.",
     },
   },
-  reviewFindings: {
-    updateHost: "Actualiza el host para añadir hallazgos a Cambios.",
-    general: "General",
-    preparing: "Preparando los hallazgos de la revisión…",
-    title_one: "{{count}} hallazgo de revisión",
-    title_other: "{{count}} hallazgos de revisión",
-    add: "Añadir todo a Cambios",
-    addOne: "Añadir",
-    adding: "Añadiendo…",
-    addFailed: "No se pudieron añadir los hallazgos a Cambios.",
-    added_one: "Se añadió {{count}} comentario a Cambios.",
-    added_other: "Se añadieron {{count}} comentarios a Cambios.",
-    offDiff_one: "No se pudo añadir {{count}} porque el diff está vacío.",
-    offDiff_other: "No se pudieron añadir {{count}} porque el diff está vacío.",
-    moved_one:
-      "{{count}} se colocó en la línea más cercana del diff, con su ubicación real en el comentario.",
-    moved_other:
-      "{{count}} se colocaron en la línea más cercana del diff, con su ubicación real en los comentarios.",
-    unreadable_one: "No se pudo leer {{count}} hallazgo.",
-    unreadable_other: "No se pudieron leer {{count}} hallazgos.",
+  checks: {
+    review: {
+      title: "Revisión",
+      empty: "Revisa la pull request o tus cambios locales para ver hallazgos aquí.",
+      unreadable: "No se pudieron leer los hallazgos de la última revisión.",
+      noFindings: "La última revisión no encontró nada.",
+      fromLatest_one: "{{count}} hallazgo de la última revisión",
+      fromLatest_other: "{{count}} hallazgos de la última revisión",
+    },
   },
   rewind: {
     tooltip: "Rebobinar a este mensaje",
@@ -2170,8 +2159,8 @@ export const es: TranslationResources = {
       chooseFile: "Elige un archivo",
     },
     pullRequest: {
-      label: "Solicitud de extracción",
-      subtitle: "Detalles de la solicitud de extracción",
+      label: "Comprobaciones",
+      subtitle: "Pull request, comprobaciones y hallazgos de revisión",
       emptyTitle: "Aún no hay ninguna solicitud de extracción",
       emptyDescription: "Crea una solicitud para este checkout y consulta aquí sus detalles.",
     },

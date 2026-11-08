@@ -41,6 +41,9 @@ function getPullRequestContextSubtitle(attachment: WorkspaceComposerAttachment):
   ) {
     return "Comment";
   }
+  if (attachment.kind === "paseo.review_finding") {
+    return "Review finding";
+  }
   return "Review";
 }
 
