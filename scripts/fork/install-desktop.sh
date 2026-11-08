@@ -103,6 +103,28 @@ if [ -n "$old_version" ] && [ "$old_version" != "$new_version" ] &&
   [[ "$reply" =~ ^[Yy]$ ]] || exit 1
 fi
 
+daemon_running=0
+if lsof -nP -iTCP:6767 -sTCP:LISTEN >/dev/null 2>&1; then
+  daemon_running=1
+fi
+
+# Unless "keep running after quit" is on (off by default), quitting the app stops the
+# daemon it manages, and every agent and terminal with it.
+keep_running="$(node -e '
+  try {
+    const s = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    process.stdout.write(String(s?.settings?.daemon?.keepRunningAfterQuit === true));
+  } catch { process.stdout.write("false"); }
+' "$HOME/Library/Application Support/Paseo/desktop-settings.json")"
+
+if pgrep -xq Paseo && [ "$daemon_running" = 1 ] && [ "$keep_running" != true ] &&
+  [ "$ASSUME_YES" = 0 ]; then
+  echo "Quitting Paseo stops the daemon on :6767, which stops running agents and terminals."
+  echo "Turn on \"Keep daemon running after quit\" in Paseo's settings to avoid this."
+  read -r -p "Continue? [y/N] " reply
+  [[ "$reply" =~ ^[Yy]$ ]] || exit 1
+fi
+
 if pgrep -xq Paseo; then
   echo "→ Quitting Paseo"
   osascript -e 'quit app "Paseo"' >/dev/null 2>&1 || true

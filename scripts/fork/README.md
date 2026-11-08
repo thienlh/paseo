@@ -34,8 +34,10 @@ Builds the desktop app from the current checkout, quits Paseo, installs the buil
   with `ditto -x -k ~/.paseo-fork/Paseo-official.zip /Applications`.
 - The build keeps upstream's version number. The desktop app restarts the daemon when the
   versions differ, which stops running agents, so the script asks first when that will happen.
-- The installed daemon keeps running across reinstalls. App-only changes take effect
-  immediately. Server changes need a daemon restart, which stops running agents.
+- Quitting Paseo stops its daemon, and every running agent, unless "Keep daemon running after
+  quit" is on in Paseo's settings. The script quits Paseo to install, so it asks first. With that
+  setting on, the daemon survives the reinstall: app changes take effect at once, and server
+  changes need a daemon restart.
 - The updater points at a feed that doesn't exist, so official releases never replace your build.
   Run `sync-upstream.sh` and reinstall to pick up upstream changes.
 
