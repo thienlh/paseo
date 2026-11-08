@@ -10,7 +10,8 @@ import {
   buildPullRequestReviewPrompt,
   type PullRequestReviewSubject,
 } from "./context";
-import { REVIEW_FINDINGS_INSTRUCTIONS } from "./findings";
+import { reviewFindingsInstructions } from "./findings";
+import { reviewFindingsPath } from "./start";
 import { startReviewChat } from "./start";
 
 const pullRequest: PullRequestReviewSubject = {
@@ -147,9 +148,11 @@ describe("startReviewChat", () => {
         "",
         "Read the attached context file `pr-42-review-context.md`. It has the pull request metadata, the changed files, and the diff. This workspace is checked out on the pull request branch.",
         "",
-        "Review the code. Cover correctness, regressions, missing tests, and unnecessary complexity. Skip praise and style nits unless they hide a defect. Do not edit the code.",
+        "Write a code review in this chat. Lead with the highest-risk findings. Cover correctness, regressions, missing tests, and unnecessary complexity. Cite file paths and line numbers. Skip praise and style nits unless they hide a defect. Do not edit the code; the findings file below is the only file you write.",
         "",
-        REVIEW_FINDINGS_INSTRUCTIONS,
+        reviewFindingsInstructions(
+          "/repo/.context/reviews/2023-11-14T22-13-20-000Z-pr-42--codex.json",
+        ),
       ].join("\n"),
       attachments: [
         { kind: "file", attachment: { ...uploadedFile, size: upload?.bytes.byteLength } },
@@ -178,6 +181,7 @@ describe("startReviewChat", () => {
       subject: { kind: "pull_request", pullRequest },
       preferences: {},
       draftId: "draft_review",
+      now: 1_700_000_000_000,
     });
 
     expect(started).toEqual({
@@ -197,6 +201,11 @@ describe("startReviewChat", () => {
     ).toEqual({
       text: buildPullRequestReviewPrompt({
         fileName: "pr-42-review-context.md",
+        findingsPath: reviewFindingsPath({
+          cwd: "/repo",
+          subject: { kind: "pull_request", pullRequest },
+          startedAt: new Date(1_700_000_000_000),
+        }),
         pullRequest,
       }),
       attachments: [
@@ -257,6 +266,7 @@ describe("startReviewChat", () => {
       subject: { kind: "local_changes", changes: { branch: "feature/review", baseRef: "main" } },
       preferences: { provider: "codex" },
       draftId: "draft_local",
+      now: 1_700_000_000_000,
     });
 
     expect(client.diffRequests).toEqual([{ mode: "all", baseRef: "main" }]);
@@ -266,6 +276,7 @@ describe("startReviewChat", () => {
     expect(useWorkspaceDraftSubmissionStore.getState().pendingByDraftId.draft_local?.text).toBe(
       buildLocalChangesReviewPrompt({
         fileName: "local-changes-review-context.md",
+        findingsPath: "/repo/.context/reviews/2023-11-14T22-13-20-000Z-local--codex.json",
         changes: { branch: "feature/review", baseRef: "main" },
       }),
     );

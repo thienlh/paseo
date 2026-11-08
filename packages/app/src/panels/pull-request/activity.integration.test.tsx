@@ -223,8 +223,12 @@ it("runs real PR descriptor/content/discovery hooks through hidden invalidation,
       .getAll()
       .map((query) => query.state.data),
   ).toEqual(cached);
+  // The Checks tab label does not depend on the pull request, so another rail fetches nothing.
   view.rerender(<Tree surface={false} content={false} otherRail />);
-  await waitFor(() => expect(source.calls).toEqual({ status: 2, timeline: 1 }));
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 30));
+  });
+  expect(source.calls).toEqual({ status: 1, timeline: 1 });
   view.rerender(<Tree surface={true} content={true} />);
   await waitFor(() => expect(source.calls).toEqual({ status: 2, timeline: 2 }));
   await waitFor(() => expect(queryClient.isFetching()).toBe(0));

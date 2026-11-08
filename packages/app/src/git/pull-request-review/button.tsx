@@ -1,11 +1,8 @@
 import { useCallback } from "react";
-import { View } from "react-native";
-import { StyleSheet } from "react-native-unistyles";
 import { TextSearch } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { create } from "zustand";
 import { Button } from "@/components/ui/button";
-import { HEADER_CONTROL_HEIGHT } from "@/components/ui/control-geometry";
 import { useToast } from "@/contexts/toast-context";
 import { useFormPreferences } from "@/hooks/use-form-preferences";
 import { useHostRuntimeClient } from "@/runtime/host-runtime";
@@ -31,13 +28,11 @@ export function PullRequestReviewButton({
   workspaceId,
   cwd,
   subject,
-  placement,
 }: {
   serverId: string;
   workspaceId: string;
   cwd: string;
   subject: ReviewSubject;
-  placement: "header" | "pane";
 }) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -96,39 +91,17 @@ export function PullRequestReviewButton({
   }, [allChangesSupported, client, cwd, preferences, subject, serverId, t, toast, workspaceId]);
 
   return (
-    <View style={placement === "header" ? styles.headerSlot : undefined}>
-      <Button
-        variant={placement === "header" ? "outline" : "ghost"}
-        size="sm"
-        leftIcon={TextSearch}
-        loading={inFlight}
-        disabled={inFlight}
-        onPress={startReview}
-        style={placement === "header" ? styles.headerButton : styles.paneButton}
-        testID={placement === "header" ? "workspace-pull-request-review" : "pr-pane-review"}
-        accessibilityLabel={t("workspace.git.pr.actions.review")}
-      >
-        {label}
-      </Button>
-    </View>
+    <Button
+      variant="outline"
+      size="sm"
+      leftIcon={TextSearch}
+      loading={inFlight}
+      disabled={inFlight}
+      onPress={startReview}
+      testID="checks-review-start"
+      accessibilityLabel={t("workspace.git.pr.actions.review")}
+    >
+      {label}
+    </Button>
   );
 }
-
-const styles = StyleSheet.create((theme) => ({
-  headerSlot: {
-    justifyContent: "center",
-  },
-  headerButton: {
-    height: HEADER_CONTROL_HEIGHT,
-    minHeight: HEADER_CONTROL_HEIGHT,
-    paddingHorizontal: theme.spacing[2],
-  },
-  paneButton: {
-    gap: theme.spacing[1],
-    minHeight: 24,
-    height: 24,
-    paddingVertical: 0,
-    paddingHorizontal: theme.spacing[1],
-    borderRadius: theme.borderRadius.base,
-  },
-}));

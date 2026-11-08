@@ -1,6 +1,6 @@
 import type { ParsedDiffFile } from "@getpaseo/protocol/messages";
 import { getForgePresentation, normalizeForge, type Forge } from "@/git/forge";
-import { REVIEW_FINDINGS_INSTRUCTIONS } from "./findings";
+import { reviewFindingsInstructions } from "./findings";
 
 export const PULL_REQUEST_REVIEW_CONTEXT_MAX_CHARS = 100_000;
 
@@ -64,11 +64,13 @@ export function selectReviewSubject(input: {
 
 export const LOCAL_CHANGES_REVIEW_CONTEXT_FILE_NAME = "local-changes-review-context.md";
 
-const REVIEW_INSTRUCTIONS = [
-  "Review the code. Cover correctness, regressions, missing tests, and unnecessary complexity. Skip praise and style nits unless they hide a defect. Do not edit the code.",
-  "",
-  REVIEW_FINDINGS_INSTRUCTIONS,
-].join("\n");
+function reviewInstructions(findingsPath: string): string {
+  return [
+    "Write a code review in this chat. Lead with the highest-risk findings. Cover correctness, regressions, missing tests, and unnecessary complexity. Cite file paths and line numbers. Skip praise and style nits unless they hide a defect. Do not edit the code; the findings file below is the only file you write.",
+    "",
+    reviewFindingsInstructions(findingsPath),
+  ].join("\n");
+}
 
 export function pullRequestReviewContextFileName(number: number): string {
   return `pr-${number}-review-context.md`;
@@ -124,6 +126,7 @@ export function pullRequestReviewSubjectFromPane(input: {
 
 export function buildPullRequestReviewPrompt(input: {
   fileName: string;
+  findingsPath: string;
   pullRequest: Pick<PullRequestReviewSubject, "number" | "title" | "url">;
 }): string {
   return [
@@ -132,7 +135,7 @@ export function buildPullRequestReviewPrompt(input: {
     "",
     `Read the attached context file \`${input.fileName}\`. It has the pull request metadata, the changed files, and the diff. This workspace is checked out on the pull request branch.`,
     "",
-    REVIEW_INSTRUCTIONS,
+    reviewInstructions(input.findingsPath),
   ].join("\n");
 }
 
@@ -143,6 +146,7 @@ function shortRef(ref: string | null): string | null {
 
 export function buildLocalChangesReviewPrompt(input: {
   fileName: string;
+  findingsPath: string;
   changes: LocalChangesReviewSubject;
 }): string {
   const { branch } = input.changes;
@@ -158,7 +162,7 @@ export function buildLocalChangesReviewPrompt(input: {
     "",
     `Read the attached context file \`${input.fileName}\`. It has the changed files and the diff: ${scope}.`,
     "",
-    REVIEW_INSTRUCTIONS,
+    reviewInstructions(input.findingsPath),
   ].join("\n");
 }
 
