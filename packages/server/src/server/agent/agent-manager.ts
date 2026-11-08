@@ -2,6 +2,7 @@ import type { AttachedAgentTool, PluginAgentToolsRuntime } from "../plugins/agen
 import { ProviderOptionsValidationError } from "./provider-options.js";
 import type { AgentToolResult } from "@getpaseo/plugin/server";
 import type { RuntimeCleanupCandidate } from "./idle-runtime-cleanup/index.js";
+import { workspaceContextInstructions } from "./workspace-context.js";
 import { AgentNotFoundError, ensureAgentLoaded } from "./agent-loading.js";
 import { AgentTurnChangedError } from "./agent-prompt.js";
 import {
@@ -404,6 +405,11 @@ export interface AgentManagerOptions {
   paseoToolCatalogFactory?: PaseoToolCatalogFactory;
   resolvePaseoToolPolicy?: (provider: AgentProvider) => ProviderPaseoToolsPolicy | undefined;
   appendSystemPrompt?: string;
+  /**
+   * Prepares the workspace's shared `.context` directory and returns it, or null outside a git
+   * work tree. Agents launched there are told about it. Left out, agents get no such directory.
+   */
+  ensureWorkspaceContext?: (cwd: string) => Promise<string | null>;
   agentStreamCoalesceWindowMs?: number;
   rescueTimeouts?: AgentManagerRescueTimeouts;
   beforeSteerUnavailableFallback?: (input: {
@@ -948,6 +954,7 @@ export class AgentManager {
     provider: AgentProvider,
   ) => ProviderPaseoToolsPolicy | undefined;
   private appendSystemPrompt: string;
+  private readonly ensureWorkspaceContext?: (cwd: string) => Promise<string | null>;
   private onAgentAttention?: AgentAttentionCallback;
   private onAgentArchived?: AgentArchivedCallback;
   private onWorkspaceStateMayHaveChanged?: (params: { cwd: string }) => void;
@@ -970,6 +977,7 @@ export class AgentManager {
     this.configurePaseoTools(options);
     this.resolvePaseoToolPolicy = options.resolvePaseoToolPolicy ?? (() => undefined);
     this.appendSystemPrompt = options.appendSystemPrompt ?? "";
+    this.ensureWorkspaceContext = options.ensureWorkspaceContext;
     this.logger = options.logger.child({ module: "agent", component: "agent-manager" });
     this.rescueTimeouts = {
       reloadSessionCloseMs:
@@ -6440,6 +6448,7 @@ export class AgentManager {
     const paseoToolPolicy = this.paseoToolsEnabled
       ? this.resolvePaseoToolPolicy(storedConfig.provider)
       : { enabled: false };
+    const contextDir = await this.resolveWorkspaceContextDir(storedConfig.cwd);
     const launchConfig = this.applyDaemonAppendSystemPrompt(
       withRuntimePaseoMcpServer({
         config: storedConfig,
@@ -6450,12 +6459,34 @@ export class AgentManager {
             : null,
         mcpAuthToken: this.mcpAuthToken,
       }),
+      contextDir,
     );
     return { storedConfig, launchConfig, paseoToolPolicy };
   }
 
-  private applyDaemonAppendSystemPrompt(config: AgentSessionConfig): AgentSessionConfig {
-    const daemonAppendSystemPrompt = this.appendSystemPrompt.trim();
+  private async resolveWorkspaceContextDir(cwd: string): Promise<string | null> {
+    if (!this.ensureWorkspaceContext) {
+      return null;
+    }
+    try {
+      return await this.ensureWorkspaceContext(cwd);
+    } catch (error) {
+      // The directory is a convenience; an agent still launches without it.
+      this.logger.warn({ err: error, cwd }, "Could not prepare the workspace .context directory");
+      return null;
+    }
+  }
+
+  private applyDaemonAppendSystemPrompt(
+    config: AgentSessionConfig,
+    contextDir: string | null,
+  ): AgentSessionConfig {
+    const daemonAppendSystemPrompt = [
+      this.appendSystemPrompt.trim(),
+      contextDir ? workspaceContextInstructions(contextDir) : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
     const next = { ...config };
     delete next.daemonAppendSystemPrompt;
 

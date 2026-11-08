@@ -471,6 +471,8 @@ Providers that can accept native tool definitions should set `supportsNativePase
 6. Tool calls are normalized to `ToolCallDetail` (shell, read, edit, write, search, etc.)
 7. Permission requests flow: agent → server → client → user decision → server → agent
 
+Before launch, `AgentManager` gives the agent's git work tree a `.context/` directory at its root, where agents and the user share plans, notes, and screenshots. It is excluded through the repository's shared `info/exclude`, so every worktree is covered without changing the project's `.gitignore`, and the daemon instructions appended at launch tell the agent its path. Outside a git work tree there is none. If creating it fails, the daemon logs a warning and launches the agent without it (`packages/server/src/server/agent/workspace-context.ts`).
+
 ## Storage
 
 `$PASEO_HOME` defaults to `~/.paseo`. The most important files:
