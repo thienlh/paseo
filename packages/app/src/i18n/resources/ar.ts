@@ -1034,6 +1034,9 @@ export const ar: TranslationResources = {
       pr: {
         actions: {
           viewPullRequest: "عرض",
+          review: "مراجعة",
+          reviewing: "جارٍ المراجعة…",
+          reviewFailed: "تعذر بدء المراجعة.",
           openOn: "فتح على {{brand}}",
           addToChat: "إضافة إلى الدردشة",
           addAllToChat: "إضافة الكل إلى الدردشة",

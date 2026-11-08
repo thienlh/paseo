@@ -75,6 +75,12 @@ function timeline(overrides: Partial<PullRequestTimeline> = {}): PullRequestTime
 }
 
 describe("mapPrPaneData", () => {
+  it("keeps the base and head refs for a review chat", () => {
+    const data = mapPrPaneData(baseStatus, baseTimeline);
+    expect(data?.baseRefName).toBe("main");
+    expect(data?.headRefName).toBe("feature/pr-pane");
+  });
+
   it("returns null when no PR status exists", () => {
     expect(mapPrPaneData(null, baseTimeline)).toBeNull();
   });

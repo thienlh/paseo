@@ -20,6 +20,10 @@ import {
   type GitActions,
 } from "@/git/policy";
 import { deriveMergeCapability } from "@/git/merge-capability";
+import {
+  selectPullRequestReviewSubject,
+  type PullRequestReviewSubject,
+} from "@/git/pull-request-review/context";
 import type { CheckoutPrMergeMethod } from "@getpaseo/protocol/messages";
 import { openExternalUrl } from "@/utils/open-external-url";
 import { useToast } from "@/contexts/toast-context";
@@ -211,6 +215,7 @@ interface UseGitActionsResult {
   isGit: boolean;
   /** Archives this workspace, Git or not. Null while it cannot be archived. */
   archiveWorkspace: (() => void) | null;
+  pullRequestReview: PullRequestReviewSubject | null;
 }
 
 interface UseWorkspaceScreenArchiveControllerInput {
@@ -873,11 +878,17 @@ export function useGitActions({ serverId, cwd, icons }: UseGitActionsInput): Use
     [gitActionsInput, baseRefLabel, hasPullRequest, forge, t],
   );
 
+  const pullRequestReview = useMemo(
+    () => selectPullRequestReviewSubject({ status: prStatus, forge }),
+    [forge, prStatus],
+  );
+
   return {
     gitActions,
     branchLabel,
     isGit,
     archiveWorkspace: availableArchive(archiveController, handleArchiveWorkspace),
+    pullRequestReview,
   };
 }
 

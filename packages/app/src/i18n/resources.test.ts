@@ -425,6 +425,9 @@ describe("translation resources", () => {
     expect(en.workspace.git.pr.sections.checks).toBe("Checks");
     expect(en.workspace.git.pr.sections.pipeline).toBe("Pipeline");
     expect(en.workspace.git.pr.actions.viewPullRequest).toBe("View");
+    expect(en.workspace.git.pr.actions.review).toBe("Review");
+    expect(en.workspace.git.pr.actions.reviewing).toBe("Reviewing…");
+    expect(en.workspace.git.pr.actions.reviewFailed).toBe("Could not start the review.");
     expect(en.workspace.git.pr.actions.openOn).toBe("Open on {{brand}}");
     expect(en.workspace.git.pr.empty.noJobs).toBe("No jobs");
     expect(en.workspace.git.pr.empty.loadingPipeline).toBe("Loading pipeline…");

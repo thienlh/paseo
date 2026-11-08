@@ -93,6 +93,8 @@ export interface PrPaneData {
   title: string;
   state: PrState;
   url: string;
+  baseRefName: string;
+  headRefName: string;
   reviewDecision: "approved" | "changes_requested" | "pending";
   awaitingReviewers: string[];
   checks: PrPaneCheck[];
@@ -138,6 +140,8 @@ export function mapPrPaneData(
     title: status.title,
     state: derivePrState(status),
     url: status.url,
+    baseRefName: status.baseRefName,
+    headRefName: status.headRefName,
     reviewDecision: mapReviewDecision(status.reviewDecision),
     // Requested reviewers are intentionally unwired until the server exposes them.
     awaitingReviewers: [],
