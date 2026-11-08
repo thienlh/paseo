@@ -47,7 +47,7 @@ export function useHasPullRequest(input: {
   return getPullRequestIdentity(status) !== null;
 }
 
-/** Connects desktop PR detection to the persisted layout after hydration. */
+/** Opens the Checks tab once per workspace, after the persisted layout hydrates. */
 export function usePullRequestAutoAdd(input: {
   workspaceKey: string | null;
   hasPullRequest: boolean;
@@ -58,8 +58,9 @@ export function usePullRequestAutoAdd(input: {
   const splitLayout = useWorkspaceLayoutStore((state) => state.layoutMode === "split-panes");
   const destination = splitLayout ? preferredDestination : "explorer";
   useEffect(() => {
-    if (hydrated && input.enabled && input.hasPullRequest) {
+    // The tab is the Checks panel, which also starts reviews, so every git workspace gets it.
+    if (hydrated && input.enabled) {
       autoOpenWorkspacePullRequest({ workspaceKey: input.workspaceKey, destination });
     }
-  }, [hydrated, input.enabled, input.hasPullRequest, input.workspaceKey, destination]);
+  }, [hydrated, input.enabled, input.workspaceKey, destination]);
 }

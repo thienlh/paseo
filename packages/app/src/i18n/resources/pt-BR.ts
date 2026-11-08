@@ -2012,26 +2012,15 @@ export const ptBR: TranslationResources = {
       stop: "Parar voz em tempo real e interromper a resposta",
     },
   },
-  reviewFindings: {
-    updateHost: "Atualize o host para adicionar apontamentos às alterações.",
-    general: "Geral",
-    preparing: "Preparando os apontamentos da revisão…",
-    title_one: "{{count}} apontamento da revisão",
-    title_other: "{{count}} apontamentos da revisão",
-    add: "Adicionar tudo às alterações",
-    addOne: "Adicionar",
-    adding: "Adicionando…",
-    addFailed: "Não foi possível adicionar os apontamentos às alterações.",
-    added_one: "{{count}} comentário adicionado às alterações.",
-    added_other: "{{count}} comentários adicionados às alterações.",
-    offDiff_one: "Não foi possível adicionar {{count}} porque o diff está vazio.",
-    offDiff_other: "Não foi possível adicionar {{count}} porque o diff está vazio.",
-    moved_one:
-      "{{count}} foi colocado na linha mais próxima do diff, com a localização real no comentário.",
-    moved_other:
-      "{{count}} foram colocados na linha mais próxima do diff, com a localização real nos comentários.",
-    unreadable_one: "Não foi possível ler {{count}} apontamento.",
-    unreadable_other: "Não foi possível ler {{count}} apontamentos.",
+  checks: {
+    review: {
+      title: "Revisão",
+      empty: "Revise a pull request ou suas alterações locais para ver apontamentos aqui.",
+      unreadable: "Não foi possível ler os apontamentos da última revisão.",
+      noFindings: "A última revisão não encontrou nada.",
+      fromLatest_one: "{{count}} apontamento da última revisão",
+      fromLatest_other: "{{count}} apontamentos da última revisão",
+    },
   },
   rewind: {
     tooltip: "Voltar para esta mensagem",
@@ -2148,8 +2137,8 @@ export const ptBR: TranslationResources = {
       chooseFile: "Escolha um arquivo",
     },
     pullRequest: {
-      label: "Pull request",
-      subtitle: "Detalhes do pull request",
+      label: "Verificações",
+      subtitle: "Pull request, verificações e apontamentos da revisão",
       emptyTitle: "Ainda não há pull request",
       emptyDescription: "Crie um pull request para este checkout para ver os detalhes aqui.",
     },

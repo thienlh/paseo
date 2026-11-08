@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, Text, View, type ViewStyle } from "react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import {
@@ -44,8 +44,6 @@ import {
 } from "@/components/ui/pane-content-toolbar";
 import { ICON_SIZE, type Theme } from "@/styles/theme";
 import { getForgePresentation } from "@/git/forge";
-import { PullRequestReviewButton } from "@/git/pull-request-review/button";
-import { pullRequestReviewSubjectFromPane } from "@/git/pull-request-review/context";
 import { CLIENT_FORGE_VIEW_MODULES } from "@/git/forges/view";
 import type { PaneNativeContribution } from "@/git/client-forge-module";
 import { PrActivitySkeleton } from "./activity-skeleton";
@@ -187,57 +185,21 @@ function removeLoadingCheck(current: ReadonlySet<string>, checkKey: string): Rea
   return next;
 }
 
-function PullRequestPaneReviewAction({
-  serverId,
-  workspaceId,
-  cwd,
-  data,
-}: {
-  serverId: string;
-  workspaceId?: string | null;
-  cwd: string;
-  data: PrPaneData;
-}) {
-  const reviewSubject = useMemo(() => {
-    const pullRequest = pullRequestReviewSubjectFromPane({
-      number: data.number,
-      title: data.title,
-      url: data.url,
-      state: data.state,
-      forge: data.forge,
-      baseRefName: data.baseRefName,
-      headRefName: data.headRefName,
-    });
-    return pullRequest ? ({ kind: "pull_request", pullRequest } as const) : null;
-  }, [data]);
-  if (!workspaceId || !reviewSubject) {
-    return null;
-  }
-  return (
-    <PullRequestReviewButton
-      serverId={serverId}
-      workspaceId={workspaceId}
-      cwd={cwd}
-      subject={reviewSubject}
-      placement="pane"
-    />
-  );
-}
-
 export function PullRequestPane({
   serverId,
-  workspaceId,
   cwd,
   data,
   activityLoading,
   workspaceAttachmentScopeKey,
+  reviewSection,
 }: {
   serverId: string;
-  workspaceId?: string | null;
   cwd: string;
   data: PrPaneData;
   activityLoading: boolean;
   workspaceAttachmentScopeKey?: string;
+  /** The Checks panel's Review section, shown under the pull request header. */
+  reviewSection?: ReactNode;
 }) {
   const { t } = useTranslation();
   const isCompact = useIsCompactFormFactor();
@@ -523,12 +485,6 @@ export function PullRequestPane({
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <PaneContentToolbar style={styles.toolbar} testID="pr-pane-toolbar">
           <View style={styles.toolbarActions}>
-            <PullRequestPaneReviewAction
-              serverId={serverId}
-              workspaceId={workspaceId}
-              cwd={cwd}
-              data={data}
-            />
             <Button
               variant="ghost"
               size="sm"
@@ -600,6 +556,13 @@ export function PullRequestPane({
             </>
           )}
         </Pressable>
+
+        {reviewSection ? (
+          <>
+            {reviewSection}
+            <View style={styles.divider} />
+          </>
+        ) : null}
 
         {nativeChecksSection ?? (
           <ChecksSection

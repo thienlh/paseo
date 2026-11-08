@@ -2026,26 +2026,15 @@ export const fr: TranslationResources = {
       stop: "Arrêter la voix en temps réel et interrompre le tour",
     },
   },
-  reviewFindings: {
-    updateHost: "Mettez à jour l’hôte pour ajouter des remarques aux modifications.",
-    general: "Général",
-    preparing: "Préparation des remarques de revue…",
-    title_one: "{{count}} remarque de revue",
-    title_other: "{{count}} remarques de revue",
-    add: "Tout ajouter aux modifications",
-    addOne: "Ajouter",
-    adding: "Ajout…",
-    addFailed: "Impossible d’ajouter les remarques aux modifications.",
-    added_one: "{{count}} commentaire ajouté aux modifications.",
-    added_other: "{{count}} commentaires ajoutés aux modifications.",
-    offDiff_one: "Impossible d’ajouter {{count}} remarque : le diff est vide.",
-    offDiff_other: "Impossible d’ajouter {{count}} remarques : le diff est vide.",
-    moved_one:
-      "{{count}} a été placée sur la ligne du diff la plus proche, avec son emplacement réel dans le commentaire.",
-    moved_other:
-      "{{count}} ont été placées sur la ligne du diff la plus proche, avec leur emplacement réel dans les commentaires.",
-    unreadable_one: "{{count}} remarque illisible.",
-    unreadable_other: "{{count}} remarques illisibles.",
+  checks: {
+    review: {
+      title: "Revue",
+      empty: "Relisez la pull request ou vos modifications locales pour voir les remarques ici.",
+      unreadable: "Impossible de lire les remarques de la dernière revue.",
+      noFindings: "La dernière revue n’a rien trouvé.",
+      fromLatest_one: "{{count}} remarque de la dernière revue",
+      fromLatest_other: "{{count}} remarques de la dernière revue",
+    },
   },
   rewind: {
     tooltip: "Revenir à ce message",
@@ -2162,8 +2151,8 @@ export const fr: TranslationResources = {
       chooseFile: "Choisissez un fichier",
     },
     pullRequest: {
-      label: "Pull request",
-      subtitle: "Détails de la pull request",
+      label: "Vérifications",
+      subtitle: "Pull request, vérifications et remarques de revue",
       emptyTitle: "Aucune pull request pour l’instant",
       emptyDescription:
         "Créez une pull request pour cette copie de travail afin d’en voir les détails ici.",

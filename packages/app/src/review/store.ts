@@ -171,20 +171,7 @@ function toContextLine(line: NumberedDiffLine): ReviewAttachmentContextLine | nu
   };
 }
 
-type ReviewCommentAnchor = Pick<ReviewDraftComment, "filePath" | "side" | "lineNumber">;
-
-/** True when the comment's line is in the diff, which is what sending it to an agent requires. */
-export function isReviewCommentOnDiff(input: {
-  comment: ReviewCommentAnchor;
-  diffFiles: readonly ParsedDiffFile[];
-}): boolean {
-  return findTarget(input) !== null;
-}
-
-function findTarget(input: {
-  comment: ReviewCommentAnchor;
-  diffFiles: readonly ParsedDiffFile[];
-}): {
+function findTarget(input: { comment: ReviewDraftComment; diffFiles: readonly ParsedDiffFile[] }): {
   hunkHeader: string;
   hunkLines: NumberedDiffLine[];
   targetIndex: number;
