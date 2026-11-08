@@ -984,6 +984,9 @@ export const zhCN: TranslationResources = {
       pr: {
         actions: {
           viewPullRequest: "查看",
+          review: "审查",
+          reviewing: "正在审查…",
+          reviewFailed: "无法开始审查。",
           openOn: "在 {{brand}} 上打开",
           addToChat: "添加到聊天",
           addAllToChat: "全部添加到聊天",

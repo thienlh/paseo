@@ -18,6 +18,10 @@ import {
   type GitActions,
 } from "@/git/policy";
 import { deriveMergeCapability } from "@/git/merge-capability";
+import {
+  selectPullRequestReviewSubject,
+  type PullRequestReviewSubject,
+} from "@/git/pull-request-review/context";
 import type { CheckoutPrMergeMethod } from "@getpaseo/protocol/messages";
 import { openExternalUrl } from "@/utils/open-external-url";
 import { useToast } from "@/contexts/toast-context";
@@ -205,6 +209,7 @@ interface UseGitActionsResult {
   gitActions: GitActions;
   branchLabel: string;
   isGit: boolean;
+  pullRequestReview: PullRequestReviewSubject | null;
 }
 
 interface UseWorkspaceScreenArchiveControllerInput {
@@ -865,7 +870,12 @@ export function useGitActions({ serverId, cwd, icons }: UseGitActionsInput): Use
     [gitActionsInput, baseRefLabel, hasPullRequest, forge, t],
   );
 
-  return { gitActions, branchLabel, isGit };
+  const pullRequestReview = useMemo(
+    () => selectPullRequestReviewSubject({ status: prStatus, forge }),
+    [forge, prStatus],
+  );
+
+  return { gitActions, branchLabel, isGit, pullRequestReview };
 }
 
 function translateGitActions(

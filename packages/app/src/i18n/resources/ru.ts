@@ -1009,6 +1009,9 @@ export const ru: TranslationResources = {
       pr: {
         actions: {
           viewPullRequest: "Просмотреть",
+          review: "Ревью",
+          reviewing: "Ревью…",
+          reviewFailed: "Не удалось начать ревью.",
           openOn: "Открыть на {{brand}}",
           addToChat: "Добавить в чат",
           addAllToChat: "Добавить всё в чат",
