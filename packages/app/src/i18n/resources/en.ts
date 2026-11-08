@@ -858,7 +858,7 @@ export const en = {
           success: "Updated",
         },
         archive: {
-          label: "Archive workspace",
+          label: "Archive",
           pending: "Archiving...",
           success: "Archived",
         },

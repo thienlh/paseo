@@ -858,7 +858,7 @@ export const zhCN: TranslationResources = {
           success: "已更新",
         },
         archive: {
-          label: "归档工作区",
+          label: "归档",
           pending: "正在归档...",
           success: "已归档",
         },

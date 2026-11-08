@@ -863,7 +863,7 @@ export const ko: TranslationResources = {
           success: "업데이트됨",
         },
         archive: {
-          label: "워크스페이스 보관",
+          label: "보관",
           pending: "보관하는 중...",
           success: "보관됨",
         },

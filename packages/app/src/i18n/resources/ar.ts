@@ -862,7 +862,7 @@ export const ar: TranslationResources = {
           success: "تم التحديث",
         },
         archive: {
-          label: "أرشفة مساحة العمل",
+          label: "أرشفة",
           pending: "أرشفة...",
           success: "مؤرشف",
         },
