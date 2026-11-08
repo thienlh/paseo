@@ -9,11 +9,12 @@ import { HEADER_CONTROL_HEIGHT } from "@/components/ui/control-geometry";
 import { useToast } from "@/contexts/toast-context";
 import { useFormPreferences } from "@/hooks/use-form-preferences";
 import { useHostRuntimeClient } from "@/runtime/host-runtime";
+import { useSessionStore } from "@/stores/session-store";
 import { useWorkspaceLayoutStore } from "@/stores/workspace-layout-store";
 import { toErrorMessage } from "@/utils/error-messages";
 import { buildWorkspaceTabPersistenceKey } from "@/workspace-tabs/model";
-import type { PullRequestReviewSubject } from "./context";
-import { startPullRequestReviewChat } from "./start";
+import type { ReviewSubject } from "./context";
+import { startReviewChat } from "./start";
 
 interface PullRequestReviewState {
   inFlight: boolean;
@@ -29,13 +30,13 @@ export function PullRequestReviewButton({
   serverId,
   workspaceId,
   cwd,
-  pullRequest,
+  subject,
   placement,
 }: {
   serverId: string;
   workspaceId: string;
   cwd: string;
-  pullRequest: PullRequestReviewSubject;
+  subject: ReviewSubject;
   placement: "header" | "pane";
 }) {
   const { t } = useTranslation();
@@ -43,6 +44,10 @@ export function PullRequestReviewButton({
   const client = useHostRuntimeClient(serverId);
   const { preferences } = useFormPreferences();
   const inFlight = usePullRequestReviewStore((state) => state.inFlight);
+  // COMPAT(checkoutDiffAll): added in v0.12.0, remove after 2027-04-21 once host floor includes All changes.
+  const allChangesSupported = useSessionStore(
+    (state) => state.sessions[serverId]?.serverInfo?.features?.checkoutDiffAll === true,
+  );
   const label = inFlight
     ? t("workspace.git.pr.actions.reviewing")
     : t("workspace.git.pr.actions.review");
@@ -55,18 +60,23 @@ export function PullRequestReviewButton({
       toast.error(t("workspace.terminal.hostDisconnected"));
       return;
     }
+    // A local review against a base branch reads the "all" comparison.
+    if (subject.kind === "local_changes" && subject.changes.baseRef && !allChangesSupported) {
+      toast.error(t("workspace.git.pr.actions.reviewUpdateHost"));
+      return;
+    }
     const workspaceKey = buildWorkspaceTabPersistenceKey({ serverId, workspaceId });
     if (!workspaceKey) {
       toast.error(t("workspace.git.pr.actions.reviewFailed"));
       return;
     }
     usePullRequestReviewStore.getState().setInFlight(true);
-    void startPullRequestReviewChat({
+    void startReviewChat({
       client,
       serverId,
       workspaceId,
       cwd,
-      pullRequest,
+      subject,
       preferences,
     })
       .then((started) => {
@@ -83,7 +93,7 @@ export function PullRequestReviewButton({
       .finally(() => {
         usePullRequestReviewStore.getState().setInFlight(false);
       });
-  }, [client, cwd, preferences, pullRequest, serverId, t, toast, workspaceId]);
+  }, [allChangesSupported, client, cwd, preferences, subject, serverId, t, toast, workspaceId]);
 
   return (
     <View style={placement === "header" ? styles.headerSlot : undefined}>

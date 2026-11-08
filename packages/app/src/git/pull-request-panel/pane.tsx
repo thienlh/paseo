@@ -198,19 +198,18 @@ function PullRequestPaneReviewAction({
   cwd: string;
   data: PrPaneData;
 }) {
-  const reviewSubject = useMemo(
-    () =>
-      pullRequestReviewSubjectFromPane({
-        number: data.number,
-        title: data.title,
-        url: data.url,
-        state: data.state,
-        forge: data.forge,
-        baseRefName: data.baseRefName,
-        headRefName: data.headRefName,
-      }),
-    [data],
-  );
+  const reviewSubject = useMemo(() => {
+    const pullRequest = pullRequestReviewSubjectFromPane({
+      number: data.number,
+      title: data.title,
+      url: data.url,
+      state: data.state,
+      forge: data.forge,
+      baseRefName: data.baseRefName,
+      headRefName: data.headRefName,
+    });
+    return pullRequest ? ({ kind: "pull_request", pullRequest } as const) : null;
+  }, [data]);
   if (!workspaceId || !reviewSubject) {
     return null;
   }
@@ -219,7 +218,7 @@ function PullRequestPaneReviewAction({
       serverId={serverId}
       workspaceId={workspaceId}
       cwd={cwd}
-      pullRequest={reviewSubject}
+      subject={reviewSubject}
       placement="pane"
     />
   );

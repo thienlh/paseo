@@ -106,6 +106,8 @@ interface UserMessageProps {
   isLastInGroup?: boolean;
   isPending?: boolean;
   disableOuterSpacing?: boolean;
+  /** Opens a host file path, such as an uploaded file attached to the message. */
+  onOpenAttachmentPath?: (path: string) => void;
 }
 
 const MessageOuterSpacingContext = createContext(false);
@@ -388,6 +390,29 @@ function UserMessageImagePill({ image, onOpen, accessibilityLabel }: UserMessage
   );
 }
 
+interface UserMessageAttachmentPillProps {
+  attachment: AgentAttachment;
+  onOpenPath?: (path: string) => void;
+}
+
+function UserMessageAttachmentPill({ attachment, onOpenPath }: UserMessageAttachmentPillProps) {
+  const { t } = useTranslation();
+  const content = getAgentAttachmentPillContent(attachment, t);
+  // Uploaded files live on the host, so they open in a file tab like any other host path.
+  const path = attachment.type === "uploaded_file" ? attachment.path : null;
+  const handlePress = useCallback(() => {
+    if (path) onOpenPath?.(path);
+  }, [onOpenPath, path]);
+  return (
+    <AttachmentFrame
+      onPress={path && onOpenPath ? handlePress : undefined}
+      accessibilityLabel={path && onOpenPath ? content.title : undefined}
+    >
+      <AttachmentLabel icon={content.icon} title={content.title} subtitle={content.subtitle} />
+    </AttachmentFrame>
+  );
+}
+
 const MESSAGE_TEXT_DATASET = { messageText: "true" };
 
 export const UserMessage = memo(function UserMessage({
@@ -405,6 +430,7 @@ export const UserMessage = memo(function UserMessage({
   isLastInGroup = true,
   isPending = false,
   disableOuterSpacing,
+  onOpenAttachmentPath,
 }: UserMessageProps) {
   const isCompact = useIsCompactFormFactor();
   const { t } = useTranslation();
@@ -495,20 +521,13 @@ export const UserMessage = memo(function UserMessage({
             ) : null}
             {hasAttachments ? (
               <View style={attachmentPreviewContainerStyle}>
-                {attachments.map((attachment, index) => {
-                  const content = getAgentAttachmentPillContent(attachment, t);
-                  return (
-                    <AttachmentFrame
-                      key={`${attachment.type}:${"number" in attachment ? attachment.number : index}`}
-                    >
-                      <AttachmentLabel
-                        icon={content.icon}
-                        title={content.title}
-                        subtitle={content.subtitle}
-                      />
-                    </AttachmentFrame>
-                  );
-                })}
+                {attachments.map((attachment, index) => (
+                  <UserMessageAttachmentPill
+                    key={`${attachment.type}:${"number" in attachment ? attachment.number : index}`}
+                    attachment={attachment}
+                    onOpenPath={onOpenAttachmentPath}
+                  />
+                ))}
               </View>
             ) : null}
             {hasText ? (

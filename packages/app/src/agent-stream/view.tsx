@@ -97,6 +97,8 @@ import {
 import { createAssistantImageOccurrenceKey } from "@/assistant-image/acquisition-cache";
 import { AssistantSelectionCopySurface } from "@/assistant-selection-copy/surface";
 import { AssistantFileLinkResolverProvider, createInlinePathOpener } from "@/assistant-file-links";
+import { splitReviewFindings } from "@/git/pull-request-review/findings";
+import { ReviewFindingsCard } from "@/git/pull-request-review/findings-card";
 import { useOpenOutsideWorkspaceFolder } from "@/workspace/open-in-file-manager/outside-folder";
 import {
   createWorkspaceFileTabTarget,
@@ -723,6 +725,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
             client={client}
             isFirstInGroup={layoutItem.isFirstInUserGroup}
             isLastInGroup={layoutItem.isLastInUserGroup}
+            onOpenAttachmentPath={handleToolCallOpenFile}
             isPending={
               item.clientMessageId !== undefined &&
               pendingClientMessageIds.has(item.clientMessageId)
@@ -730,11 +733,22 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
           />
         );
       },
-      [context.capabilities, agentId, client, pendingClientMessageIds, resolvedServerId],
+      [
+        context.capabilities,
+        agentId,
+        client,
+        handleToolCallOpenFile,
+        pendingClientMessageIds,
+        resolvedServerId,
+      ],
     );
 
     const renderAssistantMessageItem = useCallback(
       (layoutItem: StreamLayoutItem, item: Extract<StreamItem, { kind: "assistant_message" }>) => {
+        // A review reply ends with its findings as data; show them as a card, not as JSON.
+        const { text: messageText, block: findingsBlock } = splitReviewFindings(item.text, {
+          settled: layoutItem.phase === "complete",
+        });
         return (
           <AssistantFileLinkResolverProvider
             client={client}
@@ -748,7 +762,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
                 <AssistantMessage
                   renderFullContent={renderFullContent}
                   occurrenceKey={createAssistantImageOccurrenceKey({ agentId, itemId: item.id })}
-                  message={item.text}
+                  message={messageText}
                   timestamp={item.timestamp.getTime()}
                   workspaceRoot={workspaceRoot}
                   serverId={resolvedServerId}
@@ -758,10 +772,26 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
                 />
               )}
             </ChatFindExpansion>
+            {findingsBlock.status !== "none" && context.workspaceId && workspaceRoot ? (
+              <ReviewFindingsCard
+                serverId={resolvedServerId}
+                workspaceId={context.workspaceId}
+                cwd={workspaceRoot}
+                block={findingsBlock}
+              />
+            ) : null}
           </AssistantFileLinkResolverProvider>
         );
       },
-      [agentId, client, handleInlinePathPress, resolvedServerId, toast, workspaceRoot],
+      [
+        agentId,
+        client,
+        context.workspaceId,
+        handleInlinePathPress,
+        resolvedServerId,
+        toast,
+        workspaceRoot,
+      ],
     );
 
     const renderThoughtItem = useCallback(

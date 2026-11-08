@@ -1,5 +1,6 @@
 import type { ParsedDiffFile } from "@getpaseo/protocol/messages";
 import { getForgePresentation, normalizeForge, type Forge } from "@/git/forge";
+import { REVIEW_FINDINGS_INSTRUCTIONS } from "./findings";
 
 export const PULL_REQUEST_REVIEW_CONTEXT_MAX_CHARS = 100_000;
 
@@ -22,6 +23,52 @@ interface PullRequestReviewStatus {
   baseRefName: string;
   headRefName: string;
 }
+
+/** Uncommitted work in a workspace, reviewed whether or not the branch has a pull request. */
+export interface LocalChangesReviewSubject {
+  branch: string | null;
+  /** The workspace's base branch. Null reviews only the uncommitted changes. */
+  baseRef: string | null;
+}
+
+export type ReviewSubject =
+  | { kind: "pull_request"; pullRequest: PullRequestReviewSubject }
+  | { kind: "local_changes"; changes: LocalChangesReviewSubject };
+
+/**
+ * An open pull request wins: its review covers the branch as reviewers will see it. Without one, a
+ * dirty workspace still gets a review of its local changes.
+ */
+export function selectReviewSubject(input: {
+  pullRequest: PullRequestReviewSubject | null;
+  isDirty: boolean;
+  branch: string | null | undefined;
+  baseRef: string | null | undefined;
+}): ReviewSubject | null {
+  if (input.pullRequest) {
+    return { kind: "pull_request", pullRequest: input.pullRequest };
+  }
+  if (!input.isDirty) {
+    return null;
+  }
+  const branch = input.branch?.trim();
+  return {
+    kind: "local_changes",
+    changes: {
+      // Git reports a detached checkout as "HEAD", which is not a branch name.
+      branch: branch && branch !== "HEAD" ? branch : null,
+      baseRef: input.baseRef?.trim() || null,
+    },
+  };
+}
+
+export const LOCAL_CHANGES_REVIEW_CONTEXT_FILE_NAME = "local-changes-review-context.md";
+
+const REVIEW_INSTRUCTIONS = [
+  "Review the code. Cover correctness, regressions, missing tests, and unnecessary complexity. Skip praise and style nits unless they hide a defect. Do not edit the code.",
+  "",
+  REVIEW_FINDINGS_INSTRUCTIONS,
+].join("\n");
 
 export function pullRequestReviewContextFileName(number: number): string {
   return `pr-${number}-review-context.md`;
@@ -85,23 +132,108 @@ export function buildPullRequestReviewPrompt(input: {
     "",
     `Read the attached context file \`${input.fileName}\`. It has the pull request metadata, the changed files, and the diff. This workspace is checked out on the pull request branch.`,
     "",
-    "Write a code review in this chat. Lead with the highest-risk findings. Cover correctness, regressions, missing tests, and unnecessary complexity. Cite file paths and line numbers. Skip praise and style nits unless they hide a defect. Do not edit the code.",
+    REVIEW_INSTRUCTIONS,
   ].join("\n");
+}
+
+/** `refs/remotes/origin/main` reads as `origin/main`; git accepts both. */
+function shortRef(ref: string | null): string | null {
+  return ref ? ref.replace(/^refs\/(heads|remotes)\//, "") : null;
+}
+
+export function buildLocalChangesReviewPrompt(input: {
+  fileName: string;
+  changes: LocalChangesReviewSubject;
+}): string {
+  const { branch } = input.changes;
+  const baseRef = shortRef(input.changes.baseRef);
+  const heading = branch
+    ? `Review the local changes on branch \`${branch}\`.`
+    : "Review the local changes in this workspace.";
+  const scope = baseRef
+    ? `the commits on this branch since it left \`${baseRef}\`, plus uncommitted and untracked changes`
+    : "the uncommitted and untracked changes";
+  return [
+    heading,
+    "",
+    `Read the attached context file \`${input.fileName}\`. It has the changed files and the diff: ${scope}.`,
+    "",
+    REVIEW_INSTRUCTIONS,
+  ].join("\n");
+}
+
+export function buildLocalChangesReviewContext(input: {
+  changes: LocalChangesReviewSubject;
+  files: readonly ParsedDiffFile[];
+  diffTooLarge?: boolean;
+  maxChars?: number;
+}): { markdown: string; truncated: boolean } {
+  const { branch } = input.changes;
+  const baseRef = shortRef(input.changes.baseRef);
+  const readHint = localChangesReadHint(input.changes);
+  const preamble = [
+    "# Local changes review context",
+    "",
+    "This file was generated for a code review chat. It is not part of the repository.",
+    "",
+    `- Branch: ${branch ?? "detached HEAD"}`,
+    baseRef
+      ? `- Compared with: merge base of ${baseRef}, including uncommitted and untracked changes`
+      : "- Compared with: HEAD, uncommitted and untracked changes only",
+    "",
+    "## Changed files",
+    "",
+    ...changedFileLines(input.files),
+    ...diffTooLargeLines(input.diffTooLarge === true, readHint),
+  ].join("\n");
+  return fitContext({
+    preamble,
+    sections: diffSections(input.files),
+    cap: input.maxChars ?? PULL_REQUEST_REVIEW_CONTEXT_MAX_CHARS,
+    omitted: omittedNote(readHint),
+  });
 }
 
 export function buildPullRequestReviewContext(input: {
   pullRequest: PullRequestReviewSubject;
   files: readonly ParsedDiffFile[];
   diffTooLarge?: boolean;
+  /** The workspace compares against another base, so the host could not load this diff. */
+  baseMismatch?: boolean;
   maxChars?: number;
 }): { markdown: string; truncated: boolean } {
-  const cap = input.maxChars ?? PULL_REQUEST_REVIEW_CONTEXT_MAX_CHARS;
-  const preamble = buildPreamble(input.pullRequest, input.files, input.diffTooLarge === true);
-  const sections = input.files.flatMap((file) => {
+  const readHint = `\`${pullRequestDiffCommand(input.pullRequest)}\``;
+  return fitContext({
+    preamble: buildPreamble({
+      pullRequest: input.pullRequest,
+      files: input.files,
+      diffTooLarge: input.diffTooLarge === true,
+      baseMismatch: input.baseMismatch === true,
+      readHint,
+    }),
+    sections: diffSections(input.files),
+    cap: input.maxChars ?? PULL_REQUEST_REVIEW_CONTEXT_MAX_CHARS,
+    omitted: omittedNote(readHint),
+  });
+}
+
+function diffSections(files: readonly ParsedDiffFile[]): string[] {
+  return files.flatMap((file) => {
     const section = renderFileDiff(file);
     return section ? [section] : [];
   });
-  return fitContext({ preamble, sections, cap, pullRequest: input.pullRequest });
+}
+
+function changedFileLines(files: readonly ParsedDiffFile[]): string[] {
+  return files.length === 0
+    ? ["- No changed files."]
+    : files.map((file) => formatFileSummary(file));
+}
+
+function diffTooLargeLines(diffTooLarge: boolean, readHint: string): string[] {
+  return diffTooLarge
+    ? ["", `The host could not load the full diff. Read the rest with ${readHint}.`]
+    : [];
 }
 
 function readPullRequestNumber(status: PullRequestReviewStatus): number | null {
@@ -122,14 +254,20 @@ function readPullRequestNumber(status: PullRequestReviewStatus): number | null {
   }
 }
 
-function buildPreamble(
-  pullRequest: PullRequestReviewSubject,
-  files: readonly ParsedDiffFile[],
-  diffTooLarge: boolean,
-): string {
-  const fileLines =
-    files.length === 0 ? ["- No changed files."] : files.map((file) => formatFileSummary(file));
-  const lines = [
+function buildPreamble(input: {
+  pullRequest: PullRequestReviewSubject;
+  files: readonly ParsedDiffFile[];
+  diffTooLarge: boolean;
+  baseMismatch: boolean;
+  readHint: string;
+}): string {
+  const { pullRequest, files, readHint } = input;
+  const fileLines = input.baseMismatch
+    ? [
+        `The host could not load the changed files or the diff, because the workspace compares against a different base than ${pullRequest.baseRef}. Read them with ${readHint}.`,
+      ]
+    : [...changedFileLines(files), ...diffTooLargeLines(input.diffTooLarge, readHint)];
+  return [
     "# Pull request review context",
     "",
     "This file was generated for a code review chat. It is not part of the repository.",
@@ -144,14 +282,7 @@ function buildPreamble(
     "## Changed files",
     "",
     ...fileLines,
-  ];
-  if (diffTooLarge) {
-    lines.push(
-      "",
-      `The host could not load the full diff. Read the rest with \`${diffCommand(pullRequest)}\`.`,
-    );
-  }
-  return lines.join("\n");
+  ].join("\n");
 }
 
 function formatFileSummary(file: ParsedDiffFile): string {
@@ -171,7 +302,11 @@ function renderFileDiff(file: ParsedDiffFile): string | null {
   }
   const hunks = file.hunks.map((hunk) => {
     const header = `@@ -${hunk.oldStart},${hunk.oldCount} +${hunk.newStart},${hunk.newCount} @@`;
-    const body = hunk.lines.map((line) => formatDiffLine(line)).join("\n");
+    // The host includes the hunk's own `@@` line among its lines; the header above replaces it.
+    const body = hunk.lines
+      .filter((line) => line.type !== "header")
+      .map((line) => formatDiffLine(line))
+      .join("\n");
     return body.length > 0 ? `${header}\n${body}` : header;
   });
   return [`### ${file.path}`, "", "```diff", hunks.join("\n"), "```"].join("\n");
@@ -194,9 +329,9 @@ function fitContext(input: {
   preamble: string;
   sections: readonly string[];
   cap: number;
-  pullRequest: PullRequestReviewSubject;
+  omitted: string;
 }): { markdown: string; truncated: boolean } {
-  const omitted = omittedNote(input.pullRequest);
+  const omitted = input.omitted;
   if (input.sections.length === 0) {
     const markdown = `${input.preamble}\n\n## Diff\n\nNo text diff to inline.`;
     return { markdown: clip(markdown, input.cap, omitted), truncated: markdown.length > input.cap };
@@ -235,15 +370,21 @@ function clip(markdown: string, cap: number, omitted: string): string {
   return clipped.length <= cap ? clipped : note.slice(0, cap);
 }
 
-function omittedNote(pullRequest: PullRequestReviewSubject): string {
+function omittedNote(readHint: string): string {
   return [
     "",
     "## Omitted",
     "",
-    `The rest of the diff was omitted because this context file reached its size cap. Read the remainder with \`${diffCommand(pullRequest)}\`.`,
+    `The rest of the diff was omitted because this context file reached its size cap. Read the remainder with ${readHint}.`,
   ].join("\n");
 }
 
-function diffCommand(pullRequest: PullRequestReviewSubject): string {
+function pullRequestDiffCommand(pullRequest: PullRequestReviewSubject): string {
   return `git diff ${pullRequest.baseRef}...${pullRequest.headRef}`;
+}
+
+function localChangesReadHint(changes: LocalChangesReviewSubject): string {
+  const baseRef = shortRef(changes.baseRef);
+  const diff = baseRef ? `git diff $(git merge-base ${baseRef} HEAD)` : "git diff HEAD";
+  return `\`${diff}\` and \`git status\` for untracked files`;
 }

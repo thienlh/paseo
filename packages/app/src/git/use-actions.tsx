@@ -22,7 +22,8 @@ import {
 import { deriveMergeCapability } from "@/git/merge-capability";
 import {
   selectPullRequestReviewSubject,
-  type PullRequestReviewSubject,
+  selectReviewSubject,
+  type ReviewSubject,
 } from "@/git/pull-request-review/context";
 import type { CheckoutPrMergeMethod } from "@getpaseo/protocol/messages";
 import { openExternalUrl } from "@/utils/open-external-url";
@@ -213,7 +214,7 @@ interface UseGitActionsResult {
   gitActions: GitActions;
   branchLabel: string;
   isGit: boolean;
-  pullRequestReview: PullRequestReviewSubject | null;
+  reviewSubject: ReviewSubject | null;
 }
 
 interface UseWorkspaceScreenArchiveControllerInput {
@@ -877,12 +878,19 @@ export function useGitActions({ serverId, cwd, icons }: UseGitActionsInput): Use
     [gitActionsInput, baseRefLabel, hasPullRequest, forge, t],
   );
 
-  const pullRequestReview = useMemo(
-    () => selectPullRequestReviewSubject({ status: prStatus, forge }),
-    [forge, prStatus],
+  const currentBranch = gitStatus?.currentBranch;
+  const reviewSubject = useMemo(
+    () =>
+      selectReviewSubject({
+        pullRequest: selectPullRequestReviewSubject({ status: prStatus, forge }),
+        isDirty: hasUncommittedChanges,
+        branch: currentBranch,
+        baseRef,
+      }),
+    [baseRef, currentBranch, forge, hasUncommittedChanges, prStatus],
   );
 
-  return { gitActions, branchLabel, isGit, pullRequestReview };
+  return { gitActions, branchLabel, isGit, reviewSubject };
 }
 
 function translateGitActions(
