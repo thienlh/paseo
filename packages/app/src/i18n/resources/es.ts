@@ -886,7 +886,7 @@ export const es: TranslationResources = {
           success: "Actualizado",
         },
         archive: {
-          label: "Archivar espacio de trabajo",
+          label: "Archivar",
           pending: "Archivando...",
           success: "Archivado",
         },
