@@ -861,7 +861,7 @@ export const ptBR: TranslationResources = {
           success: "Atualizado",
         },
         archive: {
-          label: "Arquivar workspace",
+          label: "Arquivar",
           pending: "Arquivando...",
           success: "Arquivado",
         },

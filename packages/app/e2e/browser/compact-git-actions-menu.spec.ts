@@ -92,7 +92,7 @@ test("compact git actions menu lists a promoted Pull once", async ({ page }) => 
   const menu = await openCompactActionsMenu(page, workspaceId);
 
   await expect(menu.getByTestId("changes-menu-pull")).toHaveCount(1);
-  await expectActionsInOrder(menu, ["Pull", "Push", "Pull and push", "Archive workspace"]);
+  await expectActionsInOrder(menu, ["Pull", "Push", "Pull and push", "Archive"]);
 });
 
 test("compact git actions menu lists a promoted Push once", async ({ page }) => {
@@ -110,5 +110,5 @@ test("compact git actions menu lists a promoted Push once", async ({ page }) => 
   const menu = await openCompactActionsMenu(page, workspaceId);
 
   await expect(menu.getByTestId("changes-menu-push")).toHaveCount(1);
-  await expectActionsInOrder(menu, ["Push", "Pull", "Pull and push", "Archive workspace"]);
+  await expectActionsInOrder(menu, ["Push", "Pull", "Pull and push", "Archive"]);
 });

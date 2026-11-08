@@ -865,7 +865,7 @@ export const ru: TranslationResources = {
           success: "Обновлено",
         },
         archive: {
-          label: "Архивировать рабочее пространство",
+          label: "Архивировать",
           pending: "Архивирование...",
           success: "В архиве",
         },

@@ -861,7 +861,7 @@ export const ja: TranslationResources = {
           success: "更新しました",
         },
         archive: {
-          label: "ワークスペースをアーカイブ",
+          label: "アーカイブ",
           pending: "アーカイブ中...",
           success: "アーカイブしました",
         },
