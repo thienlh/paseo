@@ -1039,6 +1039,9 @@ export const fr: TranslationResources = {
       pr: {
         actions: {
           viewPullRequest: "Voir",
+          review: "Relire",
+          reviewing: "Relecture…",
+          reviewFailed: "Impossible de lancer la relecture.",
           openOn: "Ouvrir sur {{brand}}",
           addToChat: "Ajouter à la conversation",
           addAllToChat: "Tout ajouter à la conversation",

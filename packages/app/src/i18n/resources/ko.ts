@@ -1020,6 +1020,9 @@ export const ko: TranslationResources = {
       pr: {
         actions: {
           viewPullRequest: "보기",
+          review: "리뷰",
+          reviewing: "리뷰 중…",
+          reviewFailed: "리뷰를 시작하지 못했습니다.",
           openOn: "{{brand}}에서 열기",
           addToChat: "채팅에 추가",
           addAllToChat: "모두 채팅에 추가",

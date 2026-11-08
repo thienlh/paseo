@@ -1026,6 +1026,9 @@ export const ja: TranslationResources = {
       pr: {
         actions: {
           viewPullRequest: "表示",
+          review: "レビュー",
+          reviewing: "レビュー中…",
+          reviewFailed: "レビューを開始できませんでした。",
           openOn: "{{brand}}で開く",
           addToChat: "チャットに追加",
           addAllToChat: "すべてチャットに追加",

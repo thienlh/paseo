@@ -1021,6 +1021,9 @@ export const en = {
       pr: {
         actions: {
           viewPullRequest: "View",
+          review: "Review",
+          reviewing: "Reviewing…",
+          reviewFailed: "Could not start the review.",
           openOn: "Open on {{brand}}",
           addToChat: "Add to chat",
           addAllToChat: "Add all to chat",
