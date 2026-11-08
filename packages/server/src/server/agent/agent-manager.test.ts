@@ -19,6 +19,7 @@ import {
   type AgentManagerEvent,
   type ManagedAgent,
 } from "./agent-manager.js";
+import { workspaceContextInstructions } from "./workspace-context.js";
 import { AgentStorage } from "./agent-storage.js";
 import { InMemoryAgentTimelineStore } from "./agent-timeline-store.js";
 import { limitAgentTimelineItemContent } from "./agent-timeline-content.js";
@@ -2605,6 +2606,56 @@ test("createAgent injects daemon append system prompt at runtime only", async ()
   expect(snapshot.config).not.toHaveProperty("daemonAppendSystemPrompt");
   expect(record?.config?.systemPrompt).toBe("Agent instructions.");
   expect(record?.config).not.toHaveProperty("daemonAppendSystemPrompt");
+});
+
+test("createAgent tells the agent about the workspace .context directory", async () => {
+  const workdir = mkdtempSync(join(tmpdir(), "agent-manager-test-"));
+  const storage = new AgentStorage(join(workdir, "agents"), logger);
+  const client = new TestAgentClient();
+  const preparedCwds: string[] = [];
+  const manager = new AgentManager({
+    clients: { codex: client },
+    registry: storage,
+    logger,
+    appendSystemPrompt: "Daemon instructions.",
+    ensureWorkspaceContext: async (cwd) => {
+      preparedCwds.push(cwd);
+      return "/repo/.context";
+    },
+    idFactory: () => "00000000-0000-4000-8000-000000000105",
+  });
+
+  const snapshot = await manager.createAgent({ provider: "codex", cwd: workdir }, undefined, {
+    workspaceId: undefined,
+  });
+  const record = await storage.get(snapshot.id);
+
+  expect(preparedCwds).toEqual([workdir]);
+  expect(client.createdConfigs[0]?.daemonAppendSystemPrompt).toBe(
+    `Daemon instructions.\n\n${workspaceContextInstructions("/repo/.context")}`,
+  );
+  expect(record?.config).not.toHaveProperty("daemonAppendSystemPrompt");
+});
+
+test("createAgent launches without .context when preparing it fails", async () => {
+  const workdir = mkdtempSync(join(tmpdir(), "agent-manager-test-"));
+  const client = new TestAgentClient();
+  const manager = new AgentManager({
+    clients: { codex: client },
+    registry: new AgentStorage(join(workdir, "agents"), logger),
+    logger,
+    ensureWorkspaceContext: async () => {
+      throw new Error("read-only file system");
+    },
+    idFactory: () => "00000000-0000-4000-8000-000000000106",
+  });
+
+  await manager.createAgent({ provider: "codex", cwd: workdir }, undefined, {
+    workspaceId: undefined,
+  });
+
+  expect(client.createdConfigs).toHaveLength(1);
+  expect(client.createdConfigs[0]).not.toHaveProperty("daemonAppendSystemPrompt");
 });
 
 test("daemon append system prompt is injected into Pi configs", async () => {
