@@ -79,15 +79,40 @@ function buildFilePathDisplay(
   };
 }
 
+function readDisplayName(
+  detail: Extract<ToolCallDisplayInput["detail"], { type: "read" }>,
+): string {
+  const count = detail.content === undefined ? detail.limit : contentLineCount(detail.content);
+  if (count === undefined) return "Read";
+  return `Read ${count} ${count === 1 ? "line" : "lines"}`;
+}
+
+function contentLineCount(content: string): number {
+  if (content.length === 0) return 0;
+  const lines = content.split(/\r\n|\r|\n/);
+  return /\r\n$|\r$|\n$/.test(content) ? lines.length - 1 : lines.length;
+}
+
+function firstNonEmptyLine(text: string): string | undefined {
+  for (const line of text.split(/\r\n|\r|\n/)) {
+    const trimmed = line.trim();
+    if (trimmed) return trimmed;
+  }
+  return undefined;
+}
+
 function buildCanonicalDetailDisplay(input: ToolCallDisplayInput): DetailDisplay {
   switch (input.detail.type) {
     case "shell":
       return {
         displayName: nonEmpty(input.detail.description) ?? "Shell",
-        summary: input.detail.command,
+        summary:
+          input.status === "failed" && typeof input.detail.exitCode === "number"
+            ? `${input.detail.command} · exit ${input.detail.exitCode}`
+            : input.detail.command,
       };
     case "read":
-      return buildFilePathDisplay("Read", input.detail.filePath, input.cwd);
+      return buildFilePathDisplay(readDisplayName(input.detail), input.detail.filePath, input.cwd);
     case "edit":
       return buildFilePathDisplay("Edit", input.detail.filePath, input.cwd);
     case "write":
@@ -138,6 +163,8 @@ function buildUnknownDetailOverride(input: ToolCallDisplayInput): DetailDisplay 
   if (input.detail.type === "unknown" && lowerName === "thinking") {
     return {
       displayName: "Thinking",
+      summary:
+        typeof input.detail.input === "string" ? firstNonEmptyLine(input.detail.input) : undefined,
     };
   }
   if (lowerName === "terminal") {

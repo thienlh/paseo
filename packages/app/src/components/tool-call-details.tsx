@@ -15,8 +15,9 @@ import {
   buildPaseoToolDetailSections,
   type PaseoToolDetailSection,
 } from "@getpaseo/protocol/paseo-tool-presentation/index";
-import { buildLineDiff, parseUnifiedDiff, type DiffLine } from "@/utils/tool-call-parsers";
+import type { DiffLine } from "@/utils/tool-call-parsers";
 import { highlightDiffLines } from "@/utils/diff-highlight";
+import { buildToolCallEditDiffLines } from "@/tool-calls/edit-diff";
 import { hasMeaningfulToolCallDetail } from "@/utils/tool-call-detail-state";
 import { inlineUnistylesStyle } from "@/styles/unistyles-inline-style";
 import { CODE_SURFACE_DATASET } from "@/styles/code-surface";
@@ -139,11 +140,8 @@ function useDetailStyles(
 
 function useDiffLines(detail: ToolCallDetail | undefined): DiffLine[] | undefined {
   return useMemo(() => {
-    if (!detail || detail.type !== "edit") return undefined;
-    const diffLines = detail.unifiedDiff
-      ? parseUnifiedDiff(detail.unifiedDiff)
-      : buildLineDiff(detail.oldString ?? "", detail.newString ?? "");
-    return highlightDiffLines(diffLines, detail.filePath);
+    if (detail?.type !== "edit") return undefined;
+    return highlightDiffLines(buildToolCallEditDiffLines(detail) ?? [], detail.filePath);
   }, [detail]);
 }
 
