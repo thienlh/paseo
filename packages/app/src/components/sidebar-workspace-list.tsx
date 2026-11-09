@@ -603,6 +603,7 @@ function ProjectMenuItems({
 
 function WorkspaceRowRightGroup({
   workspace,
+  selected,
   backdrop,
   isHovered,
   isTouchPlatform,
@@ -623,6 +624,7 @@ function WorkspaceRowRightGroup({
   onTogglePin,
 }: {
   workspace: SidebarWorkspaceEntry;
+  selected: boolean;
   backdrop: SidebarSurfaceBackdrop;
   isHovered: boolean;
   isTouchPlatform: boolean;
@@ -671,7 +673,11 @@ function WorkspaceRowRightGroup({
       {renderSlot ? (
         <SidebarWorkspaceTrailingActionSlot reserveWidth={reserveSlotWidth}>
           <SidebarWorkspaceTrailingActionBase presentation={trailingPresentation}>
-            <SidebarWorkspaceTrailingContent workspace={workspace} trailing={trailing} />
+            <SidebarWorkspaceTrailingContent
+              workspace={workspace}
+              trailing={trailing}
+              selected={selected}
+            />
           </SidebarWorkspaceTrailingActionBase>
           <SidebarWorkspaceTrailingActionOverlay
             visible={kebab.showKebab || showArchiveButton}
@@ -1185,6 +1191,7 @@ function WorkspaceRowInner({
               >
                 <WorkspaceRowRightGroup
                   workspace={workspace}
+                  selected={selected}
                   backdrop={backdrop}
                   isHovered={isHovered}
                   isTouchPlatform={isTouchPlatform}

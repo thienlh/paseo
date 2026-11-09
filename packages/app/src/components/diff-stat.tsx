@@ -5,14 +5,15 @@ import { formatDiffCount } from "@/git/file-header-presentation";
 interface DiffStatProps {
   additions: number;
   deletions: number;
+  muted?: boolean;
   testID?: string;
 }
 
-export function DiffStat({ additions, deletions, testID }: DiffStatProps) {
+export function DiffStat({ additions, deletions, muted = false, testID }: DiffStatProps) {
   return (
     <View style={styles.row} testID={testID}>
-      <Text style={styles.additions}>+{formatDiffCount(additions)}</Text>
-      <Text style={styles.deletions}>-{formatDiffCount(deletions)}</Text>
+      <Text style={[styles.additions, muted && styles.muted]}>+{formatDiffCount(additions)}</Text>
+      <Text style={[styles.deletions, muted && styles.muted]}>-{formatDiffCount(deletions)}</Text>
     </View>
   );
 }
@@ -34,5 +35,8 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     fontWeight: theme.fontWeight.normal,
     color: theme.colors.statusDanger,
+  },
+  muted: {
+    color: theme.colors.foregroundMuted,
   },
 }));

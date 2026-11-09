@@ -333,6 +333,7 @@ function WorkspaceRowBody({
               >
                 <WorkspaceRowTrailingActions
                   workspace={workspace}
+                  selected={selected}
                   backdrop={backdrop}
                   trailing={trailing}
                   isHovered={isHovered}
@@ -362,6 +363,7 @@ function WorkspaceRowBody({
 
 function WorkspaceRowTrailingActions({
   workspace,
+  selected,
   backdrop,
   trailing,
   isHovered,
@@ -381,6 +383,7 @@ function WorkspaceRowTrailingActions({
   onRename,
 }: {
   workspace: SidebarWorkspaceEntry;
+  selected: boolean;
   backdrop: SidebarSurfaceBackdrop;
   trailing: SidebarWorkspaceTrailing;
   isHovered: boolean;
@@ -426,7 +429,11 @@ function WorkspaceRowTrailingActions({
       {renderSlot ? (
         <SidebarWorkspaceTrailingActionSlot reserveWidth={reserveSlotWidth}>
           <SidebarWorkspaceTrailingActionBase presentation={trailingPresentation}>
-            <SidebarWorkspaceTrailingContent workspace={workspace} trailing={trailing} />
+            <SidebarWorkspaceTrailingContent
+              workspace={workspace}
+              trailing={trailing}
+              selected={selected}
+            />
           </SidebarWorkspaceTrailingActionBase>
           <SidebarWorkspaceTrailingActionOverlay
             visible={kebab.showKebab || showArchiveButton}
