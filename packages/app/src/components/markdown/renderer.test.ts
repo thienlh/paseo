@@ -712,6 +712,7 @@ it.each([
       backgroundColor: theme.colors.surface1,
       borderColor: theme.colors.surface3,
     });
+    expect(style.strong).toMatchObject({ fontWeight: theme.fontWeight.semibold });
     // Native links keep a persistent cue; web links underline on hover.
     expect(style.link).toMatchObject({ color: theme.colors.foreground, underline: isNative });
     expect(style.linkVariants?.["^(?!https?://).+"]).toEqual({
