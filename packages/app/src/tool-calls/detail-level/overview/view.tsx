@@ -1,5 +1,5 @@
-import React, { memo, useCallback, useRef, type ReactNode } from "react";
-import { ScrollView } from "react-native";
+import React, { memo, useCallback, type ReactNode } from "react";
+import { View } from "react-native";
 import { Wrench } from "lucide-react-native";
 import { StyleSheet } from "react-native-unistyles";
 import { useDisclosureHold } from "@/agent-stream/disclosure";
@@ -18,8 +18,6 @@ interface OverviewGroupProps {
   children: ReactNode;
 }
 
-const TOOL_CALL_GROUP_MAX_HEIGHT = 400;
-
 export const OverviewToolCallGroupView = memo(function OverviewToolCallGroupView({
   group,
   expanded,
@@ -27,12 +25,8 @@ export const OverviewToolCallGroupView = memo(function OverviewToolCallGroupView
   onExpandedChange,
   children,
 }: OverviewGroupProps) {
-  const scrollRef = useRef<ScrollView>(null);
   const isCompact = useIsCompactFormFactor();
   const aggregateSummary = useOverviewSummaryLabel(group.summary);
-  const scrollToLatest = useCallback(() => {
-    scrollRef.current?.scrollToEnd({ animated: false });
-  }, []);
   const hold = useDisclosureHold();
   const toggle = useCallback(() => {
     const apply = () => onExpandedChange(group.run.id, !expanded);
@@ -45,18 +39,11 @@ export const OverviewToolCallGroupView = memo(function OverviewToolCallGroupView
   }, [group.run.id, onExpandedChange]);
   const renderDetails = useCallback(
     () => (
-      <ScrollView
-        ref={scrollRef}
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        nestedScrollEnabled
-        showsVerticalScrollIndicator
-        onContentSizeChange={scrollToLatest}
-      >
+      <View style={styles.content}>
         <IndentRail>{children}</IndentRail>
-      </ScrollView>
+      </View>
     ),
-    [children, scrollToLatest],
+    [children],
   );
 
   if (isCompact) {
@@ -94,9 +81,6 @@ export const OverviewToolCallGroupView = memo(function OverviewToolCallGroupView
 });
 
 const styles = StyleSheet.create((theme) => ({
-  scroll: {
-    maxHeight: TOOL_CALL_GROUP_MAX_HEIGHT,
-  },
   content: {
     paddingTop: theme.spacing[1],
     paddingHorizontal: 13,
