@@ -96,6 +96,7 @@ import { getTurnDurationLabel } from "./assistant-turn-footer-label";
 import { getCompactionMarkerLabel } from "./message-compaction-label";
 import { PlanCard } from "./plan-card";
 import { ToolCallDetailsContent } from "./tool-call-details";
+import { DiffStat } from "./diff-stat";
 import { useToolCallSheet } from "./tool-call-sheet";
 export type { InlinePathTarget } from "@/assistant-file-links";
 export type { AssistantForkTarget };
@@ -1015,9 +1016,11 @@ const expandableBadgeStylesheet = StyleSheet.create((theme) => ({
     marginLeft: theme.spacing[2],
     paddingHorizontal: theme.spacing[1.5],
     paddingVertical: 1,
-    borderRadius: theme.borderRadius.base,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: theme.borderWidth[1],
+    borderColor: theme.colors.surface3,
     overflow: "hidden",
-    backgroundColor: theme.colors.surface2,
+    backgroundColor: theme.colors.surface1,
   },
   secondaryLabelActive: {
     color: theme.colors.foreground,
@@ -1111,6 +1114,8 @@ const expandableBadgeStylesheet = StyleSheet.create((theme) => ({
 interface NativeExpandableBadgeShimmerProps {
   label: string;
   secondaryLabel?: string;
+  secondaryLabelEllipsizeMode?: "head" | "middle" | "tail" | "clip";
+  diffStat?: { additions: number; deletions: number };
   rowWidth: number;
   rowHeight: number;
   peakWidth: number;
@@ -1121,6 +1126,8 @@ interface NativeExpandableBadgeShimmerProps {
 const NativeExpandableBadgeShimmer = memo(function NativeExpandableBadgeShimmer({
   label,
   secondaryLabel,
+  secondaryLabelEllipsizeMode,
+  diffStat,
   rowWidth,
   rowHeight,
   peakWidth,
@@ -1194,15 +1201,28 @@ const NativeExpandableBadgeShimmer = memo(function NativeExpandableBadgeShimmer(
           {label}
         </Text>
         {secondaryLabel ? (
-          <Text style={nativeSecondaryMaskStyle} numberOfLines={1}>
+          <Text
+            style={nativeSecondaryMaskStyle}
+            numberOfLines={1}
+            ellipsizeMode={secondaryLabelEllipsizeMode}
+          >
             {secondaryLabel}
           </Text>
         ) : (
           <View style={expandableBadgeStylesheet.spacer} />
         )}
+        <ExpandableBadgeDiffStat diffStat={diffStat} />
       </View>
     ),
-    [nativeShimmerMaskStyle, nativeLabelMaskStyle, nativeSecondaryMaskStyle, label, secondaryLabel],
+    [
+      nativeShimmerMaskStyle,
+      nativeLabelMaskStyle,
+      nativeSecondaryMaskStyle,
+      label,
+      secondaryLabel,
+      secondaryLabelEllipsizeMode,
+      diffStat,
+    ],
   );
 
   return (
@@ -1395,6 +1415,10 @@ const notificationStylesheet = StyleSheet.create((theme) => ({
     paddingHorizontal: theme.spacing[3],
     paddingVertical: 10,
   },
+  usageContent: {
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
   row: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -1411,6 +1435,11 @@ const notificationStylesheet = StyleSheet.create((theme) => ({
   messageText: {
     color: theme.colors.foreground,
     fontSize: theme.fontSize.base,
+    lineHeight: 20,
+  },
+  usageText: {
+    color: theme.colors.foregroundMuted,
+    fontSize: theme.fontSize.sm,
     lineHeight: 20,
   },
 }));
@@ -1442,24 +1471,35 @@ export const Notification = memo(function Notification({
 
   const config = typeConfig[level];
   const IconComponent = config.Icon;
+  const usageMetrics = level === "info" && message.startsWith("TPS ");
 
   const containerStyle = useMemo(
     () => [
       notificationStylesheet.container,
       !resolvedDisableOuterSpacing && notificationStylesheet.containerSpacing,
-      config.bg,
+      !usageMetrics && config.bg,
     ],
-    [resolvedDisableOuterSpacing, config.bg],
+    [resolvedDisableOuterSpacing, usageMetrics, config.bg],
   );
   return (
     <View style={containerStyle}>
-      <View style={notificationStylesheet.content}>
+      <View
+        style={usageMetrics ? notificationStylesheet.usageContent : notificationStylesheet.content}
+      >
         <View style={notificationStylesheet.row}>
           <View style={notificationStylesheet.iconContainer}>
-            <IconComponent size={16} uniProps={config.iconColorMapping} />
+            <IconComponent
+              size={usageMetrics ? 12 : 16}
+              uniProps={usageMetrics ? foregroundMutedColorMapping : config.iconColorMapping}
+            />
           </View>
           <View style={notificationStylesheet.textContainer}>
-            <Text style={notificationStylesheet.messageText} selectable>
+            <Text
+              style={
+                usageMetrics ? notificationStylesheet.usageText : notificationStylesheet.messageText
+              }
+              selectable
+            >
               {message}
             </Text>
           </View>
@@ -1611,6 +1651,8 @@ interface ExpandableBadgeProps {
   secondaryLabel?: string;
   /** Code-like details, such as a shell command, read better in the mono font. */
   secondaryLabelMonospace?: boolean;
+  secondaryLabelEllipsizeMode?: "head" | "middle" | "tail" | "clip";
+  diffStat?: { additions: number; deletions: number };
   icon?: ComponentType<{ size?: number; color?: string }>;
   isExpanded: boolean;
   style?: StyleProp<ViewStyle>;
@@ -1628,6 +1670,7 @@ interface ExpandableBadgeProps {
 interface ExpandableBadgeSecondaryLabelProps {
   secondaryLabel?: string;
   secondaryLabelStyle: StyleProp<TextStyle>;
+  secondaryLabelEllipsizeMode?: "head" | "middle" | "tail" | "clip";
   shouldMeasureWebShimmer: boolean;
   onSecondaryLayout: (event: LayoutChangeEvent) => void;
 }
@@ -1635,6 +1678,7 @@ interface ExpandableBadgeSecondaryLabelProps {
 function ExpandableBadgeSecondaryLabel({
   secondaryLabel,
   secondaryLabelStyle,
+  secondaryLabelEllipsizeMode,
   shouldMeasureWebShimmer,
   onSecondaryLayout,
 }: ExpandableBadgeSecondaryLabelProps) {
@@ -1645,6 +1689,7 @@ function ExpandableBadgeSecondaryLabel({
     <Text
       style={secondaryLabelStyle}
       numberOfLines={1}
+      ellipsizeMode={secondaryLabelEllipsizeMode}
       onLayout={shouldMeasureWebShimmer ? onSecondaryLayout : undefined}
     >
       {secondaryLabel}
@@ -1655,6 +1700,8 @@ function ExpandableBadgeSecondaryLabel({
 interface ExpandableBadgeWebShimmerOverlayProps {
   label: string;
   secondaryLabel?: string;
+  secondaryLabelEllipsizeMode?: "head" | "middle" | "tail" | "clip";
+  diffStat?: { additions: number; deletions: number };
   shimmerLabelTextStyle: StyleProp<TextStyle>;
   shimmerSecondaryTextStyle: StyleProp<TextStyle>;
 }
@@ -1662,6 +1709,8 @@ interface ExpandableBadgeWebShimmerOverlayProps {
 function ExpandableBadgeWebShimmerOverlay({
   label,
   secondaryLabel,
+  secondaryLabelEllipsizeMode,
+  diffStat,
   shimmerLabelTextStyle,
   shimmerSecondaryTextStyle,
 }: ExpandableBadgeWebShimmerOverlayProps) {
@@ -1671,10 +1720,15 @@ function ExpandableBadgeWebShimmerOverlay({
         {label}
       </Text>
       {secondaryLabel ? (
-        <Text style={shimmerSecondaryTextStyle} numberOfLines={1}>
+        <Text
+          style={shimmerSecondaryTextStyle}
+          numberOfLines={1}
+          ellipsizeMode={secondaryLabelEllipsizeMode}
+        >
           {secondaryLabel}
         </Text>
       ) : null}
+      <ExpandableBadgeDiffStat diffStat={diffStat} />
       {!secondaryLabel ? <View style={expandableBadgeStylesheet.spacer} /> : null}
     </View>
   );
@@ -1685,6 +1739,8 @@ interface ExpandableBadgeLabelRowProps {
   labelStyle: StyleProp<TextStyle>;
   secondaryLabel?: string;
   secondaryLabelStyle: StyleProp<TextStyle>;
+  secondaryLabelEllipsizeMode?: "head" | "middle" | "tail" | "clip";
+  diffStat?: { additions: number; deletions: number };
   shouldMeasureWebShimmer: boolean;
   shouldMeasureNativeShimmer: boolean;
   isWebShimmer: boolean;
@@ -1706,6 +1762,8 @@ function ExpandableBadgeLabelRow({
   labelStyle,
   secondaryLabel,
   secondaryLabelStyle,
+  secondaryLabelEllipsizeMode,
+  diffStat,
   shouldMeasureWebShimmer,
   shouldMeasureNativeShimmer,
   isWebShimmer,
@@ -1736,13 +1794,17 @@ function ExpandableBadgeLabelRow({
       <ExpandableBadgeSecondaryLabel
         secondaryLabel={secondaryLabel}
         secondaryLabelStyle={secondaryLabelStyle}
+        secondaryLabelEllipsizeMode={secondaryLabelEllipsizeMode}
         shouldMeasureWebShimmer={shouldMeasureWebShimmer}
         onSecondaryLayout={onSecondaryLayout}
       />
+      <ExpandableBadgeDiffStat diffStat={diffStat} />
       {isWebShimmer ? (
         <ExpandableBadgeWebShimmerOverlay
           label={label}
           secondaryLabel={secondaryLabel}
+          secondaryLabelEllipsizeMode={secondaryLabelEllipsizeMode}
+          diffStat={diffStat}
           shimmerLabelTextStyle={shimmerLabelTextStyle}
           shimmerSecondaryTextStyle={shimmerSecondaryTextStyle}
         />
@@ -1751,6 +1813,8 @@ function ExpandableBadgeLabelRow({
         <NativeExpandableBadgeShimmer
           label={label}
           secondaryLabel={secondaryLabel}
+          secondaryLabelEllipsizeMode={secondaryLabelEllipsizeMode}
+          diffStat={diffStat}
           rowWidth={labelRowWidth}
           rowHeight={labelRowHeight}
           peakWidth={nativeShimmerPeakWidth}
@@ -1937,6 +2001,8 @@ export const ExpandableBadge = memo(function ExpandableBadge({
   style,
   secondaryLabel,
   secondaryLabelMonospace = false,
+  secondaryLabelEllipsizeMode,
+  diffStat,
   icon,
   isExpanded,
   onToggle,
@@ -2222,6 +2288,8 @@ export const ExpandableBadge = memo(function ExpandableBadge({
             labelStyle={labelStyle}
             secondaryLabel={secondaryLabel}
             secondaryLabelStyle={secondaryLabelStyle}
+            secondaryLabelEllipsizeMode={secondaryLabelEllipsizeMode}
+            diffStat={diffStat}
             shouldMeasureWebShimmer={shouldMeasureWebShimmer}
             shouldMeasureNativeShimmer={shouldMeasureNativeShimmer}
             isWebShimmer={isWebShimmer}
@@ -2268,6 +2336,9 @@ export const ExpandableBadge = memo(function ExpandableBadge({
 function areExpandableBadgePropsEqual(previous: ExpandableBadgeProps, next: ExpandableBadgeProps) {
   if (previous.label !== next.label) return false;
   if (previous.secondaryLabel !== next.secondaryLabel) return false;
+  if (previous.secondaryLabelMonospace !== next.secondaryLabelMonospace) return false;
+  if (previous.secondaryLabelEllipsizeMode !== next.secondaryLabelEllipsizeMode) return false;
+  if (previous.diffStat !== next.diffStat) return false;
   if (previous.icon !== next.icon) return false;
   if (previous.isExpanded !== next.isExpanded) return false;
   if (previous.style !== next.style) return false;
@@ -2281,6 +2352,32 @@ function areExpandableBadgePropsEqual(previous: ExpandableBadgeProps, next: Expa
   if (previous.onOpenFile !== next.onOpenFile) return false;
   if (previous.renderDetails !== next.renderDetails) return false;
   return true;
+}
+
+function getToolCallSummaryPresentation(toolName: string, detail: ToolCallDetail | undefined) {
+  const type = detail?.type;
+  return {
+    monospace:
+      toolName === "thinking" ||
+      type === "shell" ||
+      type === "read" ||
+      type === "edit" ||
+      type === "write" ||
+      type === "fetch",
+    ellipsizeMode:
+      type === "read" || type === "edit" || type === "write"
+        ? ("middle" as const)
+        : ("tail" as const),
+  };
+}
+
+function ExpandableBadgeDiffStat({
+  diffStat,
+}: {
+  diffStat?: { additions: number; deletions: number };
+}) {
+  if (!diffStat) return null;
+  return <DiffStat additions={diffStat.additions} deletions={diffStat.deletions} />;
 }
 
 interface ToolCallProps {
@@ -2456,12 +2553,16 @@ export const ToolCall = memo(function ToolCall({
     );
   }
 
+  const summaryPresentation = getToolCallSummaryPresentation(toolName, effectiveDetail);
+
   return (
     <ExpandableBadge
       testID="tool-call-badge"
       label={presentation.displayName}
       secondaryLabel={presentation.summary}
-      secondaryLabelMonospace={presentation.detail?.type === "shell"}
+      secondaryLabelMonospace={summaryPresentation.monospace}
+      secondaryLabelEllipsizeMode={summaryPresentation.ellipsizeMode}
+      diffStat={presentation.diffStat}
       icon={presentation.icon}
       isExpanded={shouldRenderInline && isExpanded}
       onToggle={presentation.canOpenDetails ? handleToggle : undefined}

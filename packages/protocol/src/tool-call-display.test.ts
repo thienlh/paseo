@@ -21,6 +21,50 @@ describe("shared tool-call display mapping", () => {
     });
   });
 
+  it.each([
+    [{ content: "first\nsecond\nthird", limit: 200 }, "Read 3 lines"],
+    [{ content: "first\nsecond\n", limit: 200 }, "Read 2 lines"],
+    [{ content: "", limit: 200 }, "Read 0 lines"],
+    [{ limit: 1 }, "Read 1 line"],
+    [{ limit: 155 }, "Read 155 lines"],
+  ])("includes the available read line count in the label: %o", (read, displayName) => {
+    const display = buildToolCallDisplayModel({
+      name: "read_file",
+      status: "completed",
+      error: null,
+      detail: { type: "read", filePath: "/tmp/repo/src/index.ts", ...read },
+      cwd: "/tmp/repo",
+    });
+    expect(display).toEqual({ displayName, summary: "src/index.ts" });
+  });
+
+  it("shows the first non-empty reasoning line beside Thinking", () => {
+    const display = buildToolCallDisplayModel({
+      name: "thinking",
+      status: "running",
+      error: null,
+      detail: {
+        type: "unknown",
+        input: "\n  Check the generated patch first.  \nThen run the focused tests.",
+        output: null,
+      },
+    });
+    expect(display).toEqual({
+      displayName: "Thinking",
+      summary: "Check the generated patch first.",
+    });
+  });
+
+  it("includes a failed shell call's exit code beside its command", () => {
+    const display = buildToolCallDisplayModel({
+      name: "Bash",
+      status: "failed",
+      error: null,
+      detail: { type: "shell", command: "npm test", exitCode: 2 },
+    });
+    expect(display).toMatchObject({ displayName: "Shell", summary: "npm test · exit 2" });
+  });
+
   it("does not infer summaries from unknown raw detail", () => {
     const display = buildToolCallDisplayModel({
       name: "exec_command",

@@ -6,6 +6,7 @@ import type { ToolCallDetail } from "@getpaseo/protocol/agent-types";
 import type { ToolCallDisplayInput } from "@/utils/tool-call-display";
 import { buildToolCallDisplayModel } from "@/utils/tool-call-display";
 import { extractToolCallFilePath } from "@/utils/extract-tool-call-file-path";
+import { buildToolCallEditDiffStat, type ToolCallEditDiffStat } from "./edit-diff";
 import {
   hasMeaningfulToolCallDetail,
   isPendingToolCallDetail,
@@ -31,6 +32,7 @@ export interface ToolCallPresentation {
   displayName: string;
   summary?: string;
   errorText?: string;
+  diffStat?: ToolCallEditDiffStat;
   icon: ToolCallPresentationIcon;
   isLoadingDetails: boolean;
   hasDetails: boolean;
@@ -83,6 +85,7 @@ export function buildToolCallPresentation(
     displayName: displayModel.displayName,
     summary: displayModel.summary,
     errorText: displayModel.errorText,
+    diffStat: buildToolCallEditDiffStat(detail),
     icon: input.resolveIcon(input.toolName, detail, input.agentMessage),
     isLoadingDetails,
     hasDetails,

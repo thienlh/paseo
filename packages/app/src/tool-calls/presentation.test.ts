@@ -47,7 +47,7 @@ describe("tool-call presentation", () => {
     });
 
     expect(presentation).toMatchObject({
-      displayName: "Read",
+      displayName: "Read 1 line",
       summary: "src/index.ts",
       icon: fakeIcons.eye,
       isLoadingDetails: false,
@@ -74,6 +74,52 @@ describe("tool-call presentation", () => {
       hasDetails: false,
       canOpenDetails: true,
     });
+  });
+
+  it("includes additions and deletions from an edit's unified diff", () => {
+    const presentation = buildToolCallPresentation({
+      toolName: "edit_file",
+      status: "completed",
+      error: null,
+      cwd: "/tmp/repo",
+      detail: {
+        type: "edit",
+        filePath: "/tmp/repo/src/index.ts",
+        unifiedDiff: "@@ -1,2 +1,3 @@\n old\n-removed\n+added one\n+added two",
+      },
+      resolveIcon: fakeResolveIcon,
+    });
+    expect(presentation).toMatchObject({
+      summary: "src/index.ts",
+      diffStat: { additions: 2, deletions: 1 },
+    });
+  });
+
+  it("derives edit stats from old and new strings when no unified diff is available", () => {
+    const presentation = buildToolCallPresentation({
+      toolName: "edit_file",
+      status: "completed",
+      error: null,
+      detail: {
+        type: "edit",
+        filePath: "src/index.ts",
+        oldString: "one\nthree",
+        newString: "one\ntwo\nthree",
+      },
+      resolveIcon: fakeResolveIcon,
+    });
+    expect(presentation.diffStat).toEqual({ additions: 1, deletions: 0 });
+  });
+
+  it("omits edit stats until the call has diff content", () => {
+    const presentation = buildToolCallPresentation({
+      toolName: "edit_file",
+      status: "running",
+      error: null,
+      detail: { type: "edit", filePath: "src/index.ts" },
+      resolveIcon: fakeResolveIcon,
+    });
+    expect(presentation.diffStat).toBeUndefined();
   });
 
   it("marks running calls without meaningful detail as loading details", () => {
