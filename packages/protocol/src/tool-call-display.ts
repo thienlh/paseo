@@ -83,7 +83,7 @@ function buildCanonicalDetailDisplay(input: ToolCallDisplayInput): DetailDisplay
   switch (input.detail.type) {
     case "shell":
       return {
-        displayName: "Shell",
+        displayName: nonEmpty(input.detail.description) ?? "Shell",
         summary: input.detail.command,
       };
     case "read":
@@ -178,4 +178,9 @@ export function buildToolCallDisplayModel(input: ToolCallDisplayInput): ToolCall
     ...(summary ? { summary } : {}),
     ...(errorText ? { errorText } : {}),
   };
+}
+
+function nonEmpty(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
 }
