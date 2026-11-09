@@ -250,6 +250,7 @@ const stylesheet = StyleSheet.create((theme) => ({
   },
   turnFooterSlot: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     gap: theme.spacing[3],
     alignSelf: "stretch",

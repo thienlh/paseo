@@ -88,6 +88,7 @@ import { getCompactionMarkerLabel } from "./message-compaction-label";
 import { PlanCard } from "./plan-card";
 import { ToolCallDetailsContent } from "./tool-call-details";
 import { DiffStat } from "./diff-stat";
+import { ToolCallEditHoverCard } from "@/tool-calls/edit-hover-card";
 import { useToolCallSheet } from "./tool-call-sheet";
 export type { InlinePathTarget } from "@/assistant-file-links";
 export type { AssistantForkTarget };
@@ -577,7 +578,9 @@ interface AssistantTurnFooterProps {
 
 const assistantTurnFooterStylesheet = StyleSheet.create((theme) => ({
   container: {
-    flex: 1,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: "auto",
     minWidth: 0,
     minHeight: 24,
     flexDirection: "row",
@@ -598,15 +601,18 @@ const assistantTurnFooterStylesheet = StyleSheet.create((theme) => ({
     marginLeft: -theme.spacing[1],
   },
   labelButton: {
-    flex: 1,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: "auto",
     minHeight: 24,
     flexDirection: "row",
     alignItems: "center",
     minWidth: 0,
   },
   label: {
-    width: "100%",
+    width: "auto",
     flexShrink: 0,
+    whiteSpace: "nowrap",
     color: theme.colors.foregroundMuted,
     fontSize: STREAM_METADATA_FONT_SIZE,
   },
@@ -702,11 +708,12 @@ export const AssistantTurnFooter = memo(function AssistantTurnFooter({
           accessibilityRole={canSwap ? "button" : undefined}
           accessibilityLabel={canSwap ? `${durationLabel}, ended ${timestampLabel}` : primaryLabel}
         >
-          {/* Both labels participate in layout at the available width. Overlapping their
+          {/* Both labels participate in layout at their content width. Overlapping their
               columns reserves the taller wrapped height without measuring text or characters. */}
           <Text
             testID={!showTimestamp ? "turn-footer-timing-label" : undefined}
             aria-hidden={showTimestamp}
+            numberOfLines={1}
             style={[
               assistantTurnFooterStylesheet.label,
               showTimestamp && assistantTurnFooterStylesheet.hiddenLabel,
@@ -718,6 +725,7 @@ export const AssistantTurnFooter = memo(function AssistantTurnFooter({
             <Text
               testID={showTimestamp ? "turn-footer-timing-label" : undefined}
               aria-hidden={!showTimestamp}
+              numberOfLines={1}
               style={[
                 assistantTurnFooterStylesheet.label,
                 assistantTurnFooterStylesheet.overlappingLabel,
@@ -1002,6 +1010,10 @@ const expandableBadgeStylesheet = StyleSheet.create((theme) => ({
   },
   secondaryLabelMonospace: {
     fontFamily: theme.fontFamily.mono,
+  },
+  diffStat: {
+    marginLeft: theme.spacing[2],
+    flexShrink: 0,
   },
   // The shimmer copies the chip's box to line up with it, without its fill.
   shimmerSecondaryText: {
@@ -2393,7 +2405,11 @@ function ExpandableBadgeDiffStat({
   diffStat?: { additions: number; deletions: number };
 }) {
   if (!diffStat) return null;
-  return <DiffStat additions={diffStat.additions} deletions={diffStat.deletions} />;
+  return (
+    <View style={expandableBadgeStylesheet.diffStat}>
+      <DiffStat additions={diffStat.additions} deletions={diffStat.deletions} />
+    </View>
+  );
 }
 
 interface ToolCallProps {
@@ -2581,24 +2597,28 @@ export const ToolCall = memo(function ToolCall({
   const summaryPresentation = getToolCallSummaryPresentation(toolName, effectiveDetail);
 
   return (
-    <ExpandableBadge
-      testID="tool-call-badge"
-      label={presentation.displayName}
-      secondaryLabel={presentation.summary}
-      secondaryLabelMonospace={summaryPresentation.monospace}
-      secondaryLabelEllipsizeMode={summaryPresentation.ellipsizeMode}
-      diffStat={presentation.diffStat}
-      icon={presentation.icon}
-      isExpanded={shouldRenderInline && isExpanded}
-      onToggle={presentation.canOpenDetails ? handleToggle : undefined}
-      onOpenFile={handleOpenFile}
-      renderDetails={presentation.canOpenDetails && shouldRenderInline ? renderDetails : undefined}
-      isLoading={status === "running" || status === "executing"}
-      isError={status === "failed"}
-      isLastInSequence={isLastInSequence}
-      disableOuterSpacing={disableOuterSpacing}
-      onDetailHoverChange={onInlineDetailsHoverChange}
-    />
+    <ToolCallEditHoverCard detail={effectiveDetail} summary={presentation.summary}>
+      <ExpandableBadge
+        testID="tool-call-badge"
+        label={presentation.displayName}
+        secondaryLabel={presentation.summary}
+        secondaryLabelMonospace={summaryPresentation.monospace}
+        secondaryLabelEllipsizeMode={summaryPresentation.ellipsizeMode}
+        diffStat={presentation.diffStat}
+        icon={presentation.icon}
+        isExpanded={shouldRenderInline && isExpanded}
+        onToggle={presentation.canOpenDetails ? handleToggle : undefined}
+        onOpenFile={handleOpenFile}
+        renderDetails={
+          presentation.canOpenDetails && shouldRenderInline ? renderDetails : undefined
+        }
+        isLoading={status === "running" || status === "executing"}
+        isError={status === "failed"}
+        isLastInSequence={isLastInSequence}
+        disableOuterSpacing={disableOuterSpacing}
+        onDetailHoverChange={onInlineDetailsHoverChange}
+      />
+    </ToolCallEditHoverCard>
   );
 }, areToolCallPropsEqual);
 
