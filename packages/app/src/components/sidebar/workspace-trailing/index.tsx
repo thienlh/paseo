@@ -49,14 +49,20 @@ export function SidebarWorkspaceTrailingContent({
   workspace,
   trailing,
   backdrop,
+  selected,
 }: {
   workspace: SidebarWorkspaceEntry;
   trailing: SidebarWorkspaceTrailing;
   backdrop: SidebarSurfaceBackdrop;
+  selected: boolean;
 }) {
   if (trailing === "diff" && workspace.diffStat && hasVisibleDiffStat(workspace)) {
     return (
-      <DiffStat additions={workspace.diffStat.additions} deletions={workspace.diffStat.deletions} />
+      <DiffStat
+        additions={workspace.diffStat.additions}
+        deletions={workspace.diffStat.deletions}
+        muted={!selected}
+      />
     );
   }
   if (trailing === "timestamp" && workspace.statusEnteredAt) {

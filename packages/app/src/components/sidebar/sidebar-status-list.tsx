@@ -932,6 +932,7 @@ function StatusWorkspaceRowInnerContent({
                 {renderSlot ? (
                   <StatusWorkspaceActionSlot
                     workspace={workspace}
+                    selected={selected}
                     backdrop={backdrop}
                     trailing={trailing}
                     trailingPresentation={trailingPresentation}
@@ -965,6 +966,7 @@ function StatusWorkspaceRowInnerContent({
 
 function StatusWorkspaceActionSlot({
   workspace,
+  selected,
   backdrop,
   trailing,
   trailingPresentation,
@@ -986,6 +988,7 @@ function StatusWorkspaceActionSlot({
   archiveShortcutKeys,
 }: {
   workspace: SidebarWorkspaceEntry;
+  selected: boolean;
   backdrop: SidebarSurfaceBackdrop;
   trailing: SidebarWorkspaceTrailing;
   trailingPresentation: SidebarWorkspaceTrailingPresentation;
@@ -1014,6 +1017,7 @@ function StatusWorkspaceActionSlot({
           workspace={workspace}
           trailing={trailing}
           backdrop={backdrop}
+          selected={selected}
         />
       </SidebarWorkspaceTrailingActionBase>
       <SidebarWorkspaceTrailingActionOverlay
