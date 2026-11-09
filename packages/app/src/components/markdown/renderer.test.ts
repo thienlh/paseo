@@ -12,6 +12,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { decodeMarkdownImage, getMarkdownImageStatus } from "./image-decoding";
 import { describe, expect, it } from "vitest";
 import { darkTheme, lightTheme } from "@/styles/theme";
+import { isNative } from "@/constants/platform";
 import { createMarkdownStyles } from "./styles";
 import { prepareMarkdownSource, PENDING_MARKDOWN_IMAGE } from "./source";
 import { normalizeMarkdownHtml } from "./html";
@@ -708,11 +709,11 @@ it.each([
     });
     expect(style.code).toMatchObject({
       color: theme.colors.foreground,
-      backgroundColor: theme.colors.surface2,
-      borderColor: "transparent",
+      backgroundColor: theme.colors.surface1,
+      borderColor: theme.colors.surface3,
     });
-    // Links are text-coloured and underlined; accent is kept for a screen's one action.
-    expect(style.link).toMatchObject({ color: theme.colors.foreground, underline: true });
+    // Native links keep a persistent cue; web links underline on hover.
+    expect(style.link).toMatchObject({ color: theme.colors.foreground, underline: isNative });
     expect(style.linkVariants?.["^(?!https?://).+"]).toEqual({
       color: theme.colors.foreground,
     });
@@ -735,9 +736,12 @@ describe("GitHub comment HTML normalization", () => {
     ],
     ['<a href="https://example.com/review">▶</a>', "[▶](<https://example.com/review>)"],
     ["Before<br>After<br/>End", "Before  \nAfter  \nEnd"],
+    ["<p>First<p>Second", "First\n\nSecond"],
+    ["<ul><li>First<li>Second</ul>", "First\n\nSecond"],
     ["<b>bold</b> and <strong>strong</strong>", "**bold** and **strong**"],
     ["<i>italic</i> and <em>emphasis</em>", "*italic* and *emphasis*"],
     ["Use <code>const n = 1</code>.", "Use `const n = 1`."],
+    ["<kbd>Ctrl</kbd>", "Ctrl"],
     ["H<sub>2</sub>O and x<sup>2</sup>", "H2O and x2"],
     [
       "<details><summary>Review details</summary>Body **stays**.</details>",
@@ -783,6 +787,15 @@ describe("GitHub comment HTML normalization", () => {
 it("preserves backslashes and decodes entities inside HTML code", () => {
   const source = String.raw`<code>\*literal\* &lt;img&gt;</code>`;
   expect(prepareMarkdownSource(source).render()).toBe("`" + String.raw`\*literal\* <img>` + "`");
+});
+
+it("keeps unknown angle-bracket placeholders visible as literal text", async () => {
+  const rendered = prepareMarkdownSource("Use <something> for the value.").render();
+  expect(rendered).toBe("Use \\<something\\> for the value.");
+  const tree = await parseMarkdown(rendered, { hardSoftBreaks: true, latexMath: false });
+  expect(tree.children?.[0]?.children).toEqual([
+    { type: "Text", content: "Use <something> for the value." },
+  ]);
 });
 
 it.each([false, true])(

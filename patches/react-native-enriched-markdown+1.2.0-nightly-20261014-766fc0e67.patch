@@ -3535,7 +3535,7 @@ diff --git a/node_modules/react-native-enriched-markdown/src/web/styles.ts b/nod
      verticalAlign: 'middle',
      display: 'inline',
    };
-@@ -290,7 +293,7 @@ function codeStyle(style: MarkdownStyleInternal): CSSProperties {
+@@ -290,11 +293,11 @@ function codeStyle(style: MarkdownStyleInternal): CSSProperties {
    const code = style.code;
    return {
      fontFamily: normalizeFontFamily(code.fontFamily),
@@ -3544,6 +3544,12 @@ diff --git a/node_modules/react-native-enriched-markdown/src/web/styles.ts b/nod
      color: code.color,
      backgroundColor: code.backgroundColor,
      border: `1px solid ${code.borderColor}`,
+-    borderRadius: 3,
+-    padding: '1px 4px',
++    borderRadius: 6,
++    padding: '1px 6px',
+     direction: 'ltr',
+     unicodeBidi: 'embed',
 diff --git a/node_modules/react-native-enriched-markdown/lib/module/web/styles.js b/node_modules/react-native-enriched-markdown/lib/module/web/styles.js
 --- a/node_modules/react-native-enriched-markdown/lib/module/web/styles.js
 +++ b/node_modules/react-native-enriched-markdown/lib/module/web/styles.js
@@ -3561,7 +3567,7 @@ diff --git a/node_modules/react-native-enriched-markdown/lib/module/web/styles.j
      verticalAlign: 'middle',
      display: 'inline'
    };
-@@ -271,7 +274,7 @@ function codeStyle(style) {
+@@ -271,11 +274,11 @@ function codeStyle(style) {
    const code = style.code;
    return {
      fontFamily: normalizeFontFamily(code.fontFamily),
@@ -3570,6 +3576,26 @@ diff --git a/node_modules/react-native-enriched-markdown/lib/module/web/styles.j
      color: code.color,
      backgroundColor: code.backgroundColor,
      border: `1px solid ${code.borderColor}`,
+-    borderRadius: 3,
+-    padding: '1px 4px',
++    borderRadius: 6,
++    padding: '1px 6px',
+     direction: 'ltr',
+     unicodeBidi: 'embed'
+diff --git a/node_modules/react-native-enriched-markdown/ios/utils/CodeBackground.m b/node_modules/react-native-enriched-markdown/ios/utils/CodeBackground.m
+--- a/node_modules/react-native-enriched-markdown/ios/utils/CodeBackground.m
++++ b/node_modules/react-native-enriched-markdown/ios/utils/CodeBackground.m
+@@ -4,8 +4,8 @@
+ #import "RenderContext.h"
+ 
+ NSString *const CodeAttributeName = @"Code";
+ 
+-static const CGFloat kCodeBackgroundCornerRadius = 2.0;
+-static const CGFloat kCodeBackgroundBorderWidth = 0.5;
++static const CGFloat kCodeBackgroundCornerRadius = 6.0;
++static const CGFloat kCodeBackgroundBorderWidth = 1.0;
+ 
+ @implementation CodeBackground {
 diff --git a/node_modules/react-native-enriched-markdown/ios/styles/StyleConfig.h b/node_modules/react-native-enriched-markdown/ios/styles/StyleConfig.h
 --- a/node_modules/react-native-enriched-markdown/ios/styles/StyleConfig.h
 +++ b/node_modules/react-native-enriched-markdown/ios/styles/StyleConfig.h
