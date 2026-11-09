@@ -86,6 +86,27 @@ describe("shared tool-call display mapping", () => {
     });
   });
 
+  it("labels a shell call with the agent's description and keeps the command as summary", () => {
+    const described = buildToolCallDisplayModel({
+      name: "Bash",
+      status: "completed",
+      error: null,
+      detail: { type: "shell", command: "git status", description: "Show working tree status" },
+    });
+    const bare = buildToolCallDisplayModel({
+      name: "Bash",
+      status: "completed",
+      error: null,
+      detail: { type: "shell", command: "git status", description: "  " },
+    });
+
+    expect(described).toMatchObject({
+      displayName: "Show working tree status",
+      summary: "git status",
+    });
+    expect(bare).toMatchObject({ displayName: "Shell", summary: "git status" });
+  });
+
   it("provides errorText for failed calls", () => {
     const display = buildToolCallDisplayModel({
       name: "shell",
