@@ -45,7 +45,7 @@ describe("migrateAppSettings", () => {
 
     expect(result.sendBehavior).toBe("steer");
     expect(storedSendBehavior(storage)).toBe("steer");
-    expect(appliedIds(storage)).toEqual(["steer-default"]);
+    expect(appliedIds(storage)).toEqual(["steer-default", "conductor-sidebar-defaults"]);
   });
 
   it("leaves interrupt alone once the migration has run", async () => {
@@ -64,7 +64,7 @@ describe("migrateAppSettings", () => {
 
     expect(result.sendBehavior).toBe("queue");
     expect(storage.entries.has(APP_SETTINGS_KEY)).toBe(false);
-    expect(appliedIds(storage)).toEqual(["steer-default"]);
+    expect(appliedIds(storage)).toEqual(["steer-default", "conductor-sidebar-defaults"]);
   });
 
   it("marks itself applied on a fresh install without rewriting settings", async () => {
@@ -73,7 +73,7 @@ describe("migrateAppSettings", () => {
     await migrateAppSettings(settingsWith("steer"), storage);
 
     expect(storage.entries.has(APP_SETTINGS_KEY)).toBe(false);
-    expect(appliedIds(storage)).toEqual(["steer-default"]);
+    expect(appliedIds(storage)).toEqual(["steer-default", "conductor-sidebar-defaults"]);
   });
 
   it("keeps unknown migration ids written by a newer client", async () => {
@@ -83,7 +83,11 @@ describe("migrateAppSettings", () => {
 
     await migrateAppSettings(settingsWith("interrupt"), storage);
 
-    expect(appliedIds(storage)).toEqual(["some-later-migration", "steer-default"]);
+    expect(appliedIds(storage)).toEqual([
+      "some-later-migration",
+      "steer-default",
+      "conductor-sidebar-defaults",
+    ]);
   });
 
   it("migrates every mobile 15px content preference to 16px", async () => {
@@ -94,7 +98,11 @@ describe("migrateAppSettings", () => {
 
     expect(result.contentFontSize).toBe(16);
     expect(storedContentFontSize(storage)).toBe(16);
-    expect(appliedIds(storage)).toEqual(["steer-default", "mobile-content-16"]);
+    expect(appliedIds(storage)).toEqual([
+      "steer-default",
+      "mobile-content-16",
+      "conductor-sidebar-defaults",
+    ]);
   });
 
   it("leaves a 15px web content preference unchanged", async () => {
@@ -105,7 +113,26 @@ describe("migrateAppSettings", () => {
 
     expect(result.contentFontSize).toBe(15);
     expect(storedContentFontSize(storage)).toBeUndefined();
-    expect(appliedIds(storage)).toEqual(["steer-default"]);
+    expect(appliedIds(storage)).toEqual(["steer-default", "conductor-sidebar-defaults"]);
+  });
+
+  it("migrates legacy sidebar defaults to diff trailing without PR or checks meta items", async () => {
+    const storage = createInMemoryKeyValueStorage();
+    const settings: AppSettings = {
+      ...DEFAULT_CLIENT_SETTINGS,
+      sidebarWorkspaceTrailing: "timestamp",
+      sidebarChecksDisplay: "iconAndText",
+      sidebarRowItems: {
+        ...DEFAULT_CLIENT_SETTINGS.sidebarRowItems,
+        changeRequest: true,
+      },
+    };
+
+    const result = await migrateAppSettings(settings, storage);
+
+    expect(result.sidebarWorkspaceTrailing).toBe("diff");
+    expect(result.sidebarChecksDisplay).toBe("none");
+    expect(result.sidebarRowItems.changeRequest).toBe(false);
   });
 
   it("lets a mobile user choose 15px after the default migration ran", async () => {
@@ -144,6 +171,6 @@ describe("migrateAppSettings", () => {
     const result = await migrateAppSettings(settingsWith("steer"), recovered);
 
     expect(result.sendBehavior).toBe("steer");
-    expect(appliedIds(recovered)).toEqual(["steer-default"]);
+    expect(appliedIds(recovered)).toEqual(["steer-default", "conductor-sidebar-defaults"]);
   });
 });

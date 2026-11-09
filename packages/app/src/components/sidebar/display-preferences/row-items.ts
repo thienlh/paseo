@@ -30,7 +30,7 @@ export const DEFAULT_SIDEBAR_ROW_ITEMS: SidebarRowItems = {
   branch: false,
   project: false,
   host: true,
-  changeRequest: true,
+  changeRequest: false,
   services: true,
   labels: true,
 };

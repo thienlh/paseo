@@ -34,6 +34,7 @@ import {
   ARCHIVE_BUTTON_SIZE,
   SidebarWorkspaceArchiveButton,
 } from "@/components/sidebar/sidebar-workspace-menu";
+import { PullRequestStateIcon } from "@/git/pull-request-state-icon";
 import { useWorkspaceLabelDefinitions } from "@/workspace-labels";
 
 const needsInputColorMapping = (theme: Theme) => ({
@@ -154,6 +155,7 @@ export const SidebarWorkspaceRowContent = memo(function SidebarWorkspaceRowConte
           <WorkspaceStatusIndicator
             bucket={workspace.statusBucket}
             workspaceKind={workspace.workspaceKind}
+            prHint={workspace.prHint}
             loading={isLoading}
             reserveIdleSpace={reserveIdleStatusIndicatorSpace}
           />
@@ -191,11 +193,13 @@ export const SidebarWorkspaceRowContent = memo(function SidebarWorkspaceRowConte
 function WorkspaceStatusIndicator({
   bucket,
   workspaceKind,
+  prHint = null,
   loading = false,
   reserveIdleSpace = true,
 }: {
   bucket: SidebarWorkspaceEntry["statusBucket"];
   workspaceKind: SidebarWorkspaceEntry["workspaceKind"];
+  prHint?: SidebarWorkspaceEntry["prHint"];
   loading?: boolean;
   reserveIdleSpace?: boolean;
 }) {
@@ -223,6 +227,17 @@ function WorkspaceStatusIndicator({
     return (
       <View style={styles.workspaceStatusDot} testID="workspace-status-indicator-needs_input">
         <ThemedCircleAlert size={STATUS_INDICATOR_ALERT_SIZE} uniProps={needsInputColorMapping} />
+      </View>
+    );
+  }
+
+  if (prHint) {
+    return (
+      <View
+        style={styles.workspaceStatusDot}
+        testID={`workspace-status-indicator-pr-${prHint.state}`}
+      >
+        <PullRequestStateIcon state={prHint.state} size={14} />
       </View>
     );
   }
@@ -338,8 +353,9 @@ export const sidebarWorkspaceRowStyles = StyleSheet.create((theme) => ({
     position: "absolute",
     top: 0,
     right: 0,
+    height: 20,
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
   },
 }));
 
@@ -386,27 +402,24 @@ export function resolveTrailingActionVisibility({
   reserveSlotWidth: boolean;
 } {
   const hasTrailing = hasSidebarWorkspaceTrailing({ workspace, trailing });
-  const showKebab = Boolean(hasArchiveAction && (isHovered || isTouchPlatform)) && !showShortcut;
-  // Touch permanently replaces the stats with the menu. Only temporary shortcut hints
+  const showKebab = Boolean(hasArchiveAction && isTouchPlatform) && !showShortcut;
+  const showArchiveButton =
+    Boolean(hasArchiveAction && isHovered && !isTouchPlatform) && !showShortcut;
+  // Touch permanently replaces the stats with the menu. Temporary shortcut hints and desktop hover
   // conceal content while retaining its width, so desktop rows do not shift.
   const hasContent = hasTrailing && !(hasArchiveAction && isTouchPlatform);
   let trailingPresentation: SidebarWorkspaceTrailingPresentation = "absent";
-  if (hasContent) trailingPresentation = showShortcut ? "hidden" : "visible";
+  if (hasContent) {
+    trailingPresentation = showShortcut || showArchiveButton ? "hidden" : "visible";
+  }
   return {
     trailingPresentation,
     showKebab,
-    // One-click archive is a pointer affordance: on touch it would sit a few pixels from the
-    // kebab and turn a miss into an archive.
-    showArchiveButton: showKebab && isHovered && !isTouchPlatform,
-    // The scrim paints the row's own hover background, so it can only be drawn on a hovered
-    // row — over an unhovered one the gradient fades to the wrong color. That is also why
-    // touch, which shows the kebab without ever hovering, never gets one.
-    showScrim: showKebab && isHovered,
+    showArchiveButton,
+    // When there is no trailing content reserving width, the archive button overlays the title's
+    // tail and uses the scrim to fade the title into the row's hover background.
+    showScrim: showArchiveButton && !hasContent,
     renderSlot: hasArchiveAction || hasTrailing,
-    // The slot only holds width for something that permanently sits in it. Trailing content
-    // does; the kebab only does on touch, where there is no hover for it to appear on and so
-    // no scrim to let it overlay the title. Everywhere else the width goes back to the title
-    // and the kebab fades in over its tail.
     reserveSlotWidth: hasContent || (hasArchiveAction && isTouchPlatform),
   };
 }
@@ -465,15 +478,19 @@ export function SidebarWorkspaceTrailingActionOverlay({
    * the scrim widens to cover it rather than the slot reserving its width.
    */
   onArchiveButtonPress?: () => void;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
-  if (!visible || !children) return null;
+  if (!visible || (!onArchiveButtonPress && !children)) return null;
   return (
     <>
       {scrimBackdrop ? (
         <TrailingActionScrim
           backdrop={scrimBackdrop}
-          width={onArchiveButtonPress ? SCRIM_WIDTH + ARCHIVE_BUTTON_SCRIM_WIDTH : SCRIM_WIDTH}
+          width={
+            onArchiveButtonPress && children
+              ? SCRIM_WIDTH + ARCHIVE_BUTTON_SCRIM_WIDTH
+              : SCRIM_WIDTH
+          }
           testID="sidebar-workspace-trailing-scrim"
         />
       ) : null}
