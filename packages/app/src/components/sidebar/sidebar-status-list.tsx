@@ -948,6 +948,7 @@ function StatusWorkspaceRowInnerContent({
                 {renderSlot ? (
                   <StatusWorkspaceActionSlot
                     workspace={workspace}
+                    selected={selected}
                     backdrop={backdrop}
                     trailing={trailing}
                     trailingPresentation={trailingPresentation}
@@ -980,6 +981,7 @@ function StatusWorkspaceRowInnerContent({
 
 function StatusWorkspaceActionSlot({
   workspace,
+  selected,
   backdrop,
   trailing,
   trailingPresentation,
@@ -1001,6 +1003,7 @@ function StatusWorkspaceActionSlot({
   archiveShortcutKeys,
 }: {
   workspace: SidebarWorkspaceEntry;
+  selected: boolean;
   backdrop: SidebarSurfaceBackdrop;
   trailing: SidebarWorkspaceTrailing;
   trailingPresentation: SidebarWorkspaceTrailingPresentation;
@@ -1025,7 +1028,11 @@ function StatusWorkspaceActionSlot({
   return (
     <SidebarWorkspaceTrailingActionSlot reserveWidth={reserveSlotWidth}>
       <SidebarWorkspaceTrailingActionBase presentation={trailingPresentation}>
-        <SidebarWorkspaceTrailingContent workspace={workspace} trailing={trailing} />
+        <SidebarWorkspaceTrailingContent
+          workspace={workspace}
+          trailing={trailing}
+          selected={selected}
+        />
       </SidebarWorkspaceTrailingActionBase>
       <SidebarWorkspaceTrailingActionOverlay
         visible={kebab.showKebab || showArchiveButton}

@@ -47,13 +47,19 @@ export function hasSidebarWorkspaceTrailing({
 export function SidebarWorkspaceTrailingContent({
   workspace,
   trailing,
+  selected,
 }: {
   workspace: SidebarWorkspaceEntry;
   trailing: SidebarWorkspaceTrailing;
+  selected: boolean;
 }) {
   if (trailing === "diff" && workspace.diffStat && hasVisibleDiffStat(workspace)) {
     return (
-      <DiffStat additions={workspace.diffStat.additions} deletions={workspace.diffStat.deletions} />
+      <DiffStat
+        additions={workspace.diffStat.additions}
+        deletions={workspace.diffStat.deletions}
+        muted={!selected}
+      />
     );
   }
   if (trailing === "timestamp" && workspace.statusEnteredAt) {
