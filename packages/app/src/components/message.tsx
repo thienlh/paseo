@@ -968,7 +968,7 @@ const expandableBadgeStylesheet = StyleSheet.create((theme) => ({
     backgroundColor: "transparent",
   },
   label: {
-    color: theme.colors.foregroundMuted,
+    color: theme.colors.foreground,
     fontSize: theme.fontSize.base,
     fontWeight: theme.fontWeight.normal,
     flexShrink: 0,
@@ -980,16 +980,30 @@ const expandableBadgeStylesheet = StyleSheet.create((theme) => ({
     color: theme.colors.foreground,
     opacity: 0.72,
   },
+  // The detail beside the label is a muted chip, so the row reads as label first, detail second.
   secondaryLabel: {
     flexShrink: 1,
     minWidth: 0,
     color: theme.colors.foregroundMuted,
-    fontSize: theme.fontSize.base,
+    fontSize: theme.fontSize.sm,
     fontWeight: theme.fontWeight.normal,
     marginLeft: theme.spacing[2],
+    paddingHorizontal: theme.spacing[1.5],
+    paddingVertical: 1,
+    borderRadius: theme.borderRadius.base,
+    overflow: "hidden",
+    backgroundColor: theme.colors.surface2,
   },
   secondaryLabelActive: {
     color: theme.colors.foreground,
+  },
+  secondaryLabelMonospace: {
+    fontFamily: theme.fontFamily.mono,
+  },
+  // The shimmer copies the chip's box to line up with it, without its fill.
+  shimmerSecondaryText: {
+    color: "transparent",
+    backgroundColor: "transparent",
   },
   shimmerText: {
     color: "transparent",
@@ -1135,7 +1149,10 @@ const NativeExpandableBadgeShimmer = memo(function NativeExpandableBadgeShimmer(
   );
 
   const nativeSecondaryMaskStyle = useMemo(
-    () => [expandableBadgeStylesheet.secondaryLabel, { color: "#000000", opacity: 1 }],
+    () => [
+      expandableBadgeStylesheet.secondaryLabel,
+      { color: "#000000", opacity: 1, backgroundColor: "transparent" },
+    ],
     [],
   );
 
@@ -1570,6 +1587,8 @@ export const TodoListCard = memo(function TodoListCard({
 interface ExpandableBadgeProps {
   label: string;
   secondaryLabel?: string;
+  /** Code-like details, such as a shell command, read better in the mono font. */
+  secondaryLabelMonospace?: boolean;
   icon?: ComponentType<{ size?: number; color?: string }>;
   isExpanded: boolean;
   style?: StyleProp<ViewStyle>;
@@ -1934,6 +1953,7 @@ export const ExpandableBadge = memo(function ExpandableBadge({
   label,
   style,
   secondaryLabel,
+  secondaryLabelMonospace = false,
   icon,
   isExpanded,
   onToggle,
@@ -2150,9 +2170,10 @@ export const ExpandableBadge = memo(function ExpandableBadge({
   const secondaryLabelStyle = useMemo(
     () => [
       expandableBadgeStylesheet.secondaryLabel,
+      secondaryLabelMonospace && expandableBadgeStylesheet.secondaryLabelMonospace,
       isActive && expandableBadgeStylesheet.secondaryLabelActive,
     ],
-    [isActive],
+    [isActive, secondaryLabelMonospace],
   );
 
   const shimmerLabelTextStyle = useMemo(
@@ -2168,10 +2189,11 @@ export const ExpandableBadge = memo(function ExpandableBadge({
   const shimmerSecondaryTextStyle = useMemo(
     () => [
       expandableBadgeStylesheet.secondaryLabel,
-      expandableBadgeStylesheet.shimmerText,
+      secondaryLabelMonospace && expandableBadgeStylesheet.secondaryLabelMonospace,
+      expandableBadgeStylesheet.shimmerSecondaryText,
       shimmerSecondaryStyle,
     ],
-    [shimmerSecondaryStyle],
+    [secondaryLabelMonospace, shimmerSecondaryStyle],
   );
 
   const chevronStyle = useMemo(
@@ -2464,6 +2486,7 @@ export const ToolCall = memo(function ToolCall({
       testID="tool-call-badge"
       label={presentation.displayName}
       secondaryLabel={presentation.summary}
+      secondaryLabelMonospace={presentation.detail?.type === "shell"}
       icon={presentation.icon}
       isExpanded={shouldRenderInline && isExpanded}
       onToggle={presentation.canOpenDetails ? handleToggle : undefined}

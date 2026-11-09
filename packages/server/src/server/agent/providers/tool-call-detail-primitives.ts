@@ -102,6 +102,8 @@ export const ToolShellInputSchema = z
     return {
       command,
       cwd: nonEmptyString(value.cwd) ?? nonEmptyString(value.directory),
+      // Claude's Bash tool, among others, sends a one-line description of the command.
+      description: nonEmptyString(nonEmptyString(value.description)?.trim()),
     };
   });
 
@@ -818,6 +820,7 @@ export function toShellToolDetail(
   return {
     type: "shell",
     command,
+    ...(input?.description ? { description: input.description } : {}),
     ...(input?.cwd ? { cwd: input.cwd } : {}),
     ...(output?.output ? { output: output.output } : {}),
     ...(output?.exitCode !== undefined ? { exitCode: output.exitCode } : {}),

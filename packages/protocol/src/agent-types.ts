@@ -216,6 +216,8 @@ export type ToolCallDetail =
   | {
       type: "shell";
       command: string;
+      /** The agent's own one-line description of the command, when its tool provides one. */
+      description?: string;
       cwd?: string;
       output?: string;
       exitCode?: number | null;
