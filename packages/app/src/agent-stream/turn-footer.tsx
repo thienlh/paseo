@@ -1,6 +1,7 @@
 import type { AgentMetric } from "@getpaseo/protocol/agent-types";
 import React, { memo, useCallback, useMemo, type ReactNode } from "react";
 import { View } from "react-native";
+import { TurnFileChangesRow } from "./turn-file-changes-row";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import { SPACING, type Theme } from "@/styles/theme";
 import type { TurnTiming } from "@/timeline/turn-time";
@@ -54,6 +55,7 @@ export const TurnFooter = memo(function TurnFooter({
   supportsTimelineCursor,
   onForkAssistantTurn,
   onForkInFlightTurn,
+  workspaceRoot,
 }: {
   isRunning: boolean;
   inFlightTurnStartedAt: Date | null;
@@ -62,6 +64,7 @@ export const TurnFooter = memo(function TurnFooter({
   supportsTimelineCursor: boolean;
   onForkAssistantTurn?: AssistantTurnForkHandler;
   onForkInFlightTurn?: InFlightTurnForkHandler;
+  workspaceRoot?: string;
 }) {
   if (isRunning) {
     return (
@@ -85,6 +88,7 @@ export const TurnFooter = memo(function TurnFooter({
       turnMetrics={host.turnMetrics}
       supportsTimelineCursor={supportsTimelineCursor}
       onForkAssistantTurn={onForkAssistantTurn}
+      workspaceRoot={workspaceRoot}
     />
   );
 });
@@ -97,6 +101,7 @@ export const CompletedTurnFooterRow = memo(function CompletedTurnFooterRow({
   turnMetrics,
   supportsTimelineCursor,
   onForkAssistantTurn,
+  workspaceRoot,
 }: {
   strategy: TurnContentStrategy;
   items: StreamItem[];
@@ -105,6 +110,8 @@ export const CompletedTurnFooterRow = memo(function CompletedTurnFooterRow({
   turnMetrics?: AgentMetric[];
   supportsTimelineCursor: boolean;
   onForkAssistantTurn?: AssistantTurnForkHandler;
+  /** Shortens the changed-file paths to workspace-relative ones. */
+  workspaceRoot?: string;
 }) {
   return (
     <TurnFooterRow>
@@ -116,6 +123,7 @@ export const CompletedTurnFooterRow = memo(function CompletedTurnFooterRow({
         turnMetrics={turnMetrics}
         supportsTimelineCursor={supportsTimelineCursor}
         onForkAssistantTurn={onForkAssistantTurn}
+        workspaceRoot={workspaceRoot}
       />
     </TurnFooterRow>
   );
@@ -173,6 +181,7 @@ function CompletedTurnFooter({
   turnMetrics,
   supportsTimelineCursor,
   onForkAssistantTurn,
+  workspaceRoot,
 }: {
   strategy: TurnContentStrategy;
   items: StreamItem[];
@@ -181,7 +190,12 @@ function CompletedTurnFooter({
   turnMetrics?: AgentMetric[];
   supportsTimelineCursor: boolean;
   onForkAssistantTurn?: AssistantTurnForkHandler;
+  workspaceRoot?: string;
 }) {
+  const turnItems = useMemo(
+    () => strategy.collectAssistantResponseItems(items, startIndex),
+    [strategy, items, startIndex],
+  );
   const getContent = useCallback(
     () =>
       collectAssistantResponseContentForStreamRenderStrategy({
@@ -214,6 +228,7 @@ function CompletedTurnFooter({
         onFork={boundary && onForkAssistantTurn ? handleFork : undefined}
         metrics={turnMetrics}
       />
+      <TurnFileChangesRow items={turnItems} workspaceRoot={workspaceRoot} />
     </View>
   );
 }
@@ -244,6 +259,7 @@ const stylesheet = StyleSheet.create((theme) => ({
   turnFooterSlot: {
     flexDirection: "row",
     alignItems: "center",
+    gap: theme.spacing[3],
     alignSelf: "stretch",
     minHeight: TURN_FOOTER_CONTENT_HEIGHT + TURN_FOOTER_BOTTOM_SPACING,
     paddingBottom: TURN_FOOTER_BOTTOM_SPACING,
