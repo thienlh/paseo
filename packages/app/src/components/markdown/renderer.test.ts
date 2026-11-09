@@ -680,8 +680,8 @@ describe("shared Markdown theme colours", () => {
     expect(style.h6?.color).toBe(theme.colors.foregroundMuted);
     expect(style.taskList).toMatchObject({
       checkedTextColor: theme.colors.foregroundMuted,
-      checkedColor: theme.colors.accent,
-      checkmarkColor: theme.colors.accentForeground,
+      checkedColor: theme.colors.foregroundMuted,
+      checkmarkColor: theme.colors.surface0,
       borderColor: theme.colors.foregroundMuted,
     });
   });
@@ -699,7 +699,7 @@ it.each([
       backgroundColor: theme.colors.surface1,
       borderColor: theme.colors.surface2,
       admonitions: {
-        note: { color: theme.colors.accentBright, backgroundColor: theme.colors.surface2 },
+        note: { color: theme.colors.foregroundMuted, backgroundColor: theme.colors.surface2 },
         tip: { color: theme.colors.statusSuccess, backgroundColor: theme.colors.surface2 },
         important: { color: theme.colors.statusMerged, backgroundColor: theme.colors.surface2 },
         warning: { color: theme.colors.statusWarning, backgroundColor: theme.colors.surface2 },
@@ -711,9 +711,10 @@ it.each([
       backgroundColor: theme.colors.surface2,
       borderColor: "transparent",
     });
-    expect(style.link?.color).toBe(theme.colors.accentBright);
+    // Links are text-coloured and underlined; accent is kept for a screen's one action.
+    expect(style.link).toMatchObject({ color: theme.colors.foreground, underline: true });
     expect(style.linkVariants?.["^(?!https?://).+"]).toEqual({
-      color: theme.colors.accentBright,
+      color: theme.colors.foreground,
     });
     expect(style.thematicBreak?.color).toBe(theme.colors.border);
   },
