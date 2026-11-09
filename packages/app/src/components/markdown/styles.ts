@@ -57,17 +57,19 @@ export function createMarkdownStyles(
         padding: 12,
         gapWidth: 8,
         admonitions: {
-          note: { color: theme.colors.accentBright, backgroundColor: theme.colors.surface2 },
+          note: { color: theme.colors.foregroundMuted, backgroundColor: theme.colors.surface2 },
           tip: { color: theme.colors.statusSuccess, backgroundColor: theme.colors.surface2 },
           important: { color: theme.colors.statusMerged, backgroundColor: theme.colors.surface2 },
           warning: { color: theme.colors.statusWarning, backgroundColor: theme.colors.surface2 },
           caution: { color: theme.colors.statusDanger, backgroundColor: theme.colors.surface2 },
         },
       },
-      link: { color: theme.colors.accentBright, underline: false },
+      // Links read as text with an underline rather than in the accent colour: chat names many
+      // files and URLs, and accent is kept for the one action a screen asks for.
+      link: { color: theme.colors.foreground, underline: true },
       linkVariants: {
         "^(?!https?://).+": {
-          color: theme.colors.accentBright,
+          color: theme.colors.foreground,
         },
       },
       code: {
@@ -96,8 +98,8 @@ export function createMarkdownStyles(
       },
       taskList: {
         checkedTextColor: theme.colors.foregroundMuted,
-        checkedColor: theme.colors.accent,
-        checkmarkColor: theme.colors.accentForeground,
+        checkedColor: theme.colors.foregroundMuted,
+        checkmarkColor: theme.colors.surface0,
         borderColor: theme.colors.foregroundMuted,
       },
       inlineImage: { size: paragraph.lineHeight },
