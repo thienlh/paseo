@@ -126,6 +126,8 @@ export interface StreamStrategy {
     relation: NeighborRelation,
   ) => StreamItem | undefined;
   collectAssistantResponseContent: (items: StreamItem[], startIndex: number) => string;
+  /** The response's items in chronological order, ending at `startIndex`. */
+  collectAssistantResponseItems: (items: StreamItem[], startIndex: number) => StreamItem[];
   isNearBottom: (input: StreamNearBottomInput) => boolean;
   getBottomOffset: (metrics: StreamViewportMetrics) => number;
   getEdgeSlotProps: (
@@ -182,25 +184,12 @@ export function createStreamStrategy(config: StreamStrategyConfig): StreamStrate
       }
       return items[neighborIndex];
     },
-    collectAssistantResponseContent: (items, startIndex) => {
-      const messages: string[] = [];
-      let laterItem: StreamItem | null = null;
-      for (
-        let index = startIndex;
-        index >= 0 && index < items.length;
-        index += config.assistantTurnTraversalStep
-      ) {
-        const currentItem = items[index];
-        if (!currentItem || (laterItem && !continuesResponse(currentItem, laterItem))) {
-          break;
-        }
-        if (currentItem.kind === "assistant_message") {
-          messages.push(currentItem.text);
-        }
-        laterItem = currentItem;
-      }
-      return messages.toReversed().join("\n\n");
-    },
+    collectAssistantResponseContent: (items, startIndex) =>
+      collectResponseItems(items, startIndex, config.assistantTurnTraversalStep)
+        .flatMap((item) => (item.kind === "assistant_message" ? [item.text] : []))
+        .join("\n\n"),
+    collectAssistantResponseItems: (items, startIndex) =>
+      collectResponseItems(items, startIndex, config.assistantTurnTraversalStep),
     isNearBottom: (input) => config.isNearBottom(input),
     getBottomOffset: (metrics) => config.getBottomOffset(metrics),
     getEdgeSlotProps: (component, gapSize) => {
@@ -272,6 +261,25 @@ export function getStreamNeighborItem(params: {
   relation: NeighborRelation;
 }): StreamItem | undefined {
   return params.strategy.getNeighborItem(params.items, params.index, params.relation);
+}
+
+/** Walks back from a response's last item to its first, and returns them oldest first. */
+function collectResponseItems(
+  items: StreamItem[],
+  startIndex: number,
+  step: AssistantTurnTraversalStep,
+): StreamItem[] {
+  const collected: StreamItem[] = [];
+  let laterItem: StreamItem | null = null;
+  for (let index = startIndex; index >= 0 && index < items.length; index += step) {
+    const currentItem = items[index];
+    if (!currentItem || (laterItem && !continuesResponse(currentItem, laterItem))) {
+      break;
+    }
+    collected.push(currentItem);
+    laterItem = currentItem;
+  }
+  return collected.toReversed();
 }
 
 export function collectAssistantResponseContentForStreamRenderStrategy(params: {
