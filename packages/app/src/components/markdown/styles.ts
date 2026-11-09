@@ -1,6 +1,6 @@
 import type { MarkdownStyle } from "react-native-enriched-markdown";
 import type { Theme } from "@/styles/theme";
-import { isWeb } from "@/constants/platform";
+import { isNative, isWeb } from "@/constants/platform";
 
 // iOS Safari needs the prefix to override the gesture host's selection suppression.
 const WEB_CONTAINER = { userSelect: "text", WebkitUserSelect: "text" } as const;
@@ -64,9 +64,8 @@ export function createMarkdownStyles(
           caution: { color: theme.colors.statusDanger, backgroundColor: theme.colors.surface2 },
         },
       },
-      // Links read as text with an underline rather than in the accent colour: chat names many
-      // files and URLs, and accent is kept for the one action a screen asks for.
-      link: { color: theme.colors.foreground, underline: true },
+      // Native has no hover cue; web keeps prose quiet until the pointer is over a link.
+      link: { color: theme.colors.foreground, underline: isNative },
       linkVariants: {
         "^(?!https?://).+": {
           color: theme.colors.foreground,
@@ -76,8 +75,8 @@ export function createMarkdownStyles(
         fontFamily: theme.fontFamily.mono === "ui-monospace" && !isWeb ? "" : theme.fontFamily.mono,
         fontScale: theme.fontSize.code / fontSize,
         color: theme.colors.foreground,
-        backgroundColor: theme.colors.surface2,
-        borderColor: "transparent",
+        backgroundColor: theme.colors.surface1,
+        borderColor: theme.colors.surface3,
       },
       codeBlock: {
         ...paragraph,
