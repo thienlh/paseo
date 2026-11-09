@@ -112,7 +112,7 @@ const styles = StyleSheet.create((theme) => ({
     flexWrap: "wrap",
     alignItems: "center",
     gap: theme.spacing[1.5],
-    flexShrink: 1,
+    flexShrink: 0,
     minWidth: 0,
   },
   chip: {

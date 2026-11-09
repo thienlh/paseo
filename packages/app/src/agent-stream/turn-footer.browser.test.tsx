@@ -44,18 +44,37 @@ const reply: StreamItem = {
   timestamp: FRIDAY_NIGHT,
 };
 
-function renderCompletedFooter(timing: TurnTiming): void {
+function renderCompletedFooter(timing: TurnTiming, items: StreamItem[] = [reply]): void {
   act(() =>
     root.render(
       <CompletedTurnFooterRow
         strategy={createNativeStreamStrategy()}
-        items={[reply]}
+        items={items}
         timing={timing}
         startIndex={0}
         supportsTimelineCursor={false}
       />,
     ),
   );
+}
+
+function editedFile(id: string, filePath: string): StreamItem {
+  return {
+    kind: "tool_call",
+    id,
+    timestamp: FRIDAY_NIGHT,
+    payload: {
+      source: "agent",
+      data: {
+        provider: "claude",
+        callId: id,
+        name: "Edit",
+        status: "completed",
+        error: null,
+        detail: { type: "edit", filePath, oldString: "a", newString: "b" },
+      },
+    },
+  } as StreamItem;
 }
 
 /** How many painted lines each footer label takes. */
@@ -149,4 +168,26 @@ describe("turn stats", () => {
 
     expect(host.getBoundingClientRect().height).toBe(without);
   });
+});
+
+it("keeps the duration on one line when changed files compete for a narrow footer", () => {
+  host.style.width = "240px";
+  const paths = [
+    "src/client.py",
+    "src/run.py",
+    "src/generate_fakes.py",
+    "src/test_track_client.py",
+    "src/test_generate_model.py",
+    "src/COMPONENTS.md",
+  ];
+  renderCompletedFooter({ completedAt: FRIDAY_NIGHT, durationMs: 5 * 60_000 + 8_000 }, [
+    reply,
+    ...paths.map((path) => editedFile(path, path)),
+  ]);
+  expect(paintedLinesByLabel(host)["Worked for 5m 8s"]).toBe(1);
+  const label = host.querySelector("[data-testid=turn-footer-timing-label]")!;
+  const fileRow = host.querySelector("[data-testid=turn-file-changes]")!;
+  expect(fileRow.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+    label.getBoundingClientRect().bottom,
+  );
 });
