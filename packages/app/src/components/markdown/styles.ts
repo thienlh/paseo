@@ -66,6 +66,7 @@ export function createMarkdownStyles(
       },
       // Native has no hover cue; web keeps prose quiet until the pointer is over a link.
       link: { color: theme.colors.foreground, underline: isNative },
+      strong: { fontWeight: theme.fontWeight.semibold },
       linkVariants: {
         "^(?!https?://).+": {
           color: theme.colors.foreground,
