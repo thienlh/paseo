@@ -1,7 +1,6 @@
 import type { AgentAddress } from "@getpaseo/protocol/addresses";
 import { memo, useCallback, useMemo, type ReactElement } from "react";
 import { BackgroundWorkTrack, createHostBackgroundWorkModel } from "@/background-work";
-import { WorkspaceDiffStatPill } from "@/composer/diff-stat-pill";
 import { AgentTaskList } from "@/composer/task-list";
 import { ComposerTrackBar } from "@/composer/tracks";
 import { useIsCompactFormFactor } from "@/constants/layout";
@@ -22,7 +21,6 @@ import type { TodoEntry } from "@/types/stream";
 import { navigateToAgent } from "@/utils/navigate-to-agent";
 import { buildWorkspaceTabPersistenceKey, type WorkspaceTabTarget } from "@/workspace-tabs/model";
 import { openPreferredWorkspaceTarget } from "@/workspace-tabs/open-beside";
-import { openComposerChanges } from "@/workspace-tabs/open-supporting-view";
 
 /**
  * The pane's ambient context — workspace changes, subagents, and tasks — as a row of pills above
@@ -108,16 +106,6 @@ export const AgentTracks = memo(function AgentTracks({
     [openSubagentTarget],
   );
   const sheetTabFor = useSubagentSheetTab(workspaceKey, tabId);
-  const handleOpenChanges = useCallback(() => {
-    if (!workspaceKey) {
-      return;
-    }
-    openComposerChanges({
-      isCompact,
-      workspaceKey,
-      preferences: openInSidePane,
-    });
-  }, [isCompact, openInSidePane, workspaceKey]);
 
   return (
     <ComposerTrackBar>
@@ -140,11 +128,6 @@ export const AgentTracks = memo(function AgentTracks({
         workspaceId={workspaceId}
         agentId={agentId}
         compact={isCompact}
-      />
-      <WorkspaceDiffStatPill
-        serverId={serverId}
-        workspaceId={workspaceId}
-        onPress={handleOpenChanges}
       />
     </ComposerTrackBar>
   );

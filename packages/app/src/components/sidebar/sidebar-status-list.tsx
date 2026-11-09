@@ -1017,7 +1017,7 @@ function StatusWorkspaceActionSlot({
         />
       </SidebarWorkspaceTrailingActionBase>
       <SidebarWorkspaceTrailingActionOverlay
-        visible={kebab.showKebab}
+        visible={kebab.showKebab || showArchiveButton}
         scrimBackdrop={showScrim ? backdrop : undefined}
         workspaceKey={workspace.workspaceKey}
         onArchiveButtonPress={showArchiveButton ? onArchive : undefined}

@@ -14,7 +14,7 @@ export const SIDEBAR_CHECKS_DISPLAYS = ["iconAndText", "icon", "none"] as const;
 
 export type SidebarChecksDisplay = (typeof SIDEBAR_CHECKS_DISPLAYS)[number];
 
-export const DEFAULT_SIDEBAR_CHECKS_DISPLAY: SidebarChecksDisplay = "iconAndText";
+export const DEFAULT_SIDEBAR_CHECKS_DISPLAY: SidebarChecksDisplay = "none";
 
 /** Null for anything that isn't one of the three, so callers can tell "absent" from "chosen". */
 export function parseSidebarChecksDisplay(value: unknown): SidebarChecksDisplay | null {

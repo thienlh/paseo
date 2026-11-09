@@ -158,7 +158,7 @@ export const DEFAULT_CLIENT_SETTINGS: AppSettings = {
   contentWidth: "default",
   syntaxTheme: "one",
   workspaceTitleSource: "title",
-  sidebarWorkspaceTrailing: "timestamp",
+  sidebarWorkspaceTrailing: "diff",
   sidebarRowItems: DEFAULT_SIDEBAR_ROW_ITEMS,
   sidebarChecksDisplay: DEFAULT_SIDEBAR_CHECKS_DISPLAY,
   sidebarPluginRowBadgeItems: {},
@@ -255,7 +255,7 @@ const StoredAppSettingsSchema = z
     contentMaxWidth: legacyContentMaxWidthSchema.nullish().catch(undefined),
     syntaxTheme: z.string().refine(isSyntaxThemeId).catch("one"),
     workspaceTitleSource: z.enum(["title", "branch"]).catch("title"),
-    sidebarWorkspaceTrailing: z.enum(["diff", "timestamp", "none"]).catch("timestamp"),
+    sidebarWorkspaceTrailing: z.enum(["diff", "timestamp", "none"]).catch("diff"),
     sidebarRowItems: SidebarRowItemsSchema,
     sidebarChecksDisplay: z
       .enum(["iconAndText", "icon", "none"])

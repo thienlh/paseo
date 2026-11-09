@@ -26,8 +26,8 @@ function select(overrides: Partial<Parameters<typeof selectMetaRowItems>[0]> = {
     prHint: PR_HINT,
     serviceSummary: SERVICE,
     labels: LABELS,
-    visible: DEFAULT_SIDEBAR_ROW_ITEMS,
-    checksDisplay: DEFAULT_SIDEBAR_CHECKS_DISPLAY,
+    visible: { ...DEFAULT_SIDEBAR_ROW_ITEMS, changeRequest: true },
+    checksDisplay: "iconAndText",
     ...overrides,
   });
 }
@@ -36,7 +36,12 @@ const kinds = (items: ReturnType<typeof selectMetaRowItems>) => items.map((item)
 
 describe("selectMetaRowItems", () => {
   it("puts the enabled branch and project badges first", () => {
-    const visible = { ...DEFAULT_SIDEBAR_ROW_ITEMS, branch: true, project: true };
+    const visible = {
+      ...DEFAULT_SIDEBAR_ROW_ITEMS,
+      branch: true,
+      project: true,
+      changeRequest: true,
+    };
     expect(kinds(select({ visible }))).toEqual([
       "branch",
       "project",
@@ -46,6 +51,17 @@ describe("selectMetaRowItems", () => {
       "services",
       "labels",
     ]);
+  });
+
+  it("hides changeRequest and checks by default", () => {
+    expect(
+      kinds(
+        select({
+          visible: DEFAULT_SIDEBAR_ROW_ITEMS,
+          checksDisplay: DEFAULT_SIDEBAR_CHECKS_DISPLAY,
+        }),
+      ),
+    ).toEqual(["host", "services", "labels"]);
   });
 
   it("reads identity, then the change, then its state, then what is running, then labels", () => {
@@ -68,7 +84,12 @@ describe("selectMetaRowItems", () => {
   });
 
   it("only draws identity badges when enabled and available", () => {
-    const visible = { ...DEFAULT_SIDEBAR_ROW_ITEMS, branch: true, project: true };
+    const visible = {
+      ...DEFAULT_SIDEBAR_ROW_ITEMS,
+      branch: true,
+      project: true,
+      changeRequest: true,
+    };
     expect(kinds(select({ currentBranch: null, projectName: null, visible }))).toEqual([
       "host",
       "changeRequest",
@@ -91,9 +112,13 @@ describe("selectMetaRowItems", () => {
     ["services", ["host", "changeRequest", "checks", "labels"]],
     ["labels", ["host", "changeRequest", "checks", "services"]],
   ] as const)("drops %s and only %s when it is switched off", (item, expected) => {
-    expect(kinds(select({ visible: { ...DEFAULT_SIDEBAR_ROW_ITEMS, [item]: false } }))).toEqual(
-      expected,
-    );
+    expect(
+      kinds(
+        select({
+          visible: { ...DEFAULT_SIDEBAR_ROW_ITEMS, changeRequest: true, [item]: false },
+        }),
+      ),
+    ).toEqual(expected);
   });
 
   it("drops checks and only checks when they are hidden", () => {

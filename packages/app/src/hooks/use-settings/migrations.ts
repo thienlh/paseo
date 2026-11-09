@@ -17,6 +17,12 @@ const STEER_DEFAULT_MIGRATION = "steer-default";
 const MOBILE_CONTENT_16_MIGRATION = "mobile-content-16";
 
 /**
+ * Existing installs materialized the old sidebar defaults ("timestamp" trailing, changeRequest
+ * and checks on a second meta line). Flip them to the single-line Conductor layout once.
+ */
+const CONDUCTOR_SIDEBAR_DEFAULTS_MIGRATION = "conductor-sidebar-defaults";
+
+/**
  * Brings stored settings up to date, returning what the caller should use. Owns both writes so
  * the marker can only ever be written after the settings it describes: a failed marker write
  * leaves the migration to re-run harmlessly, while a failed settings write must leave the marker
@@ -47,6 +53,33 @@ export async function migrateAppSettings(
   if (options.native && !applied.has(MOBILE_CONTENT_16_MIGRATION)) {
     migrated = migrated.contentFontSize === 15 ? { ...migrated, contentFontSize: 16 } : migrated;
     applied.add(MOBILE_CONTENT_16_MIGRATION);
+    addedMigration = true;
+  }
+
+  if (!applied.has(CONDUCTOR_SIDEBAR_DEFAULTS_MIGRATION)) {
+    const nextTrailing =
+      migrated.sidebarWorkspaceTrailing === "timestamp"
+        ? "diff"
+        : migrated.sidebarWorkspaceTrailing;
+    const nextChecksDisplay =
+      migrated.sidebarChecksDisplay === "iconAndText" ? "none" : migrated.sidebarChecksDisplay;
+    const nextChangeRequest = false;
+    if (
+      nextTrailing !== migrated.sidebarWorkspaceTrailing ||
+      nextChecksDisplay !== migrated.sidebarChecksDisplay ||
+      migrated.sidebarRowItems.changeRequest !== nextChangeRequest
+    ) {
+      migrated = {
+        ...migrated,
+        sidebarWorkspaceTrailing: nextTrailing,
+        sidebarChecksDisplay: nextChecksDisplay,
+        sidebarRowItems: {
+          ...migrated.sidebarRowItems,
+          changeRequest: nextChangeRequest,
+        },
+      };
+    }
+    applied.add(CONDUCTOR_SIDEBAR_DEFAULTS_MIGRATION);
     addedMigration = true;
   }
 

@@ -678,12 +678,12 @@ function WorkspaceRowRightGroup({
             />
           </SidebarWorkspaceTrailingActionBase>
           <SidebarWorkspaceTrailingActionOverlay
-            visible={kebab.showKebab}
+            visible={kebab.showKebab || showArchiveButton}
             scrimBackdrop={showScrim ? backdrop : undefined}
             workspaceKey={workspace.workspaceKey}
             onArchiveButtonPress={showArchiveButton ? onArchive : undefined}
           >
-            {onArchive ? (
+            {kebab.showKebab && onArchive ? (
               <SidebarWorkspaceMenu
                 {...kebab.menuProps}
                 workspaceKey={workspace.workspaceKey}
