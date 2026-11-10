@@ -16,7 +16,11 @@ import {
 } from "@/git/pull-request-panel/section-kit";
 import { useCheckoutStatusQuery } from "@/git/use-status-query";
 import { PullRequestReviewButton } from "./button";
-import { pullRequestReviewSubjectFromPane, selectReviewSubject } from "./context";
+import {
+  pullRequestReviewSubjectFromPane,
+  selectReviewSubject,
+  type ReviewSubject,
+} from "./context";
 import { findingSummary, formatFindingLocation, type ReviewFinding } from "./findings";
 import { useLatestReviewFindings } from "./use-review-findings";
 
@@ -35,24 +39,18 @@ export interface ChecksReviewPullRequest {
   headRefName: string;
 }
 
-/**
- * Starts a review of the pull request or, without one, of the local changes. It is the Checks
- * panel's one accent action and sits in its toolbar, beside View.
- */
-export function ChecksReviewButton({
+export function useChecksReviewSubject({
   serverId,
-  workspaceId,
   cwd,
   pullRequest,
 }: {
   serverId: string;
-  workspaceId?: string | null;
   cwd: string;
   pullRequest: ChecksReviewPullRequest | null;
-}) {
+}): ReviewSubject | null {
   const { status } = useCheckoutStatusQuery({ serverId, cwd });
   const gitStatus = status && status.isGit ? status : null;
-  const subject = useMemo(
+  return useMemo(
     () =>
       selectReviewSubject({
         pullRequest: pullRequest ? pullRequestReviewSubjectFromPane(pullRequest) : null,
@@ -62,6 +60,23 @@ export function ChecksReviewButton({
       }),
     [gitStatus?.baseRef, gitStatus?.currentBranch, gitStatus?.isDirty, pullRequest],
   );
+}
+
+/**
+ * Starts a review of the pull request or, without one, of the local changes. It is the Checks
+ * panel's one accent action and sits in its toolbar, beside View.
+ */
+export function ChecksReviewButton({
+  serverId,
+  workspaceId,
+  cwd,
+  subject,
+}: {
+  serverId: string;
+  workspaceId?: string | null;
+  cwd: string;
+  subject: ReviewSubject | null;
+}) {
   if (!subject || !workspaceId) {
     return null;
   }

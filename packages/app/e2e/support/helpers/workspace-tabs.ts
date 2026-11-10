@@ -126,13 +126,17 @@ export async function openPullRequestPanel(page: Page): Promise<void> {
   const existingTab = visibleTestId(page, "workspace-tab-pull_request").first();
   if ((await existingTab.count()) > 0) {
     await selectWorkspaceTab(existingTab);
-    await expect(visibleTestId(page, "pr-pane").first()).toBeVisible({ timeout: 15_000 });
+    await expect(
+      visibleTestId(page, "pr-pane").or(visibleTestId(page, "pull-request-empty-state")).first(),
+    ).toBeVisible({ timeout: 15_000 });
     return;
   }
   const trigger = visibleTestId(page, "workspace-new-tab-button").first();
   await trigger.click();
   await visibleTestId(page, "workspace-new-tab-menu-pull-request").first().click();
-  await expect(visibleTestId(page, "pr-pane").first()).toBeVisible({ timeout: 15_000 });
+  await expect(
+    visibleTestId(page, "pr-pane").or(visibleTestId(page, "pull-request-empty-state")).first(),
+  ).toBeVisible({ timeout: 15_000 });
 }
 
 export async function waitForWorkspaceTabsVisible(page: Page): Promise<void> {
