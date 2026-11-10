@@ -68,6 +68,7 @@ import {
 } from "@/tool-calls/expansion-context";
 import { ToolCallSheetProvider } from "@/components/tool-call-sheet";
 import { createStreamPresentation } from "./presentation";
+import { isTurnBoundary } from "./turn-membership";
 import { OverviewToolCallGroupView } from "@/tool-calls/detail-level/overview/view";
 import { IndentRail } from "@/components/indent-rail";
 import { TurnSummaryLine } from "./turn-collapse/summary-line";
@@ -549,6 +550,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
         effectiveTurnPresentation.turnId,
       ],
     );
+    const latestStreamItem = presentation.head.at(-1) ?? presentation.tail.at(-1) ?? null;
     // The footer's changed files read through grouped rows and closed turns to their calls.
     const resolveTurnCalls = useMemo(() => createTurnCallsResolver(presentation), [presentation]);
     const {
@@ -871,8 +873,10 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
             ? renderThoughtItem(layoutItem, item)
             : renderSingleToolCallItem(item, layoutItem.isLastInToolSequence);
         }
-        // Live desktop runs default to open between tool updates; the reader's toggle still wins.
-        const expanded = expandedToolCallGroups.has(group.run.id, !isMobile && !group.run.isSealed);
+        // Every group in the latest turn opens by default on desktop; the reader's toggle still wins.
+        const isLatestTurnGroup =
+          latestStreamItem !== null && !isTurnBoundary(group.run.latest, latestStreamItem);
+        const expanded = expandedToolCallGroups.has(group.run.id, !isMobile && isLatestTurnGroup);
         return (
           <OverviewToolCallGroupView
             group={group}
@@ -910,6 +914,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
       [
         expandedToolCallGroups,
         isMobile,
+        latestStreamItem,
         renderThoughtItem,
         setInlineDetailsExpanded,
         getToolCallGroup,

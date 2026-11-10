@@ -419,6 +419,28 @@ for (const display of ["collapseToolCalls", "collapseTurns"] as const) {
   });
 }
 
+test("expands every group in the latest turn and closes them when a newer turn starts", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const agent = await createOverviewAgent(page, "Latest-turn tool groups");
+  try {
+    await openOverviewAgent(page, agent);
+    await agent.client.sendAgentMessage(agent.agentId, "Work on both sides of a reply.");
+    const groups = page.getByTestId("tool-call-group");
+    await expect(groups).toHaveCount(2);
+    await expect(groups.nth(0).getByTestId("tool-call-badge")).not.toHaveCount(0);
+    await expect(groups.nth(1).getByTestId("tool-call-badge")).not.toHaveCount(0);
+
+    await agent.client.waitForFinish(agent.agentId, 30_000);
+    await agent.client.sendAgentMessage(agent.agentId, "Start the next turn.");
+    await expect(groups.nth(0).getByTestId("tool-call-badge")).toHaveCount(0);
+    await expect(groups.nth(1).getByTestId("tool-call-badge")).toHaveCount(0);
+  } finally {
+    await agent.cleanup();
+  }
+});
+
 test("opens a live group by default when the lone tool call was left closed", async ({ page }) => {
   test.setTimeout(120_000);
   const agent = await createOverviewAgent(page, "Live desktop overview tool calls");
