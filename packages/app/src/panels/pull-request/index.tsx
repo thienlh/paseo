@@ -14,6 +14,7 @@ import type { UsePrPaneDataResult } from "@/git/pull-request-panel/use-data";
 import {
   ChecksReviewButton,
   ChecksReviewSection,
+  useChecksReviewSubject,
 } from "@/git/pull-request-review/checks-review-section";
 import { PaneContentToolbar } from "@/components/ui/pane-content-toolbar";
 
@@ -45,6 +46,12 @@ export function PullRequestContent(input: {
     cwd: input.cwd,
   });
   const data = input.prPane.data;
+  const reviewSubject = useChecksReviewSubject({
+    serverId: input.serverId,
+    cwd: input.cwd,
+    pullRequest: data ?? null,
+  });
+  const hasReviewAction = Boolean(reviewSubject && input.workspaceId);
   // The Checks panel shows for every git workspace, so its Review section does not wait for a PR.
   const reviewAction = useMemo(
     () => (
@@ -52,10 +59,10 @@ export function PullRequestContent(input: {
         serverId={input.serverId}
         workspaceId={input.workspaceId}
         cwd={input.cwd}
-        pullRequest={data ?? null}
+        subject={reviewSubject}
       />
     ),
-    [data, input.cwd, input.serverId, input.workspaceId],
+    [input.cwd, input.serverId, input.workspaceId, reviewSubject],
   );
   const reviewSection = useMemo(
     () => (
@@ -90,7 +97,11 @@ export function PullRequestContent(input: {
   }
   return (
     <ScrollView style={styles.scroll} testID="pull-request-empty-state">
-      <PaneContentToolbar style={styles.toolbar}>{reviewAction}</PaneContentToolbar>
+      {hasReviewAction ? (
+        <PaneContentToolbar style={styles.toolbar} testID="pull-request-empty-toolbar">
+          {reviewAction}
+        </PaneContentToolbar>
+      ) : null}
       {reviewSection}
       <View style={styles.empty}>
         <Text style={styles.emptyTitle}>{t("panels.pullRequest.emptyTitle")}</Text>

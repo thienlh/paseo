@@ -1,4 +1,6 @@
-import { test } from "../support/fixtures";
+import { writeFile } from "node:fs/promises";
+import path from "node:path";
+import { expect, test } from "../support/fixtures";
 import {
   openPrPane,
   expectPrPaneTitle,
@@ -7,6 +9,8 @@ import {
   expectPrPaneActivity,
 } from "../support/helpers/pr-pane";
 import { gotoWorkspace } from "../support/helpers/launcher";
+import { seedWorkspace } from "../support/helpers/seed-client";
+import { openFilesPanel } from "../support/helpers/workspace-tabs";
 import {
   hasGithubAuth,
   createTempGithubRepo,
@@ -19,6 +23,31 @@ import {
 } from "../support/helpers/workspace-setup";
 
 const GITHUB_AUTH = hasGithubAuth();
+
+test("hides the empty Checks toolbar until local changes can be reviewed", async ({ page }) => {
+  const workspace = await seedWorkspace({ repoPrefix: "checks-empty-toolbar-" });
+
+  try {
+    await gotoWorkspace(page, workspace.workspaceId);
+    await openFilesPanel(page);
+    await openPrPane(page);
+    const emptyState = page.getByTestId("pull-request-empty-state");
+    const toolbar = emptyState.getByTestId("pull-request-empty-toolbar");
+    await expect(emptyState).toBeVisible();
+    await expect(emptyState.getByTestId("checks-review-start")).toHaveCount(0);
+    await expect(toolbar).toHaveCount(0);
+
+    await writeFile(path.join(workspace.repoPath, "review-me.txt"), "Review local changes\n");
+    const refreshed = await workspace.client.checkoutRefresh(workspace.repoPath);
+    if (!refreshed.success) {
+      throw new Error(`Failed to refresh checkout: ${JSON.stringify(refreshed.error)}`);
+    }
+    await expect(emptyState.getByTestId("checks-review-start")).toBeVisible();
+    await expect(toolbar).toBeVisible();
+  } finally {
+    await workspace.cleanup();
+  }
+});
 
 test.describe("PR pane", () => {
   test.describe.configure({ retries: 1 });
