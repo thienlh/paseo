@@ -9,6 +9,7 @@ import { useStore } from "zustand";
 import { getHostRuntimeStore } from "@/runtime/host-runtime";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Alert } from "@/components/ui/alert";
+import { StopDisc } from "@/components/ui/stop-disc";
 import {
   View,
   Pressable,
@@ -49,7 +50,6 @@ import { usePointerCapabilities } from "@/hooks/pointer-capabilities";
 import { useShallow } from "zustand/shallow";
 import {
   ArrowUp,
-  Square,
   Pencil,
   AudioLines,
   CircleDot,
@@ -1133,11 +1133,6 @@ function ComposerCancelButton({
   const accessibilityLabel = isCancellingAgent
     ? t("composer.cancel.cancelingAgent")
     : t("composer.cancel.stopAgent");
-  const icon = isCancellingAgent ? (
-    <LoadingSpinner size="small" color="white" />
-  ) : (
-    <Square size={discGlyphSize} color="white" fill="white" />
-  );
   const shortcutNode = agentInterruptKeys ? <Shortcut chord={agentInterruptKeys} /> : null;
   return (
     <Tooltip delayDuration={0} enabledOnDesktop enabledOnMobile={false}>
@@ -1148,7 +1143,7 @@ function ComposerCancelButton({
         accessibilityRole="button"
         style={cancelButtonStyle}
       >
-        <View style={styles.cancelButtonDisc}>{icon}</View>
+        <StopDisc size={TOOLBAR_DISC_SIZE} glyphSize={discGlyphSize} loading={isCancellingAgent} />
       </TooltipTrigger>
       <TooltipContent side="top" align="center" offset={8}>
         <View style={styles.tooltipRow}>
@@ -2749,14 +2744,6 @@ const styles = StyleSheet.create((theme: Theme) => ({
   },
   cancelButton: {
     ...toolbarSlot(),
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelButtonDisc: {
-    width: TOOLBAR_DISC_SIZE,
-    height: TOOLBAR_DISC_SIZE,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.palette.red[600],
     alignItems: "center",
     justifyContent: "center",
   },

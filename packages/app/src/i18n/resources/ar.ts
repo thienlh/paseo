@@ -2054,6 +2054,7 @@ export const ar: TranslationResources = {
   },
   diffViewer: {
     empty: "لا توجد تغييرات للعرض",
+    unmodifiedLines: "{{count}} خطوط غير معدلة",
   },
   serviceUrl: {
     title: "افتح الخدمة URL",

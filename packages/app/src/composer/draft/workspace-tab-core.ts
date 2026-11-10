@@ -56,8 +56,6 @@ export function resolveDraftWorkingDirectory(input: {
   workspaceDirectory: string | null;
   initialSetup: WorkspaceDraftTabSetup | null;
 }): string | null {
-  if (input.initialSetup) {
-    return input.initialSetup.cwd;
-  }
-  return input.workspaceDirectory;
+  // The live workspace is authoritative; a restored setup may point at a deleted worktree.
+  return input.workspaceDirectory ?? input.initialSetup?.cwd ?? null;
 }
