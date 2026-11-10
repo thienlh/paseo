@@ -6,6 +6,7 @@ import {
   type ComposerEditingSession,
 } from "@/composer/editing-session";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { StopDisc } from "@/components/ui/stop-disc";
 import {
   View,
   Platform,
@@ -49,7 +50,7 @@ import {
   composerToolbarOverhang,
   resolveComposerLeadingEdge,
 } from "@/composer/input/toolbar-rails";
-import { ArrowUp, Mic, MicOff, CornerDownLeft, Plus, Square } from "lucide-react-native";
+import { ArrowUp, Mic, MicOff, CornerDownLeft, Plus } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useDictation } from "@/hooks/use-dictation";
 import { hasFinePointer } from "@/hooks/pointer-capabilities";
@@ -379,11 +380,7 @@ function VoiceButtonIcon({
   discGlyphSize: number;
 }) {
   if (isDictating) {
-    return (
-      <View style={styles.voiceButtonRecordingDisc}>
-        <Square size={discGlyphSize} color="white" fill="white" />
-      </View>
-    );
+    return <StopDisc size={TOOLBAR_DISC_SIZE} glyphSize={discGlyphSize} />;
   }
   const colorMapping = glyphColorMapping(glyph, hovered);
   const Icon = isMutedRealtime ? ThemedMicOff : ThemedMic;
@@ -2502,14 +2499,6 @@ const styles = StyleSheet.create((theme: Theme) => ({
   voiceButton: {
     ...toolbarSlot(),
     borderRadius: theme.borderRadius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  voiceButtonRecordingDisc: {
-    width: TOOLBAR_DISC_SIZE,
-    height: TOOLBAR_DISC_SIZE,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.destructive,
     alignItems: "center",
     justifyContent: "center",
   },

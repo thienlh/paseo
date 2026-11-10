@@ -108,11 +108,12 @@ function FileChangePreview({ change, path }: { change: TurnFileChange; path: str
 
 const styles = StyleSheet.create((theme) => ({
   row: {
+    flexGrow: 1,
+    flexShrink: 1,
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
     gap: theme.spacing[1.5],
-    flexShrink: 0,
     minWidth: 0,
   },
   chip: {

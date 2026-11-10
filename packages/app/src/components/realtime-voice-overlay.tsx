@@ -1,9 +1,9 @@
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { StopDisc } from "@/components/ui/stop-disc";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
-import { Mic, MicOff, Square } from "lucide-react-native";
+import { Mic, MicOff } from "lucide-react-native";
 import { FOOTER_HEIGHT } from "@/constants/layout";
 import { useVoiceTelemetry } from "@/contexts/voice-context";
 import { VolumeMeter } from "./volume-meter";
@@ -37,7 +37,7 @@ export function RealtimeVoiceOverlay({
     [isMuted, isSwitching],
   );
   const stopButtonStyle = useMemo(
-    () => [styles.actionButton, styles.stopButton, isSwitching ? styles.buttonDisabled : undefined],
+    () => [styles.actionButton, isSwitching ? styles.buttonDisabled : undefined],
     [isSwitching],
   );
   return (
@@ -75,16 +75,11 @@ export function RealtimeVoiceOverlay({
           accessibilityLabel={t("realtimeVoice.actions.stop")}
           style={stopButtonStyle}
         >
-          {isSwitching ? (
-            <LoadingSpinner size="small" color={theme.colors.palette.white} />
-          ) : (
-            <Square
-              size={theme.iconSize.lg}
-              color={theme.colors.palette.white}
-              fill={theme.colors.palette.white}
-              strokeWidth={2.5}
-            />
-          )}
+          <StopDisc
+            size={OVERLAY_BUTTON_SIZE}
+            glyphSize={theme.iconSize.lg}
+            loading={isSwitching}
+          />
         </Pressable>
       </View>
     </View>
@@ -129,11 +124,6 @@ const styles = StyleSheet.create((theme) => ({
   },
   muteButtonMuted: {
     backgroundColor: theme.colors.palette.red[600],
-    borderColor: theme.colors.palette.red[800],
-  },
-  stopButton: {
-    backgroundColor: theme.colors.palette.red[600],
-    borderWidth: theme.borderWidth[1],
     borderColor: theme.colors.palette.red[800],
   },
   buttonDisabled: {

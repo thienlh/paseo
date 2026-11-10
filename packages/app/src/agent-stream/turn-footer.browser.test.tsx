@@ -36,9 +36,14 @@ afterEach(async () => {
 const reply: StreamItem = {
   kind: "assistant_message",
   id: "reply",
+  messageId: "reply",
   text: "Done.",
   timestamp: FRIDAY_NIGHT,
 };
+
+function forkAssistantTurn() {
+  return undefined;
+}
 
 function renderCompletedFooter(timing: TurnTiming, items: StreamItem[] = [reply]): void {
   act(() =>
@@ -49,6 +54,7 @@ function renderCompletedFooter(timing: TurnTiming, items: StreamItem[] = [reply]
         timing={timing}
         startIndex={items.length - 1}
         supportsTimelineCursor={false}
+        onForkAssistantTurn={forkAssistantTurn}
       />,
     ),
   );
@@ -128,6 +134,38 @@ it("keeps the revealed timestamp clear of the copy button on hover", () => {
   expect(timestampBounds.left).toBeGreaterThanOrEqual(copyBounds.right);
 });
 
+it("keeps the timestamp close to the footer actions", () => {
+  renderCompletedFooter({ completedAt: FRIDAY_NIGHT, durationMs: 119_000 });
+  const duration = host.querySelector("[data-testid=turn-footer-timing-label]")!;
+  act(() => {
+    duration.closest("button")!.dispatchEvent(new PointerEvent("pointerenter", { bubbles: false }));
+  });
+
+  const forkButton = host.querySelector("[data-testid=assistant-fork-menu-trigger]")!;
+  const timestamp = host.querySelector("[data-testid=turn-footer-timing-label]")!;
+  const timestampBounds = timestamp.getBoundingClientRect();
+  const forkBounds = forkButton.getBoundingClientRect();
+  expect(timestampBounds.left - forkBounds.right).toBeLessThanOrEqual(8);
+  const timestampCenter = (timestampBounds.top + timestampBounds.bottom) / 2;
+  const actionCenter = (forkBounds.top + forkBounds.bottom) / 2;
+  expect(Math.abs(timestampCenter - actionCenter)).toBeLessThanOrEqual(1);
+});
+
+it("does not truncate a long timestamp on hover", () => {
+  renderCompletedFooter({
+    completedAt: new Date(2026, 9, 20, 17, 45),
+    durationMs: 119_000,
+  });
+  const duration = host.querySelector("[data-testid=turn-footer-timing-label]")!;
+  act(() => {
+    duration.closest("button")!.dispatchEvent(new PointerEvent("pointerenter", { bubbles: false }));
+  });
+
+  const timestamp = host.querySelector("[data-testid=turn-footer-timing-label]")!;
+  expect(timestamp.textContent).toBe("Oct 20, 2026, 5:45 PM");
+  expect(timestamp.scrollWidth).toBeLessThanOrEqual(timestamp.clientWidth);
+});
+
 it("keeps the duration on one line when changed files compete for a narrow footer", () => {
   host.style.width = "240px";
   const paths = [
@@ -148,4 +186,8 @@ it("keeps the duration on one line when changed files compete for a narrow foote
   expect(fileRow.getBoundingClientRect().top).toBeGreaterThanOrEqual(
     label.getBoundingClientRect().bottom,
   );
+  const footerBounds = host.getBoundingClientRect();
+  for (const chip of host.querySelectorAll("[data-testid=turn-file-change]")) {
+    expect(chip.getBoundingClientRect().right).toBeLessThanOrEqual(footerBounds.right);
+  }
 });

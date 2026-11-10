@@ -2058,6 +2058,7 @@ export const es: TranslationResources = {
   },
   diffViewer: {
     empty: "No hay cambios para mostrar",
+    unmodifiedLines: "{{count}} líneas sin cambios",
   },
   serviceUrl: {
     title: "Servicio abiertoURL",

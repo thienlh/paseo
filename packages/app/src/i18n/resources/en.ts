@@ -2035,6 +2035,7 @@ export const en = {
   },
   diffViewer: {
     empty: "No changes to display",
+    unmodifiedLines: "{{count}} unmodified lines",
   },
   serviceUrl: {
     title: "Open service URL",
