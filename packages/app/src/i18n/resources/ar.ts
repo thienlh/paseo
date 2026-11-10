@@ -2618,6 +2618,9 @@ export const ar: TranslationResources = {
       theme: {
         title: "سمة",
         accessibilityLabel: "الموضوع:{{value}}",
+        preferredDarkTitle: "المظهر الداكن المفضل",
+        preferredDarkHint: "يُستخدم عندما يكون النظام في المظهر الداكن",
+        preferredDarkAccessibility: "المظهر الداكن المفضل: {{value}}",
         options: {
           light: "ضوء",
           dark: "مظلم",

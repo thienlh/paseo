@@ -2626,6 +2626,9 @@ export const ru: TranslationResources = {
       theme: {
         title: "Тема",
         accessibilityLabel: "Тема: {{value}}",
+        preferredDarkTitle: "Предпочитаемая тёмная тема",
+        preferredDarkHint: "Используется при тёмном режиме системы",
+        preferredDarkAccessibility: "Предпочитаемая тёмная тема: {{value}}",
         options: {
           light: "Светлая",
           dark: "Тёмная",

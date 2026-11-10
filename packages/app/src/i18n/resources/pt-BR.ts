@@ -2620,6 +2620,9 @@ export const ptBR: TranslationResources = {
       theme: {
         title: "Tema",
         accessibilityLabel: "Tema: {{value}}",
+        preferredDarkTitle: "Tema escuro preferido",
+        preferredDarkHint: "Usado quando o sistema está no modo escuro",
+        preferredDarkAccessibility: "Tema escuro preferido: {{value}}",
         options: {
           light: "Claro",
           dark: "Escuro",

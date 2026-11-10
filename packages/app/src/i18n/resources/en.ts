@@ -2709,6 +2709,9 @@ export const en = {
       theme: {
         title: "Theme",
         accessibilityLabel: "Theme: {{value}}",
+        preferredDarkTitle: "Preferred dark theme",
+        preferredDarkHint: "Used when System is dark",
+        preferredDarkAccessibility: "Preferred dark theme: {{value}}",
         options: {
           light: "Light",
           dark: "Dark",

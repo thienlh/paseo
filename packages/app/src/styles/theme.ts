@@ -859,7 +859,14 @@ export type ThemePreference =
   | typeof PLUGIN_THEME_PREFERENCE;
 export type ThemeName = Exclude<ThemePreference, "auto" | typeof PLUGIN_THEME_PREFERENCE>;
 type ConcreteThemeOption = Exclude<(typeof THEME_OPTIONS)[number], { name: "auto" }>;
+type DarkConcreteThemeOption = Exclude<ConcreteThemeOption, { name: "light" }>;
 export type Theme = ConcreteThemeOption["theme"];
+export type DarkThemePreference = DarkConcreteThemeOption["name"];
+
+export const DARK_THEME_OPTIONS = THEME_OPTIONS.filter(
+  (option): option is DarkConcreteThemeOption =>
+    option.name !== "auto" && option.theme.colorScheme === "dark",
+);
 
 const CONCRETE_THEME_OPTIONS = THEME_OPTIONS.filter(
   (option): option is ConcreteThemeOption => option.name !== "auto",

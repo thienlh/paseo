@@ -2555,6 +2555,9 @@ export const zhCN: TranslationResources = {
       theme: {
         title: "主题",
         accessibilityLabel: "主题：{{value}}",
+        preferredDarkTitle: "首选深色主题",
+        preferredDarkHint: "系统使用深色模式时启用",
+        preferredDarkAccessibility: "首选深色主题：{{value}}",
         options: {
           light: "Light",
           dark: "Dark",

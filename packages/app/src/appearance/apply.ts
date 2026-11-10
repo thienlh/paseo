@@ -1,15 +1,55 @@
 import { UnistylesRuntime } from "react-native-unistyles";
+import type { ColorSchemeName } from "react-native";
 import { resolveSyntaxColors, type SyntaxThemeId } from "@getpaseo/highlight";
 import {
   DEFAULT_UI_FONT_STACK,
   DEFAULT_MONO_FONT_STACK,
   FONT_SIZE,
+  PLUGIN_THEME_NAMES,
+  PLUGIN_THEME_PREFERENCE,
   REGISTERED_THEMES,
+  THEME_TO_UNISTYLES,
+  type DarkThemePreference,
   type Theme,
+  type ThemePreference,
 } from "@/styles/theme";
+import type { PluginThemeOption } from "@/plugins/themes";
+import { DEFAULT_THEME_PREFERENCE } from "@/hooks/use-settings/storage";
 import { applyRootUiFont } from "./apply-root-font";
 
 const ALL_THEME_KEYS = Object.keys(REGISTERED_THEMES) as (keyof typeof REGISTERED_THEMES)[];
+
+export interface ApplyThemeInput {
+  preference: ThemePreference;
+  preferredDarkTheme: DarkThemePreference;
+  contributedTheme: PluginThemeOption | null;
+  systemColorScheme: ColorSchemeName;
+}
+
+export function applyTheme(input: ApplyThemeInput): void {
+  const contributedTheme = input.contributedTheme;
+  if (contributedTheme) {
+    const themeName = PLUGIN_THEME_NAMES[contributedTheme.theme.colorScheme];
+    UnistylesRuntime.updateTheme(themeName, () => contributedTheme.theme);
+    UnistylesRuntime.setAdaptiveThemes(false);
+    UnistylesRuntime.setTheme(themeName);
+    return;
+  }
+
+  const builtInPreference =
+    input.preference === PLUGIN_THEME_PREFERENCE ? DEFAULT_THEME_PREFERENCE : input.preference;
+  UnistylesRuntime.setAdaptiveThemes(false);
+  if (builtInPreference === "auto") {
+    const themeName =
+      input.systemColorScheme === "dark"
+        ? THEME_TO_UNISTYLES[input.preferredDarkTheme]
+        : THEME_TO_UNISTYLES.light;
+    UnistylesRuntime.setTheme(themeName);
+    return;
+  }
+
+  UnistylesRuntime.setTheme(THEME_TO_UNISTYLES[builtInPreference]);
+}
 
 export interface AppearanceInput {
   uiFontFamily: string; // "" -> default stack

@@ -2596,6 +2596,9 @@ export const ko: TranslationResources = {
       theme: {
         title: "테마",
         accessibilityLabel: "테마: {{value}}",
+        preferredDarkTitle: "선호하는 다크 테마",
+        preferredDarkHint: "시스템이 다크 모드일 때 사용",
+        preferredDarkAccessibility: "선호하는 다크 테마: {{value}}",
         options: {
           light: "라이트",
           dark: "다크",
