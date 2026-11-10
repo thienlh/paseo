@@ -109,7 +109,7 @@ describe("startReviewChat", () => {
             model: "gpt-5.4",
             mode: "plan",
             thinkingByModel: { "gpt-5.4": "high" },
-            featureValues: { fast_mode: true },
+            options: { fast_mode: true },
           },
         },
       },
@@ -129,7 +129,7 @@ describe("startReviewChat", () => {
           modeId: "plan",
           model: "gpt-5.4",
           thinkingOptionId: "high",
-          featureValues: { fast_mode: true },
+          providerOptions: { fast_mode: true },
         },
       },
     });
@@ -164,7 +164,7 @@ describe("startReviewChat", () => {
       modeId: "plan",
       model: "gpt-5.4",
       thinkingOptionId: "high",
-      featureValues: { fast_mode: true },
+      providerOptions: { fast_mode: true },
     });
     expect(useCreateFlowStore.getState().pendingByDraftId.draft_review?.attachments).toEqual([
       { ...uploadedFile, size: upload?.bytes.byteLength },
