@@ -220,9 +220,11 @@ test.describe("Composer toolbar rails on touch", () => {
         });
         await openAgentRoute(page, running);
         await test.step("running agent: the stop disc on the right", async () => {
-          await expect(page.getByRole("button", { name: /stop agent/i }).first()).toBeVisible({
-            timeout: 30_000,
-          });
+          const stopButton = page.getByRole("button", { name: /stop agent/i }).first();
+          await expect(stopButton).toBeVisible({ timeout: 30_000 });
+          const stopDisc = stopButton.locator("> div").first();
+          await expect(stopDisc).toHaveCSS("border-radius", "6px");
+          await expect(stopDisc).toHaveCSS("border-top-width", "1px");
           await expectComposerToolbarOnTextRails(page);
         });
       } finally {

@@ -1979,6 +1979,7 @@ export const zhCN: TranslationResources = {
   },
   diffViewer: {
     empty: "没有可显示的变更",
+    unmodifiedLines: "{{count}} 行未修改",
   },
   serviceUrl: {
     title: "打开服务 URL",

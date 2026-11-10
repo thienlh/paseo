@@ -2023,6 +2023,7 @@ export const ja: TranslationResources = {
   },
   diffViewer: {
     empty: "表示する変更がありません",
+    unmodifiedLines: "{{count}} 行の未変更",
   },
   serviceUrl: {
     title: "サービスURLを開く",

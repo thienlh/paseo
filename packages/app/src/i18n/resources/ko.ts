@@ -2013,6 +2013,7 @@ export const ko: TranslationResources = {
   },
   diffViewer: {
     empty: "표시할 변경 사항이 없습니다",
+    unmodifiedLines: "{{count}}개의 수정되지 않은 줄",
   },
   serviceUrl: {
     title: "서비스 URL 열기",

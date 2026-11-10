@@ -617,10 +617,17 @@ const assistantTurnFooterStylesheet = StyleSheet.create((theme) => ({
     color: theme.colors.foregroundMuted,
     fontSize: STREAM_METADATA_FONT_SIZE,
   },
-  overlappingLabel: {
+  labelOverlay: {
     position: "absolute",
     top: 0,
     left: 0,
+    lineHeight: 24,
+  },
+  labelSizing: {
+    height: 24,
+    flexDirection: "column",
+    alignItems: "flex-start",
+    opacity: 0,
   },
   hiddenLabel: {
     opacity: 0,
@@ -711,14 +718,25 @@ export const AssistantTurnFooter = memo(function AssistantTurnFooter({
           accessibilityRole={canSwap ? "button" : undefined}
           accessibilityLabel={canSwap ? `${durationLabel}, ended ${timestampLabel}` : primaryLabel}
         >
-          {/* The timestamp overlays the duration from the same left edge, without a negative
-              margin that could escape into the copy action. */}
+          {/* Invisible copies reserve the wider label's width; the visible labels overlay from
+              the same left edge without touching the copy action. */}
+          <View style={assistantTurnFooterStylesheet.labelSizing} aria-hidden>
+            <Text numberOfLines={1} style={assistantTurnFooterStylesheet.label}>
+              {primaryLabel}
+            </Text>
+            {canSwap ? (
+              <Text numberOfLines={1} style={assistantTurnFooterStylesheet.label}>
+                {timestampLabel}
+              </Text>
+            ) : null}
+          </View>
           <Text
             testID={!showTimestamp ? "turn-footer-timing-label" : undefined}
             aria-hidden={showTimestamp}
             numberOfLines={1}
             style={[
               assistantTurnFooterStylesheet.label,
+              assistantTurnFooterStylesheet.labelOverlay,
               showTimestamp && assistantTurnFooterStylesheet.hiddenLabel,
             ]}
           >
@@ -731,7 +749,7 @@ export const AssistantTurnFooter = memo(function AssistantTurnFooter({
               numberOfLines={1}
               style={[
                 assistantTurnFooterStylesheet.label,
-                assistantTurnFooterStylesheet.overlappingLabel,
+                assistantTurnFooterStylesheet.labelOverlay,
                 !showTimestamp && assistantTurnFooterStylesheet.hiddenLabel,
               ]}
             >

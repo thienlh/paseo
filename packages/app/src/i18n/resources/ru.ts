@@ -2036,6 +2036,7 @@ export const ru: TranslationResources = {
   },
   diffViewer: {
     empty: "Нет изменений для отображения",
+    unmodifiedLines: "{{count}} строк без изменений",
   },
   serviceUrl: {
     title: "Открыть URL сервиса",

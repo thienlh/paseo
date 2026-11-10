@@ -2036,6 +2036,7 @@ export const ptBR: TranslationResources = {
   },
   diffViewer: {
     empty: "Nenhuma alteração para exibir",
+    unmodifiedLines: "{{count}} linhas não modificadas",
   },
   serviceUrl: {
     title: "Abrir URL do serviço",

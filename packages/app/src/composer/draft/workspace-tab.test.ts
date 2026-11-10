@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest";
 
-import { shouldAllowEmptyDraftText, validateDraftSubmission } from "./workspace-tab-core";
+import {
+  resolveDraftWorkingDirectory,
+  shouldAllowEmptyDraftText,
+  validateDraftSubmission,
+} from "./workspace-tab-core";
 
 const baseComposerState = {
   providerDefinitions: [{ id: "codewhale" }],
@@ -61,6 +65,32 @@ describe("workspace draft agent model validation", () => {
         },
       }),
     ).toBe("No model is available for the selected provider");
+  });
+});
+
+describe("workspace draft directory resolution", () => {
+  const initialSetup = {
+    cwd: "/tmp/deleted-workspace",
+    provider: "claude" as const,
+    modeId: null,
+    model: null,
+    thinkingOptionId: null,
+    featureValues: {},
+  };
+
+  test("uses the live workspace directory instead of a stale draft setup path", () => {
+    expect(
+      resolveDraftWorkingDirectory({
+        workspaceDirectory: "/Users/thien/conductor/workspaces/paseo/salem",
+        initialSetup,
+      }),
+    ).toBe("/Users/thien/conductor/workspaces/paseo/salem");
+  });
+
+  test("falls back to the setup path when the workspace has no directory", () => {
+    expect(resolveDraftWorkingDirectory({ workspaceDirectory: null, initialSetup })).toBe(
+      initialSetup.cwd,
+    );
   });
 });
 
