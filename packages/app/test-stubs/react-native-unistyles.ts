@@ -13,6 +13,12 @@ const pinnedTheme = {
     foregroundMuted: "#666666",
     statusSuccess: "#15803d",
     statusDanger: "#b91c1c",
+    diffAddition: lightTheme.colors.diffAddition,
+    diffDeletion: lightTheme.colors.diffDeletion,
+    diffAdditionBackground: lightTheme.colors.diffAdditionBackground,
+    diffDeletionBackground: lightTheme.colors.diffDeletionBackground,
+    diffAdditionHighlight: lightTheme.colors.diffAdditionHighlight,
+    diffDeletionHighlight: lightTheme.colors.diffDeletionHighlight,
     statusWarning: "#d97706",
     statusMerged: "#7c3aed",
     // Same rule as the real theme: the status color at 12%.
@@ -50,6 +56,7 @@ const pinnedTheme = {
     xs: 12,
     sm: 14,
     base: 16,
+    code: lightTheme.fontSize.code,
   },
   fontFamily: {
     ui: "sans-serif",
