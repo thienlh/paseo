@@ -93,8 +93,8 @@ function paintedLinesByLabel(element: HTMLElement): Record<string, number> {
   return lines;
 }
 
-// The footer shows the duration and swaps to the end timestamp on hover or tap. Neither label
-// may be sized by the other: a timestamp with more characters can still paint narrower.
+// Duration and completion time stay visible together, including in languages where the translated
+// duration paints wider than its character count suggests.
 it.each([
   {
     language: "en",
@@ -107,63 +107,65 @@ it.each([
     timing: { completedAt: FRIDAY_NIGHT, durationMs: 59 * 60_000 + 58_000 },
     duration: "作業時間 59m 58s",
   },
-])("keeps both timing labels on one line when the chat has room ($language)", async (input) => {
-  await i18n.changeLanguage(input.language);
+])(
+  "keeps the combined timing label on one line when the chat has room ($language)",
+  async (input) => {
+    await i18n.changeLanguage(input.language);
 
-  renderCompletedFooter(input.timing);
+    renderCompletedFooter(input.timing);
 
-  expect(paintedLinesByLabel(host)).toEqual({
-    [input.duration]: 1,
-    "Friday 11:11 PM": 1,
-  });
-});
+    expect(paintedLinesByLabel(host)).toEqual({
+      [`${input.duration} · Friday 11:11 PM`]: 1,
+    });
+  },
+);
 
-it("keeps the revealed timestamp clear of the copy button on hover", () => {
+it("shows duration and completion time together before the footer actions", () => {
   renderCompletedFooter({ completedAt: FRIDAY_NIGHT, durationMs: 119_000 });
-  const copyButton = host.querySelector("button")!;
-  const duration = host.querySelector("[data-testid=turn-footer-timing-label]")!;
-
-  act(() => {
-    duration.closest("button")!.dispatchEvent(new PointerEvent("pointerenter", { bubbles: false }));
-  });
-
-  const timestamp = host.querySelector("[data-testid=turn-footer-timing-label]")!;
-  expect(timestamp.textContent).toBe("Friday 11:11 PM");
-  const copyBounds = copyButton.getBoundingClientRect();
-  const timestampBounds = timestamp.getBoundingClientRect();
-  expect(timestampBounds.left).toBeGreaterThanOrEqual(copyBounds.right);
-});
-
-it("keeps the timestamp close to the footer actions", () => {
-  renderCompletedFooter({ completedAt: FRIDAY_NIGHT, durationMs: 119_000 });
-  const duration = host.querySelector("[data-testid=turn-footer-timing-label]")!;
-  act(() => {
-    duration.closest("button")!.dispatchEvent(new PointerEvent("pointerenter", { bubbles: false }));
-  });
-
+  const timing = host.querySelector("[data-testid=turn-footer-timing-label]")!;
+  const copyButton = host.querySelector("button[aria-label='Copy turn']")!;
   const forkButton = host.querySelector("[data-testid=assistant-fork-menu-trigger]")!;
-  const timestamp = host.querySelector("[data-testid=turn-footer-timing-label]")!;
-  const timestampBounds = timestamp.getBoundingClientRect();
+
+  expect(timing.textContent).toBe("Worked for 1m 59s · Friday 11:11 PM");
+  expect(timing.compareDocumentPosition(copyButton)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  expect(copyButton.compareDocumentPosition(forkButton)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+
+  const timingBounds = timing.getBoundingClientRect();
+  const copyBounds = copyButton.getBoundingClientRect();
   const forkBounds = forkButton.getBoundingClientRect();
-  expect(timestampBounds.left - forkBounds.right).toBeLessThanOrEqual(8);
-  const timestampCenter = (timestampBounds.top + timestampBounds.bottom) / 2;
+  expect(copyBounds.left).toBeGreaterThanOrEqual(timingBounds.right);
+  expect(forkBounds.left).toBeGreaterThanOrEqual(copyBounds.right);
+  const timingCenter = (timingBounds.top + timingBounds.bottom) / 2;
   const actionCenter = (forkBounds.top + forkBounds.bottom) / 2;
-  expect(Math.abs(timestampCenter - actionCenter)).toBeLessThanOrEqual(1);
+  expect(Math.abs(timingCenter - actionCenter)).toBeLessThanOrEqual(1);
 });
 
-it("does not truncate a long timestamp on hover", () => {
+it("does not truncate a long combined timestamp", () => {
   renderCompletedFooter({
     completedAt: new Date(2026, 9, 20, 17, 45),
     durationMs: 119_000,
   });
-  const duration = host.querySelector("[data-testid=turn-footer-timing-label]")!;
-  act(() => {
-    duration.closest("button")!.dispatchEvent(new PointerEvent("pointerenter", { bubbles: false }));
-  });
 
-  const timestamp = host.querySelector("[data-testid=turn-footer-timing-label]")!;
-  expect(timestamp.textContent).toBe("Oct 20, 2026, 5:45 PM");
-  expect(timestamp.scrollWidth).toBeLessThanOrEqual(timestamp.clientWidth);
+  const timing = host.querySelector("[data-testid=turn-footer-timing-label]")!;
+  expect(timing.textContent).toBe("Worked for 1m 59s · Oct 20, 2026, 5:45 PM");
+  expect(timing.scrollWidth).toBeLessThanOrEqual(timing.clientWidth);
+});
+
+it("opens the fork menu with distinct, clearly labeled destinations", () => {
+  renderCompletedFooter({ completedAt: FRIDAY_NIGHT, durationMs: 119_000 });
+  const trigger = host.querySelector<HTMLElement>("[data-testid=assistant-fork-menu-trigger]")!;
+
+  act(() => trigger.click());
+
+  const newTab = document.querySelector("[data-testid=assistant-fork-menu-new-tab]");
+  const newWorkspace = document.querySelector("[data-testid=assistant-fork-menu-new-workspace]");
+  expect(newTab?.textContent).toBe("Fork to new tab");
+  expect(newWorkspace?.textContent).toBe("Fork to new workspace");
+  expect(newTab?.querySelectorAll("svg")).toHaveLength(1);
+  expect(newWorkspace?.querySelectorAll("svg")).toHaveLength(1);
+  expect(newTab?.querySelector("svg")?.outerHTML).not.toBe(
+    newWorkspace?.querySelector("svg")?.outerHTML,
+  );
 });
 
 it("keeps the duration on one line when changed files compete for a narrow footer", () => {
@@ -180,7 +182,7 @@ it("keeps the duration on one line when changed files compete for a narrow foote
     ...paths.map((path) => editedFile(path, path)),
     reply,
   ]);
-  expect(paintedLinesByLabel(host)["Worked for 5m 8s"]).toBe(1);
+  expect(paintedLinesByLabel(host)["Worked for 5m 8s · Friday 11:11 PM"]).toBe(1);
   const label = host.querySelector("[data-testid=turn-footer-timing-label]")!;
   const fileRow = host.querySelector("[data-testid=turn-file-changes]")!;
   expect(fileRow.getBoundingClientRect().top).toBeGreaterThanOrEqual(
