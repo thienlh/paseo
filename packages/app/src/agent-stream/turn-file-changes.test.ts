@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { ToolCallDetail } from "@getpaseo/protocol/agent-types";
-import type { StreamItem } from "@/types/stream";
+import type { StreamItem, ThoughtItem, ToolCallItem } from "@/types/stream";
 import {
   collectTurnFileChanges,
+  createTurnCallsResolver,
   displayChangedFilePath,
   turnFileDiffLines,
 } from "./turn-file-changes";
@@ -11,7 +12,7 @@ function toolCall(
   id: string,
   detail: ToolCallDetail,
   status: "completed" | "failed" = "completed",
-): StreamItem {
+): ToolCallItem {
   return {
     kind: "tool_call",
     id,
@@ -20,7 +21,7 @@ function toolCall(
       source: "agent",
       data: { provider: "claude", callId: id, name: "Edit", status, error: null, detail },
     },
-  } as StreamItem;
+  } as ToolCallItem;
 }
 
 describe("collectTurnFileChanges", () => {
@@ -57,6 +58,22 @@ describe("collectTurnFileChanges", () => {
     ).toBe(true);
   });
 
+  it("omits stats for an oversized changed region instead of building its full diff", () => {
+    const oldText = Array.from({ length: 4000 }, (_, index) => `old ${index}`).join("\n");
+    const newText = Array.from({ length: 4000 }, (_, index) => `new ${index}`).join("\n");
+
+    expect(
+      collectTurnFileChanges([
+        toolCall("large", {
+          type: "edit",
+          filePath: "large.ts",
+          oldString: oldText,
+          newString: newText,
+        }),
+      ]),
+    ).toEqual([]);
+  });
+
   it("reads through rows that stand for other calls, such as a folded turn", () => {
     const hidden = toolCall("1", {
       type: "edit",
@@ -71,6 +88,28 @@ describe("collectTurnFileChanges", () => {
     );
 
     expect(changes.map((change) => change.filePath)).toEqual(["a.ts"]);
+  });
+
+  it("reads changed files through a group hosted by a thought", () => {
+    const thought: ThoughtItem = {
+      kind: "thought",
+      id: "thought",
+      text: "Done",
+      status: "ready",
+      timestamp: new Date("2026-11-08T00:00:01.000Z"),
+    };
+    const groupedCalls = [
+      toolCall("edit", { type: "edit", filePath: "a.ts", oldString: "a", newString: "b" }),
+      thought,
+    ] as const;
+    const resolveCalls = createTurnCallsResolver({
+      groupsByHostId: new Map([["thought", { run: { calls: groupedCalls } }]]),
+      turns: { foldedCallsByHostId: new Map() },
+    });
+
+    expect(
+      collectTurnFileChanges([thought], resolveCalls).map((change) => change.filePath),
+    ).toEqual(["a.ts"]);
   });
 
   it("ignores failed calls, reads, and edits that changed nothing", () => {

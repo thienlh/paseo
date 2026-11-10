@@ -76,4 +76,16 @@ describe("tool call expansion", () => {
     expansion.setCallExpanded({ callId: "first", expanded: false, standalone: true });
     expect(expansion.isCallExpanded("first", true)).toBe(false);
   });
+
+  it("uses the group's default until the user toggles it", () => {
+    const expansion = createToolCallExpansion();
+    const groups = expansion.getExpandedGroups();
+    expect(groups.has("first", true)).toBe(true);
+
+    expansion.setGroupExpanded("first", false);
+    expect(expansion.getExpandedGroups().has("first", true)).toBe(false);
+
+    expansion.setGroupExpanded("first", true);
+    expect(expansion.getExpandedGroups().has("first", false)).toBe(true);
+  });
 });

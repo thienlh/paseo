@@ -2,7 +2,7 @@ type Listener = () => void;
 
 /** Which tool call groups are open. A new value is published only when a group is toggled. */
 export interface ExpandedToolCallGroups {
-  has(groupId: string): boolean;
+  has(groupId: string, defaultExpanded?: boolean): boolean;
 }
 
 /**
@@ -16,17 +16,16 @@ export interface ExpandedToolCallGroups {
 export function createToolCallExpansion() {
   const calls = new Map<string, boolean>();
   const callListeners = new Map<string, Set<Listener>>();
-  const groups = new Set<string>();
+  const groups = new Map<string, boolean>();
   const groupListeners = new Set<Listener>();
   let expandedGroups = createExpandedGroups();
 
   function createExpandedGroups(): ExpandedToolCallGroups {
-    return { has: (groupId) => groups.has(groupId) };
+    return { has: (groupId, defaultExpanded = false) => groups.get(groupId) ?? defaultExpanded };
   }
 
   function writeGroup(groupId: string, expanded: boolean) {
-    if (expanded) groups.add(groupId);
-    else groups.delete(groupId);
+    groups.set(groupId, expanded);
   }
 
   return {

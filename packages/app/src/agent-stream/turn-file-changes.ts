@@ -1,5 +1,6 @@
 import type { ToolCallDetail } from "@getpaseo/protocol/agent-types";
-import type { StreamItem } from "@/types/stream";
+import type { StreamItem, ThoughtItem, ToolCallItem } from "@/types/stream";
+import { buildToolCallEditDiffStat } from "@/tool-calls/edit-diff";
 import { buildLineDiff, parseUnifiedDiff, type DiffLine } from "@/utils/tool-call-parsers";
 
 type FileChangeDetail = Extract<ToolCallDetail, { type: "edit" | "write" }>;
@@ -11,6 +12,30 @@ type FileChangeDetail = Extract<ToolCallDetail, { type: "edit" | "write" }>;
 export type TurnCallsResolver = (row: StreamItem) => readonly StreamItem[];
 
 const identityResolver: TurnCallsResolver = (row) => [row];
+
+export interface TurnCallsResolverPresentation {
+  groupsByHostId: {
+    get(id: string): { run: { calls: readonly (ToolCallItem | ThoughtItem)[] } } | undefined;
+  };
+  turns: {
+    foldedCallsByHostId: ReadonlyMap<string, readonly (ToolCallItem | ThoughtItem)[]>;
+  };
+}
+
+export function createTurnCallsResolver(
+  presentation: TurnCallsResolverPresentation,
+): TurnCallsResolver {
+  return (row) => {
+    if (row.kind === "turn_summary") {
+      // An open turn's calls are already in the list beside its summary row.
+      return row.expanded ? [] : (presentation.turns.foldedCallsByHostId.get(row.hostId) ?? []);
+    }
+    if (row.kind === "tool_call" || row.kind === "thought") {
+      return presentation.groupsByHostId.get(row.id)?.run.calls ?? [row];
+    }
+    return [row];
+  };
+}
 
 /** One file a turn edited or wrote: its line counts, and the edits that make up its diff. */
 export interface TurnFileChange {
@@ -25,9 +50,10 @@ interface LineCounts {
   deletions: number;
 }
 
-// Stream items keep their detail objects, so each edit is diffed once no matter how often the
-// footer renders. Only the counts are kept; a preview rebuilds its lines when it opens.
+// Stream items keep their detail objects, so each edit is counted once no matter how often the
+// footer renders. Only the counts are kept; a preview rebuilds its visual lines when it opens.
 const countsByDetail = new WeakMap<FileChangeDetail, LineCounts>();
+const EMPTY_LINE_COUNTS: LineCounts = { additions: 0, deletions: 0 };
 
 /**
  * The files a turn changed through its edit and write tool calls, in the order it first touched
@@ -70,11 +96,16 @@ export function turnFileDiffLines(change: TurnFileChange): DiffLine[] {
 function countLines(detail: FileChangeDetail): LineCounts {
   const cached = countsByDetail.get(detail);
   if (cached) return cached;
-  const lines = diffLines(detail);
-  const counts = {
-    additions: lines.filter((line) => line.type === "add").length,
-    deletions: lines.filter((line) => line.type === "remove").length,
-  };
+  let counts = EMPTY_LINE_COUNTS;
+  if (detail.type === "edit") {
+    counts = buildToolCallEditDiffStat(detail) ?? EMPTY_LINE_COUNTS;
+  } else {
+    const lines = diffLines(detail);
+    counts = {
+      additions: lines.filter((line) => line.type === "add").length,
+      deletions: lines.filter((line) => line.type === "remove").length,
+    };
+  }
   countsByDetail.set(detail, counts);
   return counts;
 }
