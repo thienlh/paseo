@@ -170,6 +170,22 @@ describe("turn stats", () => {
   });
 });
 
+it("keeps the revealed timestamp clear of the copy button on hover", () => {
+  renderCompletedFooter({ completedAt: FRIDAY_NIGHT, durationMs: 119_000 });
+  const copyButton = host.querySelector("button")!;
+  const duration = host.querySelector("[data-testid=turn-footer-timing-label]")!;
+
+  act(() => {
+    duration.closest("button")!.dispatchEvent(new PointerEvent("pointerenter", { bubbles: false }));
+  });
+
+  const timestamp = host.querySelector("[data-testid=turn-footer-timing-label]")!;
+  expect(timestamp.textContent).toBe("Friday 11:11 PM");
+  const copyBounds = copyButton.getBoundingClientRect();
+  const timestampBounds = timestamp.getBoundingClientRect();
+  expect(timestampBounds.left).toBeGreaterThanOrEqual(copyBounds.right);
+});
+
 it("keeps the duration on one line when changed files compete for a narrow footer", () => {
   host.style.width = "240px";
   const paths = [
