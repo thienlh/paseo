@@ -2659,6 +2659,9 @@ export const ja: TranslationResources = {
       theme: {
         title: "テーマ",
         accessibilityLabel: "テーマ: {{value}}",
+        preferredDarkTitle: "優先するダークテーマ",
+        preferredDarkHint: "システムがダークモードのときに使用",
+        preferredDarkAccessibility: "優先するダークテーマ：{{value}}",
         options: {
           light: "ライト",
           dark: "ダーク",

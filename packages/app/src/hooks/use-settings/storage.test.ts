@@ -166,6 +166,40 @@ describe("loadAppSettingsFromStorage", () => {
     expect(result.theme).toBe("auto");
   });
 
+  it("defaults the preferred dark theme to Dark for existing settings", async () => {
+    const deps = makeDeps({
+      storage: createInMemoryKeyValueStorage({
+        [APP_SETTINGS_KEY]: JSON.stringify({ theme: "auto" }),
+      }),
+    });
+
+    const result = await loadAppSettingsFromStorage(deps);
+
+    expect(result.preferredDarkTheme).toBe("dark");
+  });
+
+  it("persists the preferred dark theme", async () => {
+    const deps = makeDeps();
+    const queryClient = new QueryClient();
+
+    await saveAppSettings({ queryClient, deps, updates: { preferredDarkTheme: "pureBlack" } });
+
+    expect((await loadAppSettingsFromStorage(deps)).preferredDarkTheme).toBe("pureBlack");
+  });
+
+  it("falls back to Dark when the preferred dark setting is not a dark variant", async () => {
+    const deps = makeDeps({
+      storage: createInMemoryKeyValueStorage({
+        [APP_SETTINGS_KEY]: JSON.stringify({ preferredDarkTheme: "light", vimKeybindings: true }),
+      }),
+    });
+
+    const result = await loadAppSettingsFromStorage(deps);
+
+    expect(result.preferredDarkTheme).toBe("dark");
+    expect(result.vimKeybindings).toBe(true);
+  });
+
   it.each(THEME_OPTIONS)("loads the persisted $name theme", async ({ name }) => {
     const deps = makeDeps({
       storage: createInMemoryKeyValueStorage({

@@ -2693,6 +2693,9 @@ export const fr: TranslationResources = {
       theme: {
         title: "Thème",
         accessibilityLabel: "Thème : {{value}}",
+        preferredDarkTitle: "Thème sombre préféré",
+        preferredDarkHint: "Utilisé lorsque le système est en mode sombre",
+        preferredDarkAccessibility: "Thème sombre préféré : {{value}}",
         options: {
           light: "Clair",
           dark: "Sombre",
