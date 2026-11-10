@@ -1,7 +1,7 @@
 import { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Text, View } from "react-native";
-import { Split } from "lucide-react-native";
+import { Ellipsis, MessageSquarePlus, Split } from "lucide-react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import {
   DropdownMenu,
@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { MenuTriggerState } from "@/components/ui/menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ICON_SIZE, type Theme } from "@/styles/theme";
 
@@ -19,6 +20,8 @@ interface AssistantForkMenuProps {
   testID?: string;
 }
 
+const ThemedEllipsis = withUnistyles(Ellipsis);
+const ThemedMessageSquarePlus = withUnistyles(MessageSquarePlus);
 const ThemedSplit = withUnistyles(Split);
 
 const foregroundColorMapping = (theme: Theme) => ({ color: theme.colors.foreground });
@@ -56,7 +59,11 @@ export const AssistantForkMenu = memo(function AssistantForkMenu({
   );
 
   const triggerStyle = useCallback(
-    () => [styles.trigger, isLocked ? styles.triggerDisabled : null],
+    ({ hovered, pressed, open }: MenuTriggerState) => [
+      styles.trigger,
+      hovered || pressed || open ? styles.triggerHighlighted : null,
+      isLocked ? styles.triggerDisabled : null,
+    ],
     [isLocked],
   );
 
@@ -69,8 +76,12 @@ export const AssistantForkMenu = memo(function AssistantForkMenu({
     [t],
   );
 
-  const forkIcon = useMemo(
-    () => <ThemedSplit size={ICON_SIZE.sm} uniProps={foregroundColorMapping} />,
+  const newTabIcon = useMemo(
+    () => <ThemedMessageSquarePlus size={ICON_SIZE.sm} uniProps={foregroundMutedColorMapping} />,
+    [],
+  );
+  const newWorkspaceIcon = useMemo(
+    () => <ThemedSplit size={ICON_SIZE.sm} uniProps={foregroundMutedColorMapping} />,
     [],
   );
 
@@ -86,10 +97,14 @@ export const AssistantForkMenu = memo(function AssistantForkMenu({
               style={triggerStyle}
               testID={`${testID}-trigger`}
             >
-              {({ hovered, open }) => (
-                <ThemedSplit
+              {({ hovered, pressed, open }) => (
+                <ThemedEllipsis
                   size={ICON_SIZE.sm}
-                  uniProps={hovered || open ? foregroundColorMapping : foregroundMutedColorMapping}
+                  uniProps={
+                    hovered || pressed || open
+                      ? foregroundColorMapping
+                      : foregroundMutedColorMapping
+                  }
                 />
               )}
             </DropdownMenuTrigger>
@@ -101,7 +116,7 @@ export const AssistantForkMenu = memo(function AssistantForkMenu({
         <DropdownMenuItem
           closeOnSelect={false}
           disabled={isLocked && pendingTarget !== "tab"}
-          leading={forkIcon}
+          leading={newTabIcon}
           onSelect={handleSelect("tab")}
           status={pendingTarget === "tab" ? "pending" : undefined}
           testID={`${testID}-new-tab`}
@@ -111,7 +126,7 @@ export const AssistantForkMenu = memo(function AssistantForkMenu({
         <DropdownMenuItem
           closeOnSelect={false}
           disabled={isLocked && pendingTarget !== "workspace"}
-          leading={forkIcon}
+          leading={newWorkspaceIcon}
           onSelect={handleSelect("workspace")}
           status={pendingTarget === "workspace" ? "pending" : undefined}
           testID={`${testID}-new-workspace`}
@@ -128,7 +143,11 @@ const styles = StyleSheet.create((theme) => ({
     padding: theme.spacing[1],
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: theme.borderRadius.md,
     backgroundColor: "transparent",
+  },
+  triggerHighlighted: {
+    backgroundColor: theme.colors.interactionHighlight,
   },
   triggerDisabled: {
     opacity: theme.opacity[50],
