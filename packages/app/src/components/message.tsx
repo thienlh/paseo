@@ -961,6 +961,17 @@ const expandableBadgeStylesheet = StyleSheet.create((theme) => ({
     flexDirection: "row",
     alignItems: "center",
   },
+  togglePressable: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexShrink: 1,
+    minWidth: 0,
+    overflow: "hidden",
+  },
+  toggleFill: {
+    flex: 1,
+    alignSelf: "stretch",
+  },
   labelRow: {
     flex: 1,
     flexDirection: "row",
@@ -1036,10 +1047,6 @@ const expandableBadgeStylesheet = StyleSheet.create((theme) => ({
     padding: theme.spacing[1],
     borderRadius: theme.borderRadius.md,
     flexShrink: 0,
-  },
-  openFileButtonPlaceholderIcon: {
-    width: 14,
-    height: 14,
   },
   detailWrapper: {
     borderBottomLeftRadius: theme.borderRadius.lg,
@@ -1695,7 +1702,6 @@ interface ExpandableBadgeWebShimmerOverlayProps {
   diffStat?: { additions: number; deletions: number };
   shimmerLabelTextStyle: StyleProp<TextStyle>;
   shimmerSecondaryTextStyle: StyleProp<TextStyle>;
-  showOpenFileButton: boolean;
 }
 
 function ExpandableBadgeWebShimmerOverlay({
@@ -1705,7 +1711,6 @@ function ExpandableBadgeWebShimmerOverlay({
   diffStat,
   shimmerLabelTextStyle,
   shimmerSecondaryTextStyle,
-  showOpenFileButton,
 }: ExpandableBadgeWebShimmerOverlayProps) {
   return (
     <View style={expandableBadgeStylesheet.shimmerOverlay} pointerEvents="none">
@@ -1722,15 +1727,67 @@ function ExpandableBadgeWebShimmerOverlay({
         </Text>
       ) : null}
       <ExpandableBadgeDiffStat diffStat={diffStat} />
-      {showOpenFileButton ? (
-        <View style={expandableBadgeStylesheet.openFileButton}>
-          <View style={expandableBadgeStylesheet.openFileButtonPlaceholderIcon} />
-        </View>
-      ) : null}
-      {!secondaryLabel && !showOpenFileButton ? (
-        <View style={expandableBadgeStylesheet.spacer} />
-      ) : null}
+      {!secondaryLabel ? <View style={expandableBadgeStylesheet.spacer} /> : null}
     </View>
+  );
+}
+
+interface ExpandableBadgeTrailingPressTargetProps {
+  isInteractive: boolean;
+  onToggle?: () => void;
+  onPressIn: () => void;
+  onPressOut: () => void;
+}
+
+function ExpandableBadgeTrailingPressTarget({
+  isInteractive,
+  onToggle,
+  onPressIn,
+  onPressOut,
+}: ExpandableBadgeTrailingPressTargetProps) {
+  return (
+    <Pressable
+      onPress={isInteractive ? onToggle : undefined}
+      onPressIn={isInteractive ? onPressIn : undefined}
+      onPressOut={isInteractive ? onPressOut : undefined}
+      disabled={!isInteractive}
+      accessible={false}
+      tabIndex={-1}
+      style={expandableBadgeStylesheet.toggleFill}
+    />
+  );
+}
+
+interface ExpandableBadgeOpenFileButtonProps {
+  isHovered: boolean;
+  onPress: (event: GestureResponderEvent) => void;
+  onHoverIn: () => void;
+  onHoverOut: () => void;
+}
+
+function ExpandableBadgeOpenFileButton({
+  isHovered,
+  onPress,
+  onHoverIn,
+  onHoverOut,
+}: ExpandableBadgeOpenFileButtonProps) {
+  const { t } = useTranslation();
+  return (
+    <Pressable
+      onPress={onPress}
+      onHoverIn={onHoverIn}
+      onHoverOut={onHoverOut}
+      accessibilityRole="button"
+      accessibilityLabel={t("message.actions.openFile")}
+      testID="tool-call-open-file"
+      style={expandableBadgeStylesheet.openFileButton}
+      hitSlop={6}
+    >
+      <ThemedFileSymlinkIcon
+        size={14}
+        uniProps={isHovered ? foregroundColorMapping : foregroundMutedColorMapping}
+      />
+    </Pressable>
   );
 }
 
@@ -1755,11 +1812,6 @@ interface ExpandableBadgeLabelRowProps {
   onLabelRowLayout: (event: LayoutChangeEvent) => void;
   onLabelLayout: (event: LayoutChangeEvent) => void;
   onSecondaryLayout: (event: LayoutChangeEvent) => void;
-  showOpenFileButton: boolean;
-  isOpenFileHovered: boolean;
-  onOpenFilePress: (event: GestureResponderEvent) => void;
-  onOpenFileHoverIn: () => void;
-  onOpenFileHoverOut: () => void;
 }
 
 function ExpandableBadgeLabelRow({
@@ -1783,13 +1835,7 @@ function ExpandableBadgeLabelRow({
   onLabelRowLayout,
   onLabelLayout,
   onSecondaryLayout,
-  showOpenFileButton,
-  isOpenFileHovered,
-  onOpenFilePress,
-  onOpenFileHoverIn,
-  onOpenFileHoverOut,
 }: ExpandableBadgeLabelRowProps) {
-  const { t } = useTranslation();
   return (
     <View
       style={expandableBadgeStylesheet.labelRow}
@@ -1810,23 +1856,6 @@ function ExpandableBadgeLabelRow({
         onSecondaryLayout={onSecondaryLayout}
       />
       <ExpandableBadgeDiffStat diffStat={diffStat} />
-      {showOpenFileButton ? (
-        <Pressable
-          onPress={onOpenFilePress}
-          onHoverIn={onOpenFileHoverIn}
-          onHoverOut={onOpenFileHoverOut}
-          accessibilityRole="button"
-          accessibilityLabel={t("message.actions.openFile")}
-          testID="tool-call-open-file"
-          style={expandableBadgeStylesheet.openFileButton}
-          hitSlop={6}
-        >
-          <ThemedFileSymlinkIcon
-            size={14}
-            uniProps={isOpenFileHovered ? foregroundColorMapping : foregroundMutedColorMapping}
-          />
-        </Pressable>
-      ) : null}
       {isWebShimmer ? (
         <ExpandableBadgeWebShimmerOverlay
           label={label}
@@ -1835,7 +1864,6 @@ function ExpandableBadgeLabelRow({
           diffStat={diffStat}
           shimmerLabelTextStyle={shimmerLabelTextStyle}
           shimmerSecondaryTextStyle={shimmerSecondaryTextStyle}
-          showOpenFileButton={showOpenFileButton}
         />
       ) : null}
       {isNativeShimmer ? (
@@ -2301,6 +2329,7 @@ export const ExpandableBadge = memo(function ExpandableBadge({
         accessibilityRole: "button" as const,
       }
     : {};
+  const showOpenFileButton = Boolean(onOpenFile && isHovered);
 
   return (
     <View
@@ -2309,43 +2338,55 @@ export const ExpandableBadge = memo(function ExpandableBadge({
       onPointerEnter={isWeb ? handleHoverIn : undefined}
       onPointerLeave={isWeb ? handleHoverOut : undefined}
     >
-      <Pressable
-        {...pressHandlers}
-        disabled={!isInteractive}
-        accessibilityState={accessibilityState}
-        style={pressableStyle}
-      >
+      <View style={pressableStyle}>
         <View style={expandableBadgeStylesheet.headerRow}>
-          <View style={expandableBadgeStylesheet.iconBadge}>{iconSlotNode}</View>
-          <ExpandableBadgeLabelRow
-            label={label}
-            labelStyle={labelStyle}
-            secondaryLabel={secondaryLabel}
-            secondaryLabelStyle={secondaryLabelStyle}
-            secondaryLabelEllipsizeMode={secondaryLabelEllipsizeMode}
-            diffStat={diffStat}
-            shouldMeasureWebShimmer={shouldMeasureWebShimmer}
-            shouldMeasureNativeShimmer={shouldMeasureNativeShimmer}
-            isWebShimmer={isWebShimmer}
-            isNativeShimmer={isNativeShimmer}
-            shimmerLabelTextStyle={shimmerLabelTextStyle}
-            shimmerSecondaryTextStyle={shimmerSecondaryTextStyle}
-            labelRowWidth={labelRowWidth}
-            labelRowHeight={labelRowHeight}
-            nativeShimmerPeakWidth={nativeShimmerPeakWidth}
-            shimmerDuration={shimmerDuration}
-            nativeGradientId={nativeGradientIdRef.current}
-            onLabelRowLayout={handleLabelRowLayout}
-            onLabelLayout={handleLabelLayout}
-            onSecondaryLayout={handleSecondaryLayout}
-            showOpenFileButton={Boolean(onOpenFile && isHovered)}
-            isOpenFileHovered={isOpenFileHovered}
-            onOpenFilePress={handleOpenFilePress}
-            onOpenFileHoverIn={handleOpenFileHoverIn}
-            onOpenFileHoverOut={handleOpenFileHoverOut}
+          <Pressable
+            {...pressHandlers}
+            disabled={!isInteractive}
+            accessibilityState={accessibilityState}
+            style={expandableBadgeStylesheet.togglePressable}
+          >
+            <View style={expandableBadgeStylesheet.iconBadge}>{iconSlotNode}</View>
+            <ExpandableBadgeLabelRow
+              label={label}
+              labelStyle={labelStyle}
+              secondaryLabel={secondaryLabel}
+              secondaryLabelStyle={secondaryLabelStyle}
+              secondaryLabelEllipsizeMode={secondaryLabelEllipsizeMode}
+              diffStat={diffStat}
+              shouldMeasureWebShimmer={shouldMeasureWebShimmer}
+              shouldMeasureNativeShimmer={shouldMeasureNativeShimmer}
+              isWebShimmer={isWebShimmer}
+              isNativeShimmer={isNativeShimmer}
+              shimmerLabelTextStyle={shimmerLabelTextStyle}
+              shimmerSecondaryTextStyle={shimmerSecondaryTextStyle}
+              labelRowWidth={labelRowWidth}
+              labelRowHeight={labelRowHeight}
+              nativeShimmerPeakWidth={nativeShimmerPeakWidth}
+              shimmerDuration={shimmerDuration}
+              nativeGradientId={nativeGradientIdRef.current}
+              onLabelRowLayout={handleLabelRowLayout}
+              onLabelLayout={handleLabelLayout}
+              onSecondaryLayout={handleSecondaryLayout}
+            />
+          </Pressable>
+          {showOpenFileButton ? (
+            <ExpandableBadgeOpenFileButton
+              isHovered={isOpenFileHovered}
+              onPress={handleOpenFilePress}
+              onHoverIn={handleOpenFileHoverIn}
+              onHoverOut={handleOpenFileHoverOut}
+            />
+          ) : null}
+          {/* Keep trailing whitespace clickable without nesting either visible action. */}
+          <ExpandableBadgeTrailingPressTarget
+            isInteractive={isInteractive}
+            onToggle={onToggle}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
           />
         </View>
-      </Pressable>
+      </View>
       {detailContent ? (
         <Pressable
           ref={detailWrapperRef}
