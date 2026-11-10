@@ -11,8 +11,9 @@ import { PressHighlight } from "@/components/ui/press-highlight";
 import { ScrollView as GHScrollView } from "react-native-gesture-handler";
 import { ChevronDown, ChevronRight } from "lucide-react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
-import type { DiffLine } from "@/utils/tool-call-parsers";
-import { diffLinePrefix } from "@/utils/diff-highlight";
+import type { DiffLine, DiffSegment as DiffSegmentModel } from "@/utils/tool-call-parsers";
+import type { HighlightToken } from "@getpaseo/highlight";
+import { diffLineCode } from "@/utils/diff-highlight";
 import { syntaxTokenStyleFor } from "@/styles/syntax-token-styles";
 import { inlineUnistylesStyle } from "@/styles/unistyles-inline-style";
 import { getCodeInsets, lineNumberGutterWidth } from "./code-insets";
@@ -44,6 +45,10 @@ interface NumberedDiffLine {
   newLineNumber: number | null;
 }
 
+interface RenderDiffSegment extends DiffSegmentModel {
+  tokens?: HighlightToken[];
+}
+
 interface UnmodifiedGroup {
   kind: "unmodified";
   id: string;
@@ -61,6 +66,15 @@ function hunkStart(line: DiffLine): { old: number; next: number } | null {
   const match = /^@@\s+-(\d+)(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s+@@/.exec(line.content);
   if (!match) return null;
   return { old: Number(match[1]), next: Number(match[2]) };
+}
+
+function isNoNewlineMarker(line: DiffLine): boolean {
+  return line.type === "header" && line.content.startsWith("\\ No newline");
+}
+
+function displayDiffLineCode(line: DiffLine): string {
+  if (isNoNewlineMarker(line)) return line.content.slice(2);
+  return diffLineCode(line);
 }
 
 function buildDisplayRows(diffLines: readonly DiffLine[]): {
@@ -124,21 +138,98 @@ function buildDisplayRows(diffLines: readonly DiffLine[]): {
 }
 
 function LineNumber({
-  side,
+  lineType,
   value,
   gutterWidth,
 }: {
-  side: "old" | "new";
+  lineType: DiffLine["type"];
   value: number | null;
   gutterWidth: number;
 }) {
   const style = React.useMemo(
-    () => [styles.lineNumber, inlineUnistylesStyle({ width: gutterWidth })],
-    [gutterWidth],
+    () => [
+      styles.lineNumber,
+      lineType === "add" && styles.addLineNumber,
+      lineType === "remove" && styles.removeLineNumber,
+      inlineUnistylesStyle({ width: gutterWidth }),
+    ],
+    [gutterWidth, lineType],
   );
   return (
-    <Text testID={`diff-${side}-line-number`} style={style}>
+    <Text testID="diff-line-number" style={style}>
       {value ?? ""}
+    </Text>
+  );
+}
+
+function mergeTokensIntoSegments(
+  tokens: readonly HighlightToken[],
+  segments: readonly DiffSegmentModel[],
+): RenderDiffSegment[] {
+  const merged: RenderDiffSegment[] = [];
+  let tokenIndex = 0;
+  let tokenStart = 0;
+  let segmentStart = 0;
+
+  for (const segment of segments) {
+    const segmentEnd = segmentStart + segment.text.length;
+    const segmentTokens: HighlightToken[] = [];
+    let cursor = segmentStart;
+
+    while (cursor < segmentEnd && tokenIndex < tokens.length) {
+      const token = tokens[tokenIndex]!;
+      const tokenEnd = tokenStart + token.text.length;
+      if (tokenEnd <= cursor) {
+        tokenIndex += 1;
+        tokenStart = tokenEnd;
+        continue;
+      }
+
+      const runEnd = Math.min(segmentEnd, tokenEnd);
+      segmentTokens.push({
+        text: token.text.slice(cursor - tokenStart, runEnd - tokenStart),
+        style: token.style,
+      });
+      cursor = runEnd;
+      if (cursor === tokenEnd) {
+        tokenIndex += 1;
+        tokenStart = tokenEnd;
+      }
+    }
+
+    merged.push({ ...segment, tokens: segmentTokens });
+    segmentStart = segmentEnd;
+  }
+
+  return merged;
+}
+
+function DiffSegments({
+  lineType,
+  segments,
+  tokens,
+}: {
+  lineType: DiffLine["type"];
+  segments: NonNullable<DiffLine["segments"]>;
+  tokens: DiffLine["tokens"];
+}) {
+  const merged = React.useMemo(() => {
+    if (tokens?.length) return mergeTokensIntoSegments(tokens, segments);
+    return segments;
+  }, [segments, tokens]);
+  const keyed = React.useMemo(() => {
+    let start = 0;
+    return merged.map((segment) => {
+      const key = `${start}:${segment.changed ? "c" : "u"}:${segment.text}`;
+      start += segment.text.length;
+      return { key, segment };
+    });
+  }, [merged]);
+  return (
+    <Text testID="diff-line-text" style={styles.lineText}>
+      {keyed.map(({ key, segment }) => (
+        <DiffSegment key={key} segment={segment} lineType={lineType} />
+      ))}
     </Text>
   );
 }
@@ -146,54 +237,39 @@ function LineNumber({
 function DiffLineContent({
   line,
   plainLineTextStyle,
-  prefixStyle,
 }: {
   line: DiffLine;
   plainLineTextStyle: StyleProp<TextStyle>;
-  prefixStyle: StyleProp<TextStyle>;
 }) {
+  if (line.segments) {
+    return <DiffSegments lineType={line.type} segments={line.segments} tokens={line.tokens} />;
+  }
   if (line.tokens) {
     return (
-      <Text style={styles.lineText}>
-        <Text style={prefixStyle}>{diffLinePrefix(line)}</Text>
+      <Text testID="diff-line-text" style={styles.lineText}>
         <DiffTokens tokens={line.tokens} />
-      </Text>
-    );
-  }
-  if (line.segments) {
-    return (
-      <Text style={styles.lineText}>
-        <Text style={line.type === "add" ? styles.addText : styles.removeText}>
-          {line.content[0]}
-        </Text>
-        {line.segments.map((segment) => (
-          <DiffSegment
-            key={`${segment.changed ? "c" : "u"}:${segment.text}`}
-            segment={segment}
-            lineType={line.type}
-          />
-        ))}
       </Text>
     );
   }
   return (
     <Text testID="diff-line-text" style={plainLineTextStyle}>
-      {line.content}
+      {displayDiffLineCode(line)}
     </Text>
   );
 }
 
 function DiffLineRow({ item, gutterWidth }: { item: NumberedDiffLine; gutterWidth: number }) {
   const { line } = item;
+  const isMetadata = isNoNewlineMarker(line);
   const lineContainerStyle = React.useMemo(
     () => [
       styles.line,
-      line.type === "header" && styles.headerLine,
+      line.type === "header" && !isMetadata && styles.headerLine,
       line.type === "add" && styles.addLine,
       line.type === "remove" && styles.removeLine,
       line.type === "context" && styles.contextLine,
     ],
-    [line.type],
+    [isMetadata, line.type],
   );
   const plainLineTextStyle = React.useMemo(
     () => [
@@ -205,27 +281,26 @@ function DiffLineRow({ item, gutterWidth }: { item: NumberedDiffLine; gutterWidt
     ],
     [line.type],
   );
-  const prefixStyle = React.useMemo(
+  const indicatorStyle = React.useMemo(
     () => [
-      line.type === "add" && styles.addText,
-      line.type === "remove" && styles.removeText,
-      line.type === "context" && styles.contextText,
+      styles.indicator,
+      line.type === "add" && styles.addIndicator,
+      line.type === "remove" && styles.removeIndicator,
     ],
     [line.type],
   );
+  const hasIndicator = line.type === "add" || line.type === "remove";
 
   return (
     <View style={lineContainerStyle}>
-      <View style={styles.lineNumbers}>
-        <LineNumber side="old" value={item.oldLineNumber} gutterWidth={gutterWidth} />
-        <LineNumber side="new" value={item.newLineNumber} gutterWidth={gutterWidth} />
-      </View>
+      {hasIndicator && <View testID={`diff-${line.type}-indicator`} style={indicatorStyle} />}
+      <LineNumber
+        lineType={line.type}
+        value={item.newLineNumber ?? item.oldLineNumber}
+        gutterWidth={gutterWidth}
+      />
       <View style={styles.lineContent}>
-        <DiffLineContent
-          line={line}
-          plainLineTextStyle={plainLineTextStyle}
-          prefixStyle={prefixStyle}
-        />
+        <DiffLineContent line={line} plainLineTextStyle={plainLineTextStyle} />
       </View>
     </View>
   );
@@ -239,7 +314,11 @@ function DiffTokens({ tokens }: { tokens: NonNullable<DiffLine["tokens"]> }) {
   return (
     <>
       {keyed.map(({ key, token }) => (
-        <Text key={key} style={token.style ? syntaxTokenStyleFor(token.style) : undefined}>
+        <Text
+          key={key}
+          testID="diff-syntax-token"
+          style={token.style ? syntaxTokenStyleFor(token.style) : undefined}
+        >
           {token.text}
         </Text>
       ))}
@@ -251,7 +330,7 @@ function DiffSegment({
   segment,
   lineType,
 }: {
-  segment: NonNullable<DiffLine["segments"]>[number];
+  segment: RenderDiffSegment;
   lineType: DiffLine["type"];
 }) {
   const segmentStyle = React.useMemo(
@@ -261,7 +340,11 @@ function DiffSegment({
     ],
     [lineType, segment.changed],
   );
-  return <Text style={segmentStyle}>{segment.text}</Text>;
+  return (
+    <Text testID={segment.changed ? "diff-changed-segment" : undefined} style={segmentStyle}>
+      {segment.tokens ? <DiffTokens tokens={segment.tokens} /> : segment.text}
+    </Text>
+  );
 }
 
 function UnmodifiedGroupRow({
@@ -421,12 +504,21 @@ const styles = StyleSheet.create((theme) => {
       minWidth: "100%",
       flexDirection: "row",
       alignItems: "flex-start",
-      paddingHorizontal: 0,
+      paddingLeft: theme.spacing[2],
       paddingVertical: theme.spacing[1],
     },
-    lineNumbers: {
-      flexDirection: "row",
-      flexShrink: 0,
+    indicator: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      left: 0,
+      width: 3,
+    },
+    addIndicator: {
+      backgroundColor: theme.colors.diffAddition,
+    },
+    removeIndicator: {
+      backgroundColor: theme.colors.diffDeletion,
     },
     lineNumber: {
       flexShrink: 0,
@@ -435,6 +527,12 @@ const styles = StyleSheet.create((theme) => {
       fontFamily: theme.fontFamily.mono,
       fontSize: theme.fontSize.code,
       textAlign: "right",
+    },
+    addLineNumber: {
+      color: theme.colors.diffAddition,
+    },
+    removeLineNumber: {
+      color: theme.colors.diffDeletion,
     },
     lineContent: {
       flex: 1,
@@ -461,22 +559,22 @@ const styles = StyleSheet.create((theme) => {
       color: theme.colors.foregroundMuted,
     },
     addLine: {
-      backgroundColor: "rgba(46, 160, 67, 0.15)",
+      backgroundColor: theme.colors.diffAdditionBackground,
     },
     addText: {
       color: theme.colors.foreground,
     },
     removeLine: {
-      backgroundColor: "rgba(248, 81, 73, 0.1)",
+      backgroundColor: theme.colors.diffDeletionBackground,
     },
     removeText: {
       color: theme.colors.foreground,
     },
     addHighlight: {
-      backgroundColor: "rgba(46, 160, 67, 0.4)",
+      backgroundColor: theme.colors.diffAdditionHighlight,
     },
     removeHighlight: {
-      backgroundColor: "rgba(248, 81, 73, 0.35)",
+      backgroundColor: theme.colors.diffDeletionHighlight,
     },
     contextLine: {
       backgroundColor: theme.colors.surface1,
