@@ -419,9 +419,9 @@ for (const display of ["collapseToolCalls", "collapseTurns"] as const) {
   });
 }
 
-test("forms a closed group when the lone tool call was left closed", async ({ page }) => {
+test("opens a live group by default when the lone tool call was left closed", async ({ page }) => {
   test.setTimeout(120_000);
-  const agent = await createOverviewAgent(page, "Closed desktop overview tool calls");
+  const agent = await createOverviewAgent(page, "Live desktop overview tool calls");
   try {
     const gate = await gateSecondToolCall(page, agent.agentId);
     await openOverviewAgent(page, agent);
@@ -433,11 +433,10 @@ test("forms a closed group when the lone tool call was left closed", async ({ pa
     await expect(group).toHaveCount(0);
 
     await gate.waitForSecondRunning();
-    const loneTop = await topOf(lone);
     gate.releaseSecondRunning();
     await expect(group).toBeVisible();
-    await expect(group.getByTestId("tool-call-badge")).toHaveCount(0);
-    expect(Math.abs((await topOf(group)) - loneTop)).toBeLessThanOrEqual(2);
+    await expect(group.getByTestId("tool-call-badge")).toHaveCount(2);
+    await expect(group.getByTestId("tool-call-badge").last()).toBeVisible();
   } finally {
     await agent.cleanup();
   }

@@ -49,8 +49,8 @@ function countUnifiedDiff(diffText: string): ToolCallEditDiffStat {
 }
 
 function countReplacementLines(oldText: string, newText: string): ToolCallEditDiffStat | undefined {
-  const oldLines = oldText.replace(/\r\n/g, "\n").split("\n");
-  const newLines = newText.replace(/\r\n/g, "\n").split("\n");
+  const oldLines = oldText ? oldText.replace(/\r\n/g, "\n").split("\n") : [];
+  const newLines = newText ? newText.replace(/\r\n/g, "\n").split("\n") : [];
   let prefix = 0;
   while (
     prefix < oldLines.length &&

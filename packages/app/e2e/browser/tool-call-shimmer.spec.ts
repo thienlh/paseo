@@ -31,7 +31,7 @@ async function readShimmerEvidence(locator: Locator): Promise<ShimmerEvidence> {
   });
 }
 
-test("measures an overview heading that becomes loading after its idle mount", async ({
+test("expands the active group and shimmers only its latest running row", async ({
   page,
 }, testInfo) => {
   test.setTimeout(120_000);
@@ -63,22 +63,22 @@ test("measures an overview heading that becomes loading after its idle mount", a
     if (!idleGroupHandle) {
       throw new Error("Expected the idle tool-call group to be mounted");
     }
-    await expect(group.locator('[style*="paseo-toolcall-shimmer"]')).toHaveCount(0);
+    await expect(group.getByTestId("tool-call-badge").first()).toBeVisible();
+    const header = group.getByRole("button").first();
+    await expect(header.locator('[style*="paseo-toolcall-shimmer"]')).toHaveCount(0);
 
     await gate.waitForSecondRunning();
     gate.releaseSecondRunning();
-    await expect(group.locator('[style*="paseo-toolcall-shimmer"]')).not.toHaveCount(0);
+    await expect(header.locator('[style*="paseo-toolcall-shimmer"]')).toHaveCount(0);
+    const runningChild = group.getByTestId("tool-call-badge").last();
+    await expect(runningChild).toBeVisible();
     const sameGroupNode = await group.evaluate(
       (node, previous) => node === previous,
       idleGroupHandle,
     );
 
-    await group.click();
-    const runningChild = page.getByTestId("tool-call-badge").last();
-    await expect(runningChild).toBeVisible();
-    const header = await readShimmerEvidence(group);
     const child = await readShimmerEvidence(runningChild);
-    const evidence = { sameGroupNode, header, child };
+    const evidence = { sameGroupNode, child };
     await testInfo.attach("tool-call-shimmer-evidence", {
       body: JSON.stringify(evidence, null, 2),
       contentType: "application/json",
@@ -86,10 +86,6 @@ test("measures an overview heading that becomes loading after its idle mount", a
 
     expect(sameGroupNode).toBe(true);
     expect(child.endPx).toBeGreaterThan(0);
-    expect(
-      header.endPx,
-      `The retained header rendered ${header.renderedWidth}px wide but its shimmer still ends at ${header.endPx}px`,
-    ).toBeGreaterThan(0);
   } finally {
     await agent.cleanup();
   }

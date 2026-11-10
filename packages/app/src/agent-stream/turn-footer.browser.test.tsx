@@ -47,7 +47,7 @@ function renderCompletedFooter(timing: TurnTiming, items: StreamItem[] = [reply]
         strategy={createNativeStreamStrategy()}
         items={items}
         timing={timing}
-        startIndex={0}
+        startIndex={items.length - 1}
         supportsTimelineCursor={false}
       />,
     ),
@@ -123,8 +123,8 @@ it("keeps the duration on one line when changed files compete for a narrow foote
     "src/COMPONENTS.md",
   ];
   renderCompletedFooter({ completedAt: FRIDAY_NIGHT, durationMs: 5 * 60_000 + 8_000 }, [
-    reply,
     ...paths.map((path) => editedFile(path, path)),
+    reply,
   ]);
   expect(paintedLinesByLabel(host)["Worked for 5m 8s"]).toBe(1);
   const label = host.querySelector("[data-testid=turn-footer-timing-label]")!;

@@ -98,7 +98,7 @@ import { createAssistantImageOccurrenceKey } from "@/assistant-image/acquisition
 import { AssistantSelectionCopySurface } from "@/assistant-selection-copy/surface";
 import { AssistantFileLinkResolverProvider, createInlinePathOpener } from "@/assistant-file-links";
 import { TurnCallsResolverContext } from "./turn-file-changes-row";
-import type { TurnCallsResolver } from "./turn-file-changes";
+import { createTurnCallsResolver } from "./turn-file-changes";
 import { useOpenOutsideWorkspaceFolder } from "@/workspace/open-in-file-manager/outside-folder";
 import {
   createWorkspaceFileTabTarget,
@@ -550,19 +550,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
       ],
     );
     // The footer's changed files read through grouped rows and closed turns to their calls.
-    const resolveTurnCalls = useCallback<TurnCallsResolver>(
-      (row) => {
-        if (row.kind === "turn_summary") {
-          // An open turn's calls are already in the list beside its summary row.
-          return row.expanded ? [] : (presentation.turns.foldedCallsByHostId.get(row.hostId) ?? []);
-        }
-        if (row.kind === "tool_call") {
-          return presentation.groupsByHostId.get(row.id)?.run.calls ?? [row];
-        }
-        return [row];
-      },
-      [presentation],
-    );
+    const resolveTurnCalls = useMemo(() => createTurnCallsResolver(presentation), [presentation]);
     const {
       start: historyWindowStart,
       hasLocalHistory,
@@ -883,7 +871,8 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
             ? renderThoughtItem(layoutItem, item)
             : renderSingleToolCallItem(item, layoutItem.isLastInToolSequence);
         }
-        const expanded = expandedToolCallGroups.has(group.run.id);
+        // Live desktop runs default to open between tool updates; the reader's toggle still wins.
+        const expanded = expandedToolCallGroups.has(group.run.id, !isMobile && !group.run.isSealed);
         return (
           <OverviewToolCallGroupView
             group={group}
@@ -920,6 +909,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
       },
       [
         expandedToolCallGroups,
+        isMobile,
         renderThoughtItem,
         setInlineDetailsExpanded,
         getToolCallGroup,
