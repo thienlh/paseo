@@ -75,7 +75,7 @@ describe("workspace draft directory resolution", () => {
     modeId: null,
     model: null,
     thinkingOptionId: null,
-    featureValues: {},
+    providerOptions: {},
   };
 
   test("uses the live workspace directory instead of a stale draft setup path", () => {

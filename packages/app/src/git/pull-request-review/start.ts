@@ -240,7 +240,7 @@ function queueReviewSubmission(input: {
     clientMessageId,
     timestamp,
     ...definedReviewOptions(setup),
-    featureValues: setup.featureValues,
+    providerOptions: setup.providerOptions,
   });
   return {
     draftId: input.draftId,
@@ -262,7 +262,7 @@ function reviewSetup(input: {
     modeId: providerPreferences?.mode ?? null,
     model,
     thinkingOptionId: thinkingOptionId(providerPreferences?.thinkingByModel, model),
-    featureValues: providerPreferences?.featureValues ?? {},
+    providerOptions: providerPreferences?.options ?? {},
   };
 }
 
