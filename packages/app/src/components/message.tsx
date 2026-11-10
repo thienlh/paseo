@@ -601,6 +601,7 @@ const assistantTurnFooterStylesheet = StyleSheet.create((theme) => ({
     marginLeft: -theme.spacing[1],
   },
   labelButton: {
+    position: "relative",
     flexGrow: 0,
     flexShrink: 0,
     flexBasis: "auto",
@@ -617,7 +618,9 @@ const assistantTurnFooterStylesheet = StyleSheet.create((theme) => ({
     fontSize: STREAM_METADATA_FONT_SIZE,
   },
   overlappingLabel: {
-    marginLeft: "-100%",
+    position: "absolute",
+    top: 0,
+    left: 0,
   },
   hiddenLabel: {
     opacity: 0,
@@ -708,8 +711,8 @@ export const AssistantTurnFooter = memo(function AssistantTurnFooter({
           accessibilityRole={canSwap ? "button" : undefined}
           accessibilityLabel={canSwap ? `${durationLabel}, ended ${timestampLabel}` : primaryLabel}
         >
-          {/* Both labels participate in layout at their content width. Overlapping their
-              columns reserves the taller wrapped height without measuring text or characters. */}
+          {/* The timestamp overlays the duration from the same left edge, without a negative
+              margin that could escape into the copy action. */}
           <Text
             testID={!showTimestamp ? "turn-footer-timing-label" : undefined}
             aria-hidden={showTimestamp}
