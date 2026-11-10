@@ -28,6 +28,17 @@ describe("bounded edit badge stats", () => {
     expect(buildToolCallEditDiffStat(detail)).toBe(first);
   });
 
+  it("treats empty replacement text as zero lines", () => {
+    expect(buildToolCallEditDiffStat(editDetail("", "hello"))).toEqual({
+      additions: 1,
+      deletions: 0,
+    });
+    expect(buildToolCallEditDiffStat(editDetail("hello", ""))).toEqual({
+      additions: 0,
+      deletions: 1,
+    });
+  });
+
   it("counts unified diff lines directly", () => {
     const detail: ToolCallDetail = {
       type: "edit",
