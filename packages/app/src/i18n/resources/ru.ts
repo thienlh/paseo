@@ -434,6 +434,10 @@ export const ru: TranslationResources = {
         completed: "Завершена",
       },
     },
+    usageLimit: {
+      title: "Достигнут лимит использования",
+      retryNewChat: "Повторить в новом чате",
+    },
     turnFooter: {
       workedFor: "Время работы: {{duration}}",
     },
