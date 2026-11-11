@@ -12,7 +12,7 @@ import { inlineUnistylesStyle } from "@/styles/unistyles-inline-style";
 
 export interface FloatingSurfaceProps extends Omit<ComponentProps<typeof Animated.View>, "style"> {
   frameStyle?: StyleProp<ViewStyle>;
-  style?: StyleProp<ViewStyle>;
+  style?: ComponentProps<typeof Animated.View>["style"];
 }
 
 export const FloatingSurface = forwardRef<View, FloatingSurfaceProps>(function FloatingSurface(
@@ -66,9 +66,9 @@ export function FloatingScrollView({
 }
 
 function appendStyle(
-  style: StyleProp<ViewStyle>,
+  style: ComponentProps<typeof Animated.View>["style"],
   extraStyle: ViewStyle | undefined,
-): StyleProp<ViewStyle> {
+): ComponentProps<typeof Animated.View>["style"] {
   if (!extraStyle) {
     return style;
   }
