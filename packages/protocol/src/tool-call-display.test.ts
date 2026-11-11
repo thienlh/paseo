@@ -267,6 +267,71 @@ describe("shared tool-call display mapping", () => {
     expect(display.displayName).toBe("Speak");
   });
 
+  it("renders a settled AskUserQuestion as the user's answers", () => {
+    const display = buildToolCallDisplayModel({
+      name: "AskUserQuestion",
+      status: "completed",
+      error: null,
+      detail: {
+        type: "unknown",
+        input: {
+          questions: [
+            { question: "Which library should we use?", header: "Library" },
+            { question: "Where should it live?", header: "Placement" },
+          ],
+        },
+        output: {
+          output: {
+            answers: {
+              "Which library should we use?": "date-fns",
+              Placement: "In the sidebar",
+            },
+          },
+        },
+      },
+    });
+
+    expect(display).toEqual({
+      displayName: "[ANSWERED]",
+      summary: "date-fns, In the sidebar",
+    });
+  });
+
+  it("renders a dismissed AskUserQuestion as cancelled", () => {
+    const display = buildToolCallDisplayModel({
+      name: "mcp__conductor__AskUserQuestion",
+      status: "failed",
+      error: { message: "Dismissed by user" },
+      detail: {
+        type: "unknown",
+        input: {
+          questions: [{ question: "Which library should we use?", header: "Library" }],
+        },
+        output: null,
+      },
+    });
+
+    expect(display).toEqual({
+      displayName: "[CANCELLED]",
+      summary: "Which library should we use?",
+    });
+  });
+
+  it("leaves a pending AskUserQuestion on the generic tool label", () => {
+    const display = buildToolCallDisplayModel({
+      name: "AskUserQuestion",
+      status: "running",
+      error: null,
+      detail: {
+        type: "unknown",
+        input: { questions: [{ question: "Which library?", header: "Library" }] },
+        output: null,
+      },
+    });
+
+    expect(display.displayName).toBe("Askuserquestion");
+  });
+
   it("labels plan detail rows as Plan", () => {
     const display = buildToolCallDisplayModel({
       name: "plan",

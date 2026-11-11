@@ -3,6 +3,7 @@ import {
   buildAgentMessageDisplay,
   buildPaseoToolDisplay,
 } from "./paseo-tool-presentation/index.js";
+import { projectSettledAskUserQuestion } from "./question-tool-display.js";
 import { stripCwdPrefix } from "./path-utils.js";
 import {
   formatMcpMethodName,
@@ -192,6 +193,13 @@ function buildUnknownDetailOverride(input: ToolCallDisplayInput): DetailDisplay 
 }
 
 export function buildToolCallDisplayModel(input: ToolCallDisplayInput): ToolCallDisplayModel {
+  const settledQuestion = projectSettledAskUserQuestion(input);
+  if (settledQuestion) {
+    return {
+      displayName: settledQuestion.displayName,
+      ...(settledQuestion.summary ? { summary: settledQuestion.summary } : {}),
+    };
+  }
   const errorText = input.status === "failed" ? formatErrorText(input.error) : undefined;
   const paseoDisplay = input.agentMessage
     ? buildAgentMessageDisplay(input.agentMessage)
