@@ -92,3 +92,36 @@ export function isLikelyExternalToolName(name: string): boolean {
   }
   return isLikelyNamespacedToolName(normalized);
 }
+
+export interface McpToolName {
+  server: string;
+  method: string;
+}
+
+const MCP_PREFIX = "mcp__";
+
+export function parseMcpToolName(name: string): McpToolName | null {
+  const trimmed = name.trim();
+  if (!trimmed.startsWith(MCP_PREFIX)) return null;
+  const separator = trimmed.indexOf("__", MCP_PREFIX.length);
+  if (separator <= MCP_PREFIX.length || separator + 2 >= trimmed.length) return null;
+  return {
+    server: trimmed.slice(MCP_PREFIX.length, separator),
+    method: trimmed.slice(separator + 2),
+  };
+}
+
+function identifierWords(identifier: string): string[] {
+  return identifier.split(/[._-]+/).filter((word) => word.length > 0);
+}
+
+export function formatMcpServerName(server: string): string {
+  return identifierWords(server)
+    .map((word) => `${word[0]?.toUpperCase()}${word.slice(1)}`)
+    .join(" ");
+}
+
+export function formatMcpMethodName(method: string): string {
+  const words = identifierWords(method).join(" ").toLowerCase();
+  return words.length > 0 ? `${words[0]?.toUpperCase()}${words.slice(1)}` : method;
+}

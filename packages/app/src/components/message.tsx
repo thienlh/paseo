@@ -10,6 +10,9 @@ import {
   AttachmentThumbnail,
 } from "@/components/attachment-pill";
 import { MarkdownRenderer } from "@/components/markdown/renderer";
+import { MaterialFileIcon } from "@/components/material-file-icon";
+import { ProviderImagePreview } from "@/components/provider-image-preview";
+import { splitProviderMessage } from "@/components/provider-image";
 import { useRetainedPanelActive } from "@/components/retained-panel";
 import { RewindMenu, type RewindMode } from "@/components/rewind/rewind-menu";
 import { useRewindAgentMutation } from "@/components/rewind/use-rewind-agent-mutation";
@@ -732,6 +735,9 @@ export const assistantMessageStylesheet = StyleSheet.create((theme) => ({
     fontStyle: "italic",
     color: theme.colors.foregroundMuted,
   },
+  providerBlocks: {
+    gap: theme.spacing[3],
+  },
   imageFrame: {
     width: "100%",
     minHeight: 160,
@@ -940,6 +946,31 @@ const expandableBadgeStylesheet = StyleSheet.create((theme) => ({
   },
   secondaryLabelActive: {
     color: theme.colors.foreground,
+  },
+  secondaryLabelContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[1],
+    flexShrink: 1,
+    minWidth: 0,
+    marginLeft: theme.spacing[2],
+    paddingHorizontal: theme.spacing[1.5],
+    paddingVertical: 1,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: theme.borderWidth[1],
+    borderColor: theme.colors.surface3,
+    overflow: "hidden",
+    backgroundColor: theme.colors.surface1,
+  },
+  secondaryLabelText: {
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    marginLeft: 0,
+  },
+  secondaryLabelError: {
+    color: theme.colors.statusDanger,
   },
   secondaryLabelMonospace: {
     fontFamily: theme.fontFamily.mono,
@@ -1221,6 +1252,8 @@ export const AssistantMessage = memo(function AssistantMessage({
   const measureMessage = useStableEvent((event: import("react-native").LayoutChangeEvent) => {
     setAssistantMessageHeight({ markdown: revealedMessage, ...event.nativeEvent.layout });
   });
+  const providerSegments = useMemo(() => splitProviderMessage(revealedMessage), [revealedMessage]);
+  const hasProviderImages = providerSegments.some((segment) => segment.kind === "image");
   return (
     <View
       testID="assistant-message"
@@ -1228,14 +1261,43 @@ export const AssistantMessage = memo(function AssistantMessage({
       style={assistantContainerStyle}
       onLayout={measureMessage}
     >
-      <MarkdownRenderer
-        text={revealedMessage}
-        agentCommands
-        streaming={phase !== "complete" || revealedMessage.length < renderedMessage.text.length}
-        client={client}
-        workspaceRoot={workspaceRoot}
-        serverId={serverId}
-      />
+      {hasProviderImages ? (
+        <View style={assistantMessageStylesheet.providerBlocks}>
+          {providerSegments.map((segment) =>
+            segment.kind === "image" ? (
+              <ProviderImagePreview
+                key={`image:${segment.start}`}
+                source={segment.source}
+                alt={segment.alt}
+                client={client}
+                workspaceRoot={workspaceRoot}
+                serverId={serverId}
+              />
+            ) : (
+              <MarkdownRenderer
+                key={`markdown:${segment.start}`}
+                text={segment.text}
+                agentCommands
+                streaming={
+                  phase !== "complete" || revealedMessage.length < renderedMessage.text.length
+                }
+                client={client}
+                workspaceRoot={workspaceRoot}
+                serverId={serverId}
+              />
+            ),
+          )}
+        </View>
+      ) : (
+        <MarkdownRenderer
+          text={revealedMessage}
+          agentCommands
+          streaming={phase !== "complete" || revealedMessage.length < renderedMessage.text.length}
+          client={client}
+          workspaceRoot={workspaceRoot}
+          serverId={serverId}
+        />
+      )}
       {fullMessageByteLength !== null ? (
         <Text
           testID="assistant-message-capped-notice"
@@ -1568,6 +1630,7 @@ export const TodoListCard = memo(function TodoListCard({
 interface ExpandableBadgeProps {
   label: string;
   secondaryLabel?: string;
+  secondaryLabelIcon?: ReactNode;
   /** Code-like details, such as a shell command, read better in the mono font. */
   secondaryLabelMonospace?: boolean;
   secondaryLabelEllipsizeMode?: "head" | "middle" | "tail" | "clip";
@@ -1589,6 +1652,7 @@ interface ExpandableBadgeProps {
 
 interface ExpandableBadgeSecondaryLabelProps {
   secondaryLabel?: string;
+  secondaryLabelIcon?: ReactNode;
   secondaryLabelStyle: StyleProp<TextStyle>;
   secondaryLabelEllipsizeMode?: "head" | "middle" | "tail" | "clip";
   shouldMeasureWebShimmer: boolean;
@@ -1597,6 +1661,7 @@ interface ExpandableBadgeSecondaryLabelProps {
 
 function ExpandableBadgeSecondaryLabel({
   secondaryLabel,
+  secondaryLabelIcon,
   secondaryLabelStyle,
   secondaryLabelEllipsizeMode,
   shouldMeasureWebShimmer,
@@ -1605,15 +1670,30 @@ function ExpandableBadgeSecondaryLabel({
   if (!secondaryLabel) {
     return null;
   }
+  if (!secondaryLabelIcon) {
+    return (
+      <Text
+        style={secondaryLabelStyle}
+        numberOfLines={1}
+        ellipsizeMode={secondaryLabelEllipsizeMode}
+        onLayout={shouldMeasureWebShimmer ? onSecondaryLayout : undefined}
+      >
+        {secondaryLabel}
+      </Text>
+    );
+  }
   return (
-    <Text
-      style={secondaryLabelStyle}
-      numberOfLines={1}
-      ellipsizeMode={secondaryLabelEllipsizeMode}
-      onLayout={shouldMeasureWebShimmer ? onSecondaryLayout : undefined}
-    >
-      {secondaryLabel}
-    </Text>
+    <View style={expandableBadgeStylesheet.secondaryLabelContent}>
+      {secondaryLabelIcon}
+      <Text
+        style={[secondaryLabelStyle, expandableBadgeStylesheet.secondaryLabelText]}
+        numberOfLines={1}
+        ellipsizeMode={secondaryLabelEllipsizeMode}
+        onLayout={shouldMeasureWebShimmer ? onSecondaryLayout : undefined}
+      >
+        {secondaryLabel}
+      </Text>
+    </View>
   );
 }
 
@@ -1717,6 +1797,7 @@ interface ExpandableBadgeLabelRowProps {
   label: string;
   labelStyle: StyleProp<TextStyle>;
   secondaryLabel?: string;
+  secondaryLabelIcon?: ReactNode;
   secondaryLabelStyle: StyleProp<TextStyle>;
   secondaryLabelEllipsizeMode?: "head" | "middle" | "tail" | "clip";
   diffStat?: { additions: number; deletions: number };
@@ -1740,6 +1821,7 @@ function ExpandableBadgeLabelRow({
   label,
   labelStyle,
   secondaryLabel,
+  secondaryLabelIcon,
   secondaryLabelStyle,
   secondaryLabelEllipsizeMode,
   diffStat,
@@ -1772,6 +1854,7 @@ function ExpandableBadgeLabelRow({
       </Text>
       <ExpandableBadgeSecondaryLabel
         secondaryLabel={secondaryLabel}
+        secondaryLabelIcon={secondaryLabelIcon}
         secondaryLabelStyle={secondaryLabelStyle}
         secondaryLabelEllipsizeMode={secondaryLabelEllipsizeMode}
         shouldMeasureWebShimmer={shouldMeasureWebShimmer}
@@ -1979,6 +2062,7 @@ export const ExpandableBadge = memo(function ExpandableBadge({
   label,
   style,
   secondaryLabel,
+  secondaryLabelIcon,
   secondaryLabelMonospace = false,
   secondaryLabelEllipsizeMode,
   diffStat,
@@ -2200,8 +2284,9 @@ export const ExpandableBadge = memo(function ExpandableBadge({
       expandableBadgeStylesheet.secondaryLabel,
       secondaryLabelMonospace && expandableBadgeStylesheet.secondaryLabelMonospace,
       isActive && expandableBadgeStylesheet.secondaryLabelActive,
+      isError && expandableBadgeStylesheet.secondaryLabelError,
     ],
-    [isActive, secondaryLabelMonospace],
+    [isActive, isError, secondaryLabelMonospace],
   );
 
   const shimmerLabelTextStyle = useMemo(
@@ -2273,6 +2358,7 @@ export const ExpandableBadge = memo(function ExpandableBadge({
               label={label}
               labelStyle={labelStyle}
               secondaryLabel={secondaryLabel}
+              secondaryLabelIcon={secondaryLabelIcon}
               secondaryLabelStyle={secondaryLabelStyle}
               secondaryLabelEllipsizeMode={secondaryLabelEllipsizeMode}
               diffStat={diffStat}
@@ -2326,6 +2412,7 @@ export const ExpandableBadge = memo(function ExpandableBadge({
 function areExpandableBadgePropsEqual(previous: ExpandableBadgeProps, next: ExpandableBadgeProps) {
   if (previous.label !== next.label) return false;
   if (previous.secondaryLabel !== next.secondaryLabel) return false;
+  if (previous.secondaryLabelIcon !== next.secondaryLabelIcon) return false;
   if (previous.secondaryLabelMonospace !== next.secondaryLabelMonospace) return false;
   if (previous.secondaryLabelEllipsizeMode !== next.secondaryLabelEllipsizeMode) return false;
   if (previous.diffStat !== next.diffStat) return false;
@@ -2462,6 +2549,12 @@ export const ToolCall = memo(function ToolCall({
       }),
     [toolName, status, error, effectiveDetail, metadata, cwd, agentMessage, targetAgentTitle],
   );
+  const secondaryLabelIcon = useMemo(() => {
+    const openFilePath = presentation.openFilePath;
+    if (!openFilePath) return undefined;
+    const fileName = openFilePath.split(/[\\/]/).findLast(Boolean);
+    return fileName ? <MaterialFileIcon fileName={fileName} size={12} /> : undefined;
+  }, [presentation.openFilePath]);
   const handleOpenFile = useMemo(() => {
     const openFilePath = presentation.openFilePath;
     if (!openFilePath || !onOpenFilePath) {
@@ -2564,7 +2657,8 @@ export const ToolCall = memo(function ToolCall({
       <ExpandableBadge
         testID="tool-call-badge"
         label={presentation.displayName}
-        secondaryLabel={presentation.summary}
+        secondaryLabel={presentation.errorText ?? presentation.summary}
+        secondaryLabelIcon={secondaryLabelIcon}
         secondaryLabelMonospace={summaryPresentation.monospace}
         secondaryLabelEllipsizeMode={summaryPresentation.ellipsizeMode}
         diffStat={presentation.diffStat}

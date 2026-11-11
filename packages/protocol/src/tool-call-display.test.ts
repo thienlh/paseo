@@ -38,6 +38,22 @@ describe("shared tool-call display mapping", () => {
     expect(display).toEqual({ displayName, summary: "src/index.ts" });
   });
 
+  it("includes the write line count", () => {
+    const display = buildToolCallDisplayModel({
+      name: "Write",
+      status: "completed",
+      error: null,
+      detail: {
+        type: "write",
+        filePath: "/tmp/repo/src/provider-image.ts",
+        content: "first\nsecond\nthird",
+      },
+      cwd: "/tmp/repo",
+    });
+
+    expect(display).toEqual({ displayName: "Write 3 lines", summary: "src/provider-image.ts" });
+  });
+
   it("shows the first non-empty reasoning line beside Thinking", () => {
     const display = buildToolCallDisplayModel({
       name: "thinking",
@@ -198,6 +214,17 @@ describe("shared tool-call display mapping", () => {
       displayName: "Terminal",
       summary: "npm run test",
     });
+  });
+
+  it("shows the method and server for an MCP tool call", () => {
+    const display = buildToolCallDisplayModel({
+      name: "mcp__Claude_Browser__computer",
+      status: "completed",
+      error: null,
+      detail: { type: "unknown", input: null, output: null },
+    });
+
+    expect(display).toEqual({ displayName: "Computer", summary: "Claude Browser" });
   });
 
   it("humanizes Paseo MCP tool names (Claude Code format)", () => {
