@@ -2,6 +2,7 @@ import { useDisclosureHold } from "@/agent-stream/disclosure";
 import { MessagePreview, MessageSender } from "@/components/user-message";
 import { useStableEvent } from "@/hooks/use-stable-event";
 import { getAgentAttachmentPillContent } from "@/attachments/attachment-pill-content";
+import { AnsweredQuestionCard } from "@/components/answered-question-card";
 import { AssistantForkMenu, type AssistantForkTarget } from "@/components/assistant-fork-menu";
 import { TurnMetricsButton } from "@/components/turn-metrics";
 import { AttachmentLightbox, type ImageLightboxSource } from "@/components/attachment-lightbox";
@@ -2502,6 +2503,10 @@ export const ToolCall = memo(function ToolCall({
     return () => onOpenFilePath(openFilePath);
   }, [presentation.openFilePath, onOpenFilePath]);
 
+  const handleQuestionToggle = useCallback(() => {
+    hold(toggleExpanded);
+  }, [hold, toggleExpanded]);
+
   const handleToggle = useCallback(() => {
     if (!shouldRenderInline) {
       openToolCall({
@@ -2571,6 +2576,22 @@ export const ToolCall = memo(function ToolCall({
     maxDetailHeight,
   ]);
 
+  if (presentation.pendingQuestion) {
+    return null;
+  }
+
+  if (presentation.answeredQuestion) {
+    return (
+      <AnsweredQuestionCard
+        status={presentation.questionCancelled ? "cancelled" : "answered"}
+        entries={presentation.answeredQuestion.entries}
+        expanded={isExpanded}
+        onToggle={handleQuestionToggle}
+        disableOuterSpacing={disableOuterSpacing}
+      />
+    );
+  }
+
   if (presentation.isPlan && effectiveDetail?.type === "plan") {
     return (
       <PlanCard
@@ -2602,7 +2623,7 @@ export const ToolCall = memo(function ToolCall({
           presentation.canOpenDetails && shouldRenderInline ? renderDetails : undefined
         }
         isLoading={status === "running" || status === "executing"}
-        isError={status === "failed"}
+        isError={status === "failed" && !presentation.questionCancelled}
         isLastInSequence={isLastInSequence}
         disableOuterSpacing={disableOuterSpacing}
       />
