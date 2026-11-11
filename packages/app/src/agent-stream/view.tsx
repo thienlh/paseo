@@ -851,6 +851,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
             toolName={data.toolName}
             args={data.arguments}
             result={data.result}
+            error={data.error}
             status={data.status}
             isLastInSequence={isLastInSequence}
             onOpenFilePath={handleToolCallOpenFile}

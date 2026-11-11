@@ -303,6 +303,76 @@ describe("tool call detail-level projection", () => {
     });
   });
 
+  it("groups consecutive MCP calls by server, including restored history", () => {
+    const first = toolCall(
+      "1",
+      { type: "unknown", input: null, output: null },
+      { name: "mcp__Claude_Browser__computer" },
+    );
+    const second = toolCall(
+      "2",
+      { type: "unknown", input: null, output: null },
+      { name: "mcp__Claude_Browser__screenshot" },
+    );
+    const shell = toolCall("3", { type: "shell", command: "npm test" });
+
+    const restored = project({ level: "overview", tail: [first, second] });
+    expect(restored.groupsByHostId.get("1")).toMatchObject({
+      mcpServer: "Claude Browser",
+      run: { calls: [first, second], isSealed: true },
+    });
+
+    const live = project({ level: "overview", head: [first, second, shell] });
+    expect(live.groupsByHostId.get("1")?.mcpServer).toBe("Claude Browser");
+    expect(live.head).toHaveLength(2);
+  });
+
+  it("keeps provider images inside the same MCP server run", () => {
+    const first = toolCall(
+      "1",
+      { type: "unknown", input: null, output: null },
+      { name: "mcp__Claude_Browser__computer" },
+    );
+    const image = {
+      kind: "assistant_message",
+      id: "image",
+      text: `Before\n\n![Image](file:///tmp/paseo-attachments-test/${"a".repeat(64)}.png)\n\nAfter`,
+      timestamp: new Date("2026-01-01T00:00:02.000Z"),
+    } satisfies StreamItem;
+    const second = toolCall(
+      "3",
+      { type: "unknown", input: null, output: null },
+      { name: "mcp__Claude_Browser__screenshot" },
+    );
+
+    const result = project({ level: "overview", head: [first, image, second] });
+
+    expect(result.groupsByHostId.get("1")).toMatchObject({
+      mcpServer: "Claude Browser",
+      run: { calls: [first, second] },
+    });
+    expect(result.head).toHaveLength(2);
+    expect(result.head[1]).toBe(image);
+  });
+
+  it("starts a new run when the MCP server changes", () => {
+    const first = toolCall(
+      "1",
+      { type: "unknown", input: null, output: null },
+      { name: "mcp__Claude_Browser__computer" },
+    );
+    const second = toolCall(
+      "2",
+      { type: "unknown", input: null, output: null },
+      { name: "mcp__other__computer" },
+    );
+
+    const result = project({ level: "overview", head: [first, second] });
+
+    expect(result.groupsByHostId.size).toBe(0);
+    expect(result.head).toEqual([first, second]);
+  });
+
   it("counts Paseo calls separately from other tools", () => {
     const calls = [
       toolCall("1", { type: "unknown", input: null, output: null }, { name: "paseo.list_agents" }),
@@ -337,11 +407,12 @@ describe("tool call detail-level projection", () => {
 
     expect(result.groupsByHostId.get("1")).toMatchObject({
       summary: {
-        searchCount: 3,
+        searchCount: 2,
         otherToolCount: 0,
         paseoActions: { "Listed providers": 1, "List worktrees": 2 },
       },
     });
+    expect(result.head[1]?.id).toBe("6");
   });
 
   it("reuses prepared history and sealed group models across live-head updates", () => {

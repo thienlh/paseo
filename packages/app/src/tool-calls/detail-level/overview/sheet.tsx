@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { View } from "react-native";
 import { BottomSheetScrollView, type BottomSheetScrollViewMethods } from "@gorhom/bottom-sheet";
-import { Wrench } from "lucide-react-native";
+import { Plug, Wrench } from "lucide-react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import {
   type ContextBridge,
@@ -15,18 +15,22 @@ import { ICON_SIZE, type Theme } from "@/styles/theme";
 interface OverviewToolCallGroupSheetProps {
   visible: boolean;
   summary: string;
+  mcp?: boolean;
   children: ReactNode;
   onClose: () => void;
 }
 
 const SNAP_POINTS = ["60%", "95%"];
+const ThemedPlug = withUnistyles(Plug);
 const ThemedWrench = withUnistyles(Wrench);
 const foregroundMapping = (theme: Theme) => ({ color: theme.colors.foreground });
 const headerIcon = <ThemedWrench size={ICON_SIZE.md} uniProps={foregroundMapping} />;
+const mcpHeaderIcon = <ThemedPlug size={ICON_SIZE.md} uniProps={foregroundMapping} />;
 
 export function OverviewToolCallGroupSheet({
   visible,
   summary,
+  mcp = false,
   children,
   onClose,
 }: OverviewToolCallGroupSheetProps) {
@@ -38,8 +42,12 @@ export function OverviewToolCallGroupSheet({
     [expansionContextBridge, sheetContextBridge],
   );
   const header = useMemo<SheetHeader>(
-    () => ({ title: summary, titleTestID: "tool-call-group-sheet-summary", leading: headerIcon }),
-    [summary],
+    () => ({
+      title: summary,
+      titleTestID: "tool-call-group-sheet-summary",
+      leading: mcp ? mcpHeaderIcon : headerIcon,
+    }),
+    [mcp, summary],
   );
   const { sheetRef, handleSheetChange, handleSheetDismiss } = useIsolatedBottomSheetVisibility({
     visible,

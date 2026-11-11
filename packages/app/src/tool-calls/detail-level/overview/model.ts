@@ -1,7 +1,13 @@
 import { getPaseoToolActionLabel } from "@getpaseo/protocol/paseo-tool-presentation/index";
+import { formatMcpServerName } from "@getpaseo/protocol/tool-name-normalization";
 import { isTurnTrigger } from "@/agent-stream/turn-membership";
 
-import { describeToolCall, type GroupableItem, type ToolCallRun } from "../grouping";
+import {
+  describeToolCall,
+  getMcpServerForCall,
+  type GroupableItem,
+  type ToolCallRun,
+} from "../grouping";
 
 const DIRECT_SEARCH_TOOL_SUFFIX_PATTERN = /(?:^|[_.:/])(?:web_search|llm_context)$/;
 
@@ -20,6 +26,7 @@ export interface OverviewToolCallGroup {
   run: ToolCallRun;
   summary: OverviewSummary;
   isLoading: boolean;
+  mcpServer?: string;
 }
 
 function isSearchCall(name: string): boolean {
@@ -71,16 +78,28 @@ export function summarizeToolCalls(calls: readonly GroupableItem[]): OverviewSum
   };
 }
 
+function commonMcpServer(run: ToolCallRun): string | null {
+  let server: string | null = null;
+  for (const call of run.calls) {
+    const callServer = getMcpServerForCall(call);
+    if (!callServer || (server !== null && server !== callServer)) return null;
+    server = callServer;
+  }
+  return server;
+}
+
 export function buildOverviewGroup(run: ToolCallRun): OverviewToolCallGroup {
   const isLoading = run.calls.some((call) => {
     if (call.kind === "thought") return call.status !== "ready";
     const status = describeToolCall(call).status;
     return status === "running" || status === "executing";
   });
+  const mcpServer = commonMcpServer(run);
   return {
     mode: "overview",
     run,
     isLoading,
     summary: summarizeToolCalls(run.calls),
+    ...(mcpServer ? { mcpServer: formatMcpServerName(mcpServer) } : {}),
   };
 }

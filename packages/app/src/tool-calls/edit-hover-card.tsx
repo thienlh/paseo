@@ -6,7 +6,8 @@ import { DiffStat } from "@/components/diff-stat";
 import { DiffViewer } from "@/components/diff-viewer";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { highlightDiffLines } from "@/utils/diff-highlight";
-import { buildToolCallEditDiffLines, buildToolCallEditDiffStat } from "./edit-diff";
+import { turnFileDiffLines } from "@/agent-stream/turn-file-changes";
+import { buildToolCallEditDiffStat } from "./edit-diff";
 
 const PREVIEW_MAX_HEIGHT = 320;
 
@@ -19,7 +20,7 @@ export function ToolCallEditHoverCard({
   summary?: string;
   children: ReactNode;
 }) {
-  if (detail?.type !== "edit") return children;
+  if (detail?.type !== "edit" && detail?.type !== "write") return children;
   const path = summary ?? detail.filePath;
   return (
     <HoverCard>
@@ -32,18 +33,24 @@ export function ToolCallEditHoverCard({
 }
 
 /** Mounted only while the card is open, so the full visual diff is built on demand. */
-function EditPreview({
+export function EditPreview({
   detail,
   path,
 }: {
-  detail: Extract<ToolCallDetail, { type: "edit" }>;
+  detail: Extract<ToolCallDetail, { type: "edit" | "write" }>;
   path: string;
 }) {
-  const diffLines = useMemo(
-    () => highlightDiffLines(buildToolCallEditDiffLines(detail) ?? [], detail.filePath),
-    [detail],
-  );
-  const diffStat = buildToolCallEditDiffStat(detail);
+  const diffLines = useMemo(() => {
+    const change = { filePath: detail.filePath, additions: 0, deletions: 0, edits: [detail] };
+    return highlightDiffLines(turnFileDiffLines(change), detail.filePath);
+  }, [detail]);
+  const diffStat =
+    detail.type === "edit"
+      ? buildToolCallEditDiffStat(detail)
+      : {
+          additions: diffLines.filter((line) => line.type === "add").length,
+          deletions: 0,
+        };
   return (
     <>
       <View style={styles.previewHeader}>

@@ -4,6 +4,11 @@ import {
   buildPaseoToolDisplay,
 } from "./paseo-tool-presentation/index.js";
 import { stripCwdPrefix } from "./path-utils.js";
+import {
+  formatMcpMethodName,
+  formatMcpServerName,
+  parseMcpToolName,
+} from "./tool-name-normalization.js";
 
 export type ToolCallDisplayInput = Pick<
   ToolCallTimelineItem,
@@ -38,6 +43,8 @@ function humanizeToolName(name: string): string {
   if (!trimmed) {
     return name;
   }
+  const mcp = parseMcpToolName(trimmed);
+  if (mcp) return formatMcpMethodName(mcp.method);
   if (/[:./]/.test(trimmed) || trimmed.includes("__")) {
     return trimmed;
   }
@@ -93,6 +100,14 @@ function contentLineCount(content: string): number {
   return /\r\n$|\r$|\n$/.test(content) ? lines.length - 1 : lines.length;
 }
 
+function writeDisplayName(
+  detail: Extract<ToolCallDisplayInput["detail"], { type: "write" }>,
+): string {
+  if (detail.content === undefined) return "Write";
+  const count = contentLineCount(detail.content);
+  return `Write ${count} ${count === 1 ? "line" : "lines"}`;
+}
+
 function firstNonEmptyLine(text: string): string | undefined {
   for (const line of text.split(/\r\n|\r|\n/)) {
     const trimmed = line.trim();
@@ -116,7 +131,7 @@ function buildCanonicalDetailDisplay(input: ToolCallDisplayInput): DetailDisplay
     case "edit":
       return buildFilePathDisplay("Edit", input.detail.filePath, input.cwd);
     case "write":
-      return buildFilePathDisplay("Write", input.detail.filePath, input.cwd);
+      return buildFilePathDisplay(writeDisplayName(input.detail), input.detail.filePath, input.cwd);
     case "search":
       return {
         displayName: "Search",
@@ -198,7 +213,11 @@ export function buildToolCallDisplayModel(input: ToolCallDisplayInput): ToolCall
     unknownDetailOverride.displayName ??
     canonicalDisplay.displayName ??
     humanizeToolName(input.name);
-  const summary = unknownDetailOverride.summary ?? canonicalDisplay.summary;
+  const mcp = parseMcpToolName(input.name);
+  const summary =
+    unknownDetailOverride.summary ??
+    canonicalDisplay.summary ??
+    (mcp ? formatMcpServerName(mcp.server) : undefined);
 
   return {
     displayName,
