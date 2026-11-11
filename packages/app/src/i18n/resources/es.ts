@@ -418,6 +418,10 @@ export const es: TranslationResources = {
         completed: "Completada",
       },
     },
+    usageLimit: {
+      title: "Límite de uso alcanzado",
+      retryNewChat: "Reintentar en un chat nuevo",
+    },
     turnFooter: {
       workedFor: "Trabajó durante {{duration}}",
     },

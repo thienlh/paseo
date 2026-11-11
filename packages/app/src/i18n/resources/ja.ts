@@ -418,6 +418,10 @@ export const ja: TranslationResources = {
         completed: "完了",
       },
     },
+    usageLimit: {
+      title: "利用制限に達しました",
+      retryNewChat: "新しいチャットで再試行",
+    },
     turnFooter: {
       workedFor: "作業時間 {{duration}}",
     },

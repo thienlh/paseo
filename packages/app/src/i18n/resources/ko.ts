@@ -414,6 +414,10 @@ export const ko: TranslationResources = {
         completed: "완료됨",
       },
     },
+    usageLimit: {
+      title: "사용량 제한에 도달했습니다",
+      retryNewChat: "새 채팅에서 다시 시도",
+    },
     turnFooter: {
       workedFor: "작업 시간 {{duration}}",
     },

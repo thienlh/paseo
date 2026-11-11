@@ -41,6 +41,11 @@ import {
   type InlinePathTarget,
 } from "@/components/message";
 import { PlanCard } from "@/components/plan-card";
+import { UsageLimitMessage } from "@/components/usage-limit-message";
+import {
+  findUsageLimitRetryMessage,
+  parseUsageLimitMessage,
+} from "@/components/usage-limit-message-model";
 import { getStreamItemMessageId, type StreamItem } from "@/types/stream";
 import type { PendingMessageSubmission } from "@/composer/submission/model";
 import type { TurnPresentation } from "@/timeline/turn-liveness";
@@ -751,6 +756,25 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
 
     const renderAssistantMessageItem = useCallback(
       (layoutItem: StreamLayoutItem, item: Extract<StreamItem, { kind: "assistant_message" }>) => {
+        const usageLimit = parseUsageLimitMessage(item.text, item.timestamp.getTime());
+        if (usageLimit) {
+          return (
+            <UsageLimitMessage
+              serverId={resolvedServerId}
+              agentId={agentId}
+              agent={context}
+              details={usageLimit}
+              retryMessage={findUsageLimitRetryMessage({
+                tail: presentation.tail,
+                head: presentation.head,
+                errorItemId: item.id,
+              })}
+              toast={toast}
+              readOnly={readOnly}
+              spacing={layoutItem.assistantSpacing}
+            />
+          );
+        }
         return (
           <AssistantFileLinkResolverProvider
             client={client}
@@ -777,7 +801,17 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
           </AssistantFileLinkResolverProvider>
         );
       },
-      [agentId, client, handleInlinePathPress, resolvedServerId, toast, workspaceRoot],
+      [
+        agentId,
+        client,
+        context,
+        handleInlinePathPress,
+        presentation,
+        readOnly,
+        resolvedServerId,
+        toast,
+        workspaceRoot,
+      ],
     );
 
     const renderThoughtItem = useCallback(

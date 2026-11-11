@@ -410,6 +410,10 @@ export const en = {
         completed: "Completed",
       },
     },
+    usageLimit: {
+      title: "Usage limit reached",
+      retryNewChat: "Retry in new chat",
+    },
     turnFooter: {
       workedFor: "Worked for {{duration}}",
     },

@@ -413,6 +413,10 @@ export const zhCN: TranslationResources = {
         completed: "已完成",
       },
     },
+    usageLimit: {
+      title: "已达到使用限额",
+      retryNewChat: "在新聊天中重试",
+    },
     turnFooter: {
       workedFor: "工作了 {{duration}}",
     },

@@ -417,6 +417,10 @@ export const ptBR: TranslationResources = {
         completed: "Concluída",
       },
     },
+    usageLimit: {
+      title: "Limite de uso atingido",
+      retryNewChat: "Tentar novamente em um novo chat",
+    },
     turnFooter: {
       workedFor: "Trabalhou por {{duration}}",
     },

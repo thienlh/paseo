@@ -413,6 +413,10 @@ export const ar: TranslationResources = {
         completed: "اكتملت",
       },
     },
+    usageLimit: {
+      title: "تم بلوغ حد الاستخدام",
+      retryNewChat: "إعادة المحاولة في محادثة جديدة",
+    },
     turnFooter: {
       workedFor: "عمل لمدة {{duration}}",
     },
