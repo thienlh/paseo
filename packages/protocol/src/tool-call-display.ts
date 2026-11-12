@@ -168,8 +168,45 @@ function buildCanonicalDetailDisplay(input: ToolCallDisplayInput): DetailDisplay
   }
 }
 
+function firstCodeStatement(code: string): string | undefined {
+  for (const line of code.split(/\r\n|\r|\n/)) {
+    const trimmed = line.trim();
+    if (
+      !trimmed ||
+      trimmed.startsWith("//") ||
+      trimmed.startsWith("/*") ||
+      trimmed.startsWith("*")
+    ) {
+      continue;
+    }
+    return trimmed;
+  }
+  return undefined;
+}
+
+function codeModeSummary(detail: ToolCallDisplayInput["detail"]): string | undefined {
+  if (detail.type !== "unknown") return undefined;
+  const input = detail.input;
+  if (typeof input === "string") return firstCodeStatement(input);
+  if (!isRecord(input)) return undefined;
+
+  const invokedFunction =
+    readString(input.toolName) ?? readString(input.function) ?? readString(input.method);
+  if (invokedFunction) return invokedFunction;
+
+  const code = readString(input.code) ?? readString(input.script) ?? readString(input.source);
+  if (!code) return undefined;
+  return firstCodeStatement(code) ?? `JavaScript · ${contentLineCount(code)} lines`;
+}
+
 function buildUnknownDetailOverride(input: ToolCallDisplayInput): DetailDisplay {
   const lowerName = input.name.trim().toLowerCase();
+  if (lowerName === "codemode") {
+    return {
+      displayName: "Codemode",
+      summary: codeModeSummary(input.detail),
+    };
+  }
   if (input.detail.type === "unknown" && lowerName === "task") {
     return {
       displayName: "Task",

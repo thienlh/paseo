@@ -81,6 +81,50 @@ describe("shared tool-call display mapping", () => {
     expect(display).toMatchObject({ displayName: "Shell", summary: "npm test · exit 2" });
   });
 
+  it("shows the first meaningful code statement beside Codemode", () => {
+    const display = buildToolCallDisplayModel({
+      name: "codemode",
+      status: "running",
+      error: null,
+      detail: {
+        type: "unknown",
+        input: {
+          code: '// Move the session\n\nconst result = await tools.opencode.session_move({ directory: "west-monroe" });\nconsole.log(result);',
+        },
+      },
+    });
+
+    expect(display).toEqual({
+      displayName: "Codemode",
+      summary: 'const result = await tools.opencode.session_move({ directory: "west-monroe" });',
+    });
+  });
+
+  it("prefers an explicitly invoked function for Codemode", () => {
+    const display = buildToolCallDisplayModel({
+      name: "codemode",
+      status: "running",
+      error: null,
+      detail: { type: "unknown", input: { toolName: "tools.opencode.session_move" } },
+    });
+
+    expect(display).toEqual({
+      displayName: "Codemode",
+      summary: "tools.opencode.session_move",
+    });
+  });
+
+  it("keeps Codemode compact when no code is available yet", () => {
+    const display = buildToolCallDisplayModel({
+      name: "codemode",
+      status: "running",
+      error: null,
+      detail: { type: "unknown", input: null },
+    });
+
+    expect(display).toEqual({ displayName: "Codemode" });
+  });
+
   it("does not infer summaries from unknown raw detail", () => {
     const display = buildToolCallDisplayModel({
       name: "exec_command",

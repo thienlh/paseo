@@ -10,6 +10,10 @@ import type { Theme } from "@/styles/theme";
 const ThemedSquare = withUnistyles(Square);
 const ThemedLoadingSpinner = withUnistyles(LoadingSpinner);
 const foregroundColorMapping = (theme: Theme) => ({ color: theme.colors.foreground });
+const foregroundSquareMapping = (theme: Theme) => ({
+  color: theme.colors.foreground,
+  fill: theme.colors.foreground,
+});
 
 export function StopDisc({
   size,
@@ -29,7 +33,7 @@ export function StopDisc({
       {loading ? (
         <ThemedLoadingSpinner size="small" uniProps={foregroundColorMapping} />
       ) : (
-        <ThemedSquare size={glyphSize} fill="currentColor" uniProps={foregroundColorMapping} />
+        <ThemedSquare size={glyphSize} uniProps={foregroundSquareMapping} />
       )}
     </View>
   );
