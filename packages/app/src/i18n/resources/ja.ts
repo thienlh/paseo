@@ -2163,6 +2163,14 @@ export const ja: TranslationResources = {
   },
   turnSummary: {
     details: "ターンの詳細を表示",
+    toolCalls: {
+      one: "{{count}} 件のツール呼び出し",
+      other: "{{count}} 件のツール呼び出し",
+    },
+    messages: {
+      one: "{{count}} 件のメッセージ",
+      other: "{{count}} 件のメッセージ",
+    },
     sentBy: "{{name}} から送信",
     showMore: "もっと見る",
     showLess: "折りたたむ",

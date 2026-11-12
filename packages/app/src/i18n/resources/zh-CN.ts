@@ -2118,6 +2118,14 @@ export const zhCN: TranslationResources = {
   },
   turnSummary: {
     details: "查看轮次详情",
+    toolCalls: {
+      one: "{{count}} 次工具调用",
+      other: "{{count}} 次工具调用",
+    },
+    messages: {
+      one: "{{count}} 条消息",
+      other: "{{count}} 条消息",
+    },
     sentBy: "由 {{name}} 发送",
     showMore: "展开",
     showLess: "收起",

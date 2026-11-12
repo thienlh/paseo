@@ -2152,6 +2152,14 @@ export const ko: TranslationResources = {
   },
   turnSummary: {
     details: "턴 세부 정보 보기",
+    toolCalls: {
+      one: "도구 호출 {{count}}개",
+      other: "도구 호출 {{count}}개",
+    },
+    messages: {
+      one: "메시지 {{count}}개",
+      other: "메시지 {{count}}개",
+    },
     sentBy: "{{name}}이(가) 보냄",
     showMore: "더 보기",
     showLess: "접기",

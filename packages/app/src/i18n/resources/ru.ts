@@ -2176,6 +2176,14 @@ export const ru: TranslationResources = {
   },
   turnSummary: {
     details: "Показать подробности хода",
+    toolCalls: {
+      one: "{{count}} вызов инструмента",
+      other: "{{count}} вызовов инструментов",
+    },
+    messages: {
+      one: "{{count}} сообщение",
+      other: "{{count}} сообщений",
+    },
     sentBy: "Отправлено агентом {{name}}",
     showMore: "Показать больше",
     showLess: "Свернуть",

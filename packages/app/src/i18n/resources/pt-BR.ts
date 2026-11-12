@@ -2175,6 +2175,14 @@ export const ptBR: TranslationResources = {
   },
   turnSummary: {
     details: "Ver detalhes do turno",
+    toolCalls: {
+      one: "{{count}} chamada de ferramenta",
+      other: "{{count}} chamadas de ferramentas",
+    },
+    messages: {
+      one: "{{count}} mensagem",
+      other: "{{count}} mensagens",
+    },
     sentBy: "Enviado por {{name}}",
     showMore: "Mostrar mais",
     showLess: "Mostrar menos",

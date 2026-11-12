@@ -2190,6 +2190,14 @@ export const es: TranslationResources = {
   },
   turnSummary: {
     details: "Ver detalles del turno",
+    toolCalls: {
+      one: "{{count}} llamada a herramienta",
+      other: "{{count}} llamadas a herramientas",
+    },
+    messages: {
+      one: "{{count}} mensaje",
+      other: "{{count}} mensajes",
+    },
     sentBy: "Enviado por {{name}}",
     showMore: "Mostrar más",
     showLess: "Mostrar menos",

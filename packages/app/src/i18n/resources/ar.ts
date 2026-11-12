@@ -2141,6 +2141,14 @@ export const ar: TranslationResources = {
   },
   turnSummary: {
     details: "عرض تفاصيل الجولة",
+    toolCalls: {
+      one: "{{count}} استدعاء أداة",
+      other: "{{count}} استدعاءات أدوات",
+    },
+    messages: {
+      one: "{{count}} رسالة",
+      other: "{{count}} رسائل",
+    },
     sentBy: "أرسلها {{name}}",
     showMore: "عرض المزيد",
     showLess: "عرض أقل",

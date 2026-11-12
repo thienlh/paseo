@@ -2167,6 +2167,14 @@ export const en = {
   },
   turnSummary: {
     details: "View turn details",
+    toolCalls: {
+      one: "{{count}} tool call",
+      other: "{{count}} tool calls",
+    },
+    messages: {
+      one: "{{count}} message",
+      other: "{{count}} messages",
+    },
     sentBy: "Sent by {{name}}",
     showMore: "Show more",
     showLess: "Show less",
