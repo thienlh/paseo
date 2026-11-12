@@ -710,6 +710,14 @@ export const zhCN: TranslationResources = {
         editTerminalProfiles: "Edit profiles",
       },
       explorerSidebar: {
+        execution: {
+          expand: "展开运行区域",
+          collapse: "收起运行区域",
+          chooseScript: "选择脚本",
+          idle: "运行脚本以查看输出",
+          noScripts: "尚未配置脚本",
+          noTerminal: "在此工作区打开终端",
+        },
         open: "打开侧边面板",
         close: "关闭侧边面板",
         toggle: "切换侧边面板",
@@ -958,6 +966,9 @@ export const zhCN: TranslationResources = {
         jumpToFile: {
           title: "跳转到文件",
         },
+        filesChanged: "{{count}} 个文件已更改",
+        filesChanged_one: "{{count}} 个文件已更改",
+        filesChanged_other: "{{count}} 个文件已更改",
         binaryFile: "二进制文件",
         tooLarge: "Diff 过大，无法显示",
         previewTooLargeTitle: "此 diff 过大，无法预览",
@@ -967,6 +978,7 @@ export const zhCN: TranslationResources = {
         switchToUnified: "切换到统一差异视图",
         switchToSplit: "切换到并排差异视图",
         options: "Diff 选项",
+        treeView: "树状视图",
         inlineDiff: "内联 Diff",
         hideWhitespace: "隐藏空白差异",
         showWhitespace: "显示空白差异",

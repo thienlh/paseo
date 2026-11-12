@@ -707,6 +707,14 @@ export const en = {
         editTerminalProfiles: "Edit profiles",
       },
       explorerSidebar: {
+        execution: {
+          expand: "Expand execution",
+          collapse: "Collapse execution",
+          chooseScript: "Choose script",
+          idle: "Run a script to view its output",
+          noScripts: "No scripts configured",
+          noTerminal: "Open a terminal in this workspace",
+        },
         open: "Open Explorer sidebar",
         close: "Close Explorer sidebar",
         toggle: "Toggle Explorer sidebar",
@@ -974,6 +982,9 @@ export const en = {
         jumpToFile: {
           title: "Jump to file",
         },
+        filesChanged: "{{count}} files changed",
+        filesChanged_one: "{{count}} file changed",
+        filesChanged_other: "{{count}} files changed",
         binaryFile: "Binary file",
         tooLarge: "Diff too large to display",
         previewTooLargeTitle: "This diff is too large to preview",
@@ -983,6 +994,7 @@ export const en = {
         switchToUnified: "Switch to unified diff",
         switchToSplit: "Switch to side-by-side diff",
         options: "Diff options",
+        treeView: "Tree view",
         inlineDiff: "Inline diff",
         hideWhitespace: "Hide whitespace",
         showWhitespace: "Show whitespace",
@@ -3337,6 +3349,12 @@ type AgoPluralKey = `${"daysAgo" | "hoursAgo" | "minutesAgo"}_${PluralCategory}`
 // i18next plural categories differ by locale, so locale catalogs may add the
 // explicit v4 suffixes they need while retaining the canonical fallback keys.
 export type TranslationResources = TranslationResourcesBase & {
+  workspace: TranslationResourcesBase["workspace"] & {
+    git: TranslationResourcesBase["workspace"]["git"] & {
+      diff: TranslationResourcesBase["workspace"]["git"]["diff"] &
+        Partial<Record<`filesChanged_${PluralCategory}`, string>>;
+    };
+  };
   providerUsage: TranslationResourcesBase["providerUsage"] & {
     duration: TranslationResourcesBase["providerUsage"]["duration"] &
       Partial<Record<DurationPluralKey, string>>;

@@ -32,6 +32,7 @@ describe("loadChangesPreferencesFromStorage", () => {
       wrapLines: true,
       hideWhitespace: false,
       inlineDiff: false,
+      fileListLayout: "list",
       commitsCollapsed: true,
     });
     expect(storage.entries.get(CHANGES_PREFERENCES_STORAGE_KEY)).toBe(JSON.stringify(result));
@@ -56,6 +57,7 @@ describe("loadChangesPreferencesFromStorage", () => {
       hideWhitespace: true,
       wrapLines: false,
       inlineDiff: false,
+      fileListLayout: "list",
       commitsCollapsed: true,
     });
     expect(storage.entries.get(CHANGES_PREFERENCES_STORAGE_KEY)).toBe(persisted);

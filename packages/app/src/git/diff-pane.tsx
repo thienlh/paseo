@@ -120,13 +120,14 @@ function computeSelectedDiffStat(
   if (isLoading) {
     return null;
   }
-  return files.reduce(
+  const stat = files.reduce(
     (total, file) => ({
       additions: total.additions + file.additions,
       deletions: total.deletions + file.deletions,
     }),
     { additions: 0, deletions: 0 },
   );
+  return stat.additions > 0 || stat.deletions > 0 ? stat : null;
 }
 
 function useDiscardChangesAction({
@@ -364,7 +365,7 @@ interface ChangesToolbarRefreshAction {
   onRefresh: () => void;
 }
 
-interface ChangesToolbarInlineDiffToggle {
+interface ChangesToolbarToggle {
   value: boolean;
   onToggle: () => void;
 }
@@ -389,7 +390,8 @@ type ChangesToolbarMode =
   | {
       kind: "tree";
       onOpenDiff: () => void;
-      inlineDiff: ChangesToolbarInlineDiffToggle | null;
+      inlineDiff: ChangesToolbarToggle | null;
+      fileTree: ChangesToolbarToggle;
       refresh: ChangesToolbarRefreshAction | null;
     }
   | {
@@ -402,7 +404,7 @@ type ChangesToolbarMode =
       options: ChangesToolbarDiffOptions;
       refresh: ChangesToolbarRefreshAction | null;
       treeToggle: { visible: boolean; onToggle: () => void } | null;
-      inlineDiff: ChangesToolbarInlineDiffToggle | null;
+      inlineDiff: ChangesToolbarToggle | null;
     };
 
 function buildChangesToolbarMode(input: {
@@ -417,7 +419,8 @@ function buildChangesToolbarMode(input: {
   wrapLines: boolean;
   treeVisible: boolean;
   onOpenDiff: () => void;
-  inlineDiff: ChangesToolbarInlineDiffToggle | null;
+  inlineDiff: ChangesToolbarToggle | null;
+  fileTree: ChangesToolbarToggle;
   onRefresh: () => void;
   onCollapseAll: () => void;
   onExpandAll: () => void;
@@ -435,6 +438,7 @@ function buildChangesToolbarMode(input: {
       kind: "tree",
       onOpenDiff: input.onOpenDiff,
       inlineDiff: input.inlineDiff,
+      fileTree: input.fileTree,
       refresh,
     };
   }
@@ -489,6 +493,7 @@ interface ChangesComparisonToolbarModel {
   diffMode: "uncommitted" | "base" | "all";
   mode: ChangesToolbarMode;
   selectedDiffStat: { additions: number; deletions: number } | null;
+  fileCount: number | null;
   onSelectBase: () => void;
   onSelectAll: () => void;
   onSelectUncommitted: () => void;
@@ -517,6 +522,9 @@ interface BuildChangesHeaderModelInput {
   onSelectUncommitted: () => void;
   pullRequest: PrHint | null;
   selectedDiffStat: { additions: number; deletions: number } | null;
+  files: DiffFileHeader[];
+  isDiffLoading: boolean;
+  diffErrorMessage: string | null;
   serverId: string;
   workspaceId?: string | null;
 }
@@ -525,6 +533,8 @@ function buildChangesHeaderModel(input: BuildChangesHeaderModelInput): {
   repository: ChangesRepositoryToolbarModel;
   comparison: ChangesComparisonToolbarModel;
 } {
+  const hasFileCount = !input.diffErrorMessage && (!input.isDiffLoading || input.files.length > 0);
+  const fileCount = hasFileCount ? input.files.length : null;
   return {
     repository: {
       baseRef: input.baseRef,
@@ -543,6 +553,7 @@ function buildChangesHeaderModel(input: BuildChangesHeaderModelInput): {
       diffMode: input.diffMode,
       mode: input.mode,
       selectedDiffStat: input.selectedDiffStat,
+      fileCount,
       onSelectBase: input.onSelectBase,
       onSelectAll: input.onSelectAll,
       onSelectUncommitted: input.onSelectUncommitted,
@@ -555,15 +566,17 @@ function buildChangesHeaderModel(input: BuildChangesHeaderModelInput): {
 function ChangesHeader({ compact, repository, comparison, sidebarSurface }: ChangesHeaderProps) {
   if (comparison.mode.kind === "diff") {
     return (
-      <ChangesDiffOnlyToolbar
-        compact={compact}
-        mode={comparison.mode}
-        sidebarSurface={sidebarSurface}
-      />
+      <View style={styles.changesHeader}>
+        <ChangesDiffOnlyToolbar
+          compact={compact}
+          mode={comparison.mode}
+          sidebarSurface={sidebarSurface}
+        />
+      </View>
     );
   }
   return (
-    <View>
+    <View style={styles.changesHeader}>
       <ChangesRepositoryToolbar
         compact={compact}
         model={repository}
@@ -574,6 +587,7 @@ function ChangesHeader({ compact, repository, comparison, sidebarSurface }: Chan
         model={comparison}
         sidebarSurface={sidebarSurface}
       />
+      <ChangesSummary model={comparison} />
     </View>
   );
 }
@@ -778,18 +792,31 @@ function ChangesComparisonToolbar({
           onSelectBase={model.onSelectBase}
           onSelectAll={model.onSelectAll}
         />
-        {model.selectedDiffStat ? (
-          <DiffStat
-            additions={model.selectedDiffStat.additions}
-            deletions={model.selectedDiffStat.deletions}
-            testID="changes-selected-diff-stat"
-          />
-        ) : null}
       </ChangesToolbarLeading>
       <ChangesToolbarTrailing>
         <ChangesToolbarActions mode={model.mode} compact={compact} />
       </ChangesToolbarTrailing>
     </ChangesToolbarRow>
+  );
+}
+
+function ChangesSummary({ model }: { model: ChangesComparisonToolbarModel }) {
+  const { t } = useTranslation();
+  const label =
+    model.fileCount === null
+      ? null
+      : t("workspace.git.diff.filesChanged", { count: model.fileCount });
+  return (
+    <View style={styles.changesSummary} testID="changes-summary">
+      <Text style={styles.changesSummaryText}>{label}</Text>
+      {model.selectedDiffStat ? (
+        <DiffStat
+          additions={model.selectedDiffStat.additions}
+          deletions={model.selectedDiffStat.deletions}
+          testID="changes-selected-diff-stat"
+        />
+      ) : null}
+    </View>
   );
 }
 
@@ -943,7 +970,11 @@ function ChangesOptionsMenu({ mode, compact }: { mode: ChangesOptionsMenuMode; c
   const optionsLabel = t("workspace.git.diff.options");
   const content =
     mode.kind === "tree" ? (
-      <ChangesTreeOptions onOpenDiff={mode.onOpenDiff} inlineDiff={mode.inlineDiff} />
+      <ChangesTreeOptions
+        onOpenDiff={mode.onOpenDiff}
+        inlineDiff={mode.inlineDiff}
+        fileTree={mode.fileTree}
+      />
     ) : (
       <>
         <ChangesDiffOptions options={mode.options} />
@@ -979,9 +1010,11 @@ function ChangesOptionsMenu({ mode, compact }: { mode: ChangesOptionsMenuMode; c
 function ChangesTreeOptions({
   onOpenDiff,
   inlineDiff,
+  fileTree,
 }: {
   onOpenDiff: () => void;
-  inlineDiff: ChangesToolbarInlineDiffToggle | null;
+  inlineDiff: ChangesToolbarToggle | null;
+  fileTree: ChangesToolbarToggle;
 }) {
   const { t } = useTranslation();
   return (
@@ -993,6 +1026,14 @@ function ChangesTreeOptions({
       >
         {t("workspace.git.diff.openDiffTab")}
       </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem
+        selected={fileTree.value}
+        onSelect={fileTree.onToggle}
+        testID="changes-toggle-file-tree"
+      >
+        {t("workspace.git.diff.treeView")}
+      </DropdownMenuItem>
       {inlineDiff ? (
         <>
           <DropdownMenuSeparator />
@@ -1003,7 +1044,7 @@ function ChangesTreeOptions({
   );
 }
 
-function ChangesInlineDiffOption({ toggle }: { toggle: ChangesToolbarInlineDiffToggle }) {
+function ChangesInlineDiffOption({ toggle }: { toggle: ChangesToolbarToggle }) {
   const { t } = useTranslation();
   return (
     <DropdownMenuItem
@@ -1366,6 +1407,7 @@ function ChangesBody({
   onTreeWidthChange,
   collapsedFolderPaths,
   onCollapsedFolderPathsChange,
+  fileListLayout,
 }: {
   presentation: ChangesPresentation;
   children: ReactElement;
@@ -1378,6 +1420,7 @@ function ChangesBody({
   onTreeWidthChange: (width: number) => void;
   collapsedFolderPaths: string[];
   onCollapsedFolderPathsChange: (paths: string[]) => void;
+  fileListLayout: "list" | "tree";
 }) {
   if (presentation === "tree") {
     if (files.length === 0) return children;
@@ -1386,6 +1429,7 @@ function ChangesBody({
         files={files}
         mode={mode}
         onSelectFile={onSelectFile}
+        presentation={fileListLayout}
         collapsedFolderPaths={collapsedFolderPaths}
         onCollapsedFolderPathsChange={onCollapsedFolderPathsChange}
       />
@@ -1542,6 +1586,10 @@ export function ChangesSurface({
     const layout = preferences.layout === "unified" ? "split" : "unified";
     void updatePreferences({ layout });
   }, [preferences.layout, updatePreferences]);
+  const handleToggleFileTree = useCallback(() => {
+    const fileListLayout = preferences.fileListLayout === "list" ? "tree" : "list";
+    void updatePreferences({ fileListLayout });
+  }, [preferences.fileListLayout, updatePreferences]);
   const codeFontSize = appSettings.codeFontSize;
 
   const toast = useToast();
@@ -1884,6 +1932,7 @@ export function ChangesSurface({
       onTreeWidthChange={handleChangesTreeWidth}
       collapsedFolderPaths={instanceState.collapsedFolderPaths}
       onCollapsedFolderPathsChange={updateCollapsedFolderPaths}
+      fileListLayout={preferences.fileListLayout}
     >
       {diffContent}
     </ChangesBody>
@@ -1905,6 +1954,7 @@ export function ChangesSurface({
         inlineDiff: !isMobile
           ? { value: preferences.inlineDiff, onToggle: handleToggleInlineDiff }
           : null,
+        fileTree: { value: preferences.fileListLayout === "tree", onToggle: handleToggleFileTree },
         onRefresh: handleRefresh,
         onCollapseAll: handleCollapseAllFiles,
         onExpandAll: handleExpandAllFiles,
@@ -1922,6 +1972,7 @@ export function ChangesSurface({
       handleExpandAllFiles,
       handleOpenDiff,
       handleToggleInlineDiff,
+      handleToggleFileTree,
       handleRefresh,
       handleToggleDesktopTree,
       handleToggleHideWhitespace,
@@ -1930,6 +1981,7 @@ export function ChangesSurface({
       hasChanges,
       preferences.hideWhitespace,
       preferences.inlineDiff,
+      preferences.fileListLayout,
       preferences.layout,
       isMobile,
       isRefreshing,
@@ -1956,6 +2008,9 @@ export function ChangesSurface({
         onSelectUncommitted: handleSelectUncommitted,
         pullRequest: selectPrHintFromStatus(pullRequestStatus, forge),
         selectedDiffStat,
+        files: treeFiles,
+        isDiffLoading,
+        diffErrorMessage,
         serverId,
         workspaceId,
       }),
@@ -1975,6 +2030,9 @@ export function ChangesSurface({
       forge,
       pullRequestStatus,
       selectedDiffStat,
+      treeFiles,
+      isDiffLoading,
+      diffErrorMessage,
       serverId,
       toolbarMode,
       workspaceId,
@@ -2041,6 +2099,24 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     gap: theme.spacing[2],
     paddingLeft: theme.spacing[2],
+    borderBottomWidth: 0,
+  },
+  changesHeader: {
+    borderBottomWidth: theme.borderWidth[1],
+    borderBottomColor: theme.colors.border,
+  },
+  changesSummary: {
+    minHeight: theme.spacing[8],
+    paddingHorizontal: theme.spacing[3],
+    paddingBottom: theme.spacing[2],
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing[2],
+  },
+  changesSummaryText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.foregroundMuted,
   },
   changesToolbarSidebar: {
     backgroundColor: theme.colors.surfaceSidebar,
@@ -2095,7 +2171,7 @@ const styles = StyleSheet.create((theme) => ({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: theme.spacing[16],
+    padding: theme.spacing[4],
     gap: theme.spacing[4],
   },
   loadingText: {
@@ -2106,8 +2182,7 @@ const styles = StyleSheet.create((theme) => ({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: theme.spacing[16],
-    paddingHorizontal: theme.spacing[6],
+    padding: theme.spacing[4],
   },
   errorText: {
     fontSize: theme.fontSize.base,
@@ -2118,7 +2193,7 @@ const styles = StyleSheet.create((theme) => ({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: theme.spacing[16],
+    padding: theme.spacing[4],
     gap: theme.spacing[2],
   },
   emptyText: {

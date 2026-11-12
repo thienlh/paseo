@@ -717,6 +717,14 @@ export const es: TranslationResources = {
         editTerminalProfiles: "Edit profiles",
       },
       explorerSidebar: {
+        execution: {
+          expand: "Expandir ejecución",
+          collapse: "Contraer ejecución",
+          chooseScript: "Elegir script",
+          idle: "Ejecuta un script para ver su salida",
+          noScripts: "No hay scripts configurados",
+          noTerminal: "Abre una terminal en este espacio de trabajo",
+        },
         open: "Abrir panel lateral",
         close: "Cerrar panel lateral",
         toggle: "Alternar panel lateral",
@@ -999,6 +1007,9 @@ export const es: TranslationResources = {
         jumpToFile: {
           title: "Ir al archivo",
         },
+        filesChanged: "{{count}} archivos modificados",
+        filesChanged_one: "{{count}} archivo modificado",
+        filesChanged_other: "{{count}} archivos modificados",
         binaryFile: "archivo binario",
         tooLarge: "La diferencia es demasiado grande para mostrarse",
         previewTooLargeTitle: "Este diff es demasiado grande para previsualizarlo",
@@ -1008,6 +1019,7 @@ export const es: TranslationResources = {
         switchToUnified: "Cambiar a diferencia unificada",
         switchToSplit: "Cambiar a diferencia lado a lado",
         options: "Opciones de diferencia",
+        treeView: "Vista de árbol",
         inlineDiff: "Diferencia integrada",
         hideWhitespace: "Ocultar espacios en blanco",
         showWhitespace: "Mostrar espacios en blanco",

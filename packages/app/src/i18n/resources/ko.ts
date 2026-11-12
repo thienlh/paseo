@@ -712,6 +712,14 @@ export const ko: TranslationResources = {
         editTerminalProfiles: "프로필 편집",
       },
       explorerSidebar: {
+        execution: {
+          expand: "실행 영역 펼치기",
+          collapse: "실행 영역 접기",
+          chooseScript: "스크립트 선택",
+          idle: "스크립트를 실행하여 출력 보기",
+          noScripts: "설정된 스크립트 없음",
+          noTerminal: "이 작업 공간에서 터미널 열기",
+        },
         open: "사이드 패널 열기",
         close: "사이드 패널 닫기",
         toggle: "사이드 패널 토글",
@@ -973,6 +981,9 @@ export const ko: TranslationResources = {
         jumpToFile: {
           title: "파일로 이동",
         },
+        filesChanged: "파일 {{count}}개 변경",
+        filesChanged_one: "파일 {{count}}개 변경",
+        filesChanged_other: "파일 {{count}}개 변경",
         binaryFile: "바이너리 파일",
         tooLarge: "표시하기에 diff가 너무 큽니다",
         previewTooLargeTitle: "Diff가 너무 커서 미리 볼 수 없습니다",
@@ -982,6 +993,7 @@ export const ko: TranslationResources = {
         switchToUnified: "통합 diff로 전환",
         switchToSplit: "나란히 보기 diff로 전환",
         options: "Diff 옵션",
+        treeView: "트리 보기",
         inlineDiff: "인라인 Diff",
         hideWhitespace: "공백 숨기기",
         showWhitespace: "공백 표시",

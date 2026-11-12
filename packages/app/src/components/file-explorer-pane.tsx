@@ -23,7 +23,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { EditingTextInput as TextInput } from "@/components/ui/text-input";
-import { StyleSheet, useUnistyles, withUnistyles } from "react-native-unistyles";
+import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import { useIsCompactFormFactor } from "@/constants/layout";
 import { isWeb } from "@/constants/platform";
 import * as Clipboard from "expo-clipboard";
@@ -38,6 +38,13 @@ import {
   WORKSPACE_TREE_LOADING_ICON_SIZE,
 } from "@/components/tree-primitives";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Button } from "@/components/ui/button";
+import { extraMutedIconColorMapping } from "@/components/ui/icon-color";
+import {
+  toolbarLabelTriggerStyle,
+  toolbarLabelTriggerTextStyle,
+  isToolbarLabelTriggerHighlighted,
+} from "@/components/ui/toolbar-label-trigger";
 import {
   PaneContentToolbar,
   paneContentToolbarIconSize,
@@ -92,6 +99,12 @@ const SORT_OPTIONS: { value: SortOption }[] = [
 ];
 
 const ThemedLoadingSpinner = withUnistyles(LoadingSpinner);
+const ThemedChevronDown = withUnistyles(ChevronDown);
+const ThemedFilePlus = withUnistyles(FilePlus);
+const ThemedFolderPlus = withUnistyles(FolderPlus);
+const ThemedEye = withUnistyles(Eye);
+const ThemedEyeOff = withUnistyles(EyeOff);
+const ThemedRotateCw = withUnistyles(RotateCw);
 const foregroundMutedColorMapping = (theme: Theme) => ({
   color: theme.colors.foregroundMuted,
 });
@@ -139,7 +152,7 @@ function sortTriggerStyle({
   hovered,
   pressed,
 }: PressableStateCallbackType & { hovered?: boolean }) {
-  return [styles.sortTrigger, (Boolean(hovered) || pressed) && styles.sortTriggerHovered];
+  return toolbarLabelTriggerStyle({ hovered, pressed });
 }
 
 type ExplorerListRow =
@@ -1167,7 +1180,6 @@ interface FileExplorerPaneContentProps {
 }
 
 function FileExplorerPaneContent(props: FileExplorerPaneContentProps) {
-  const { theme } = useUnistyles();
   const { t } = useTranslation();
   const {
     error,
@@ -1205,32 +1217,32 @@ function FileExplorerPaneContent(props: FileExplorerPaneContentProps) {
     ? t("workspace.fileExplorer.empty.noFiles")
     : t("workspace.fileExplorer.empty.noVisibleFiles");
 
-  if (error) {
-    return (
-      <View style={styles.centerState}>
-        <Text style={styles.errorText}>{error}</Text>
-        <View style={styles.errorActions}>
-          {showBackFromError ? (
-            <Pressable style={styles.retryButton} onPress={handleBackFromError}>
-              <Text style={styles.retryButtonText}>{t("workspace.fileExplorer.actions.back")}</Text>
-            </Pressable>
-          ) : null}
-          <Pressable style={styles.retryButton} onPress={handleRetry}>
-            <Text style={styles.retryButtonText}>{t("workspace.fileExplorer.actions.retry")}</Text>
-          </Pressable>
-        </View>
+  const errorContent = error ? (
+    <View
+      style={listRows.length > 0 ? styles.inlineError : styles.centerState}
+      testID="files-error"
+      accessibilityRole="alert"
+    >
+      <Text style={styles.errorText}>{error}</Text>
+      <View style={styles.errorActions}>
+        {showBackFromError ? (
+          <Button variant="ghost" onPress={handleBackFromError}>
+            {t("workspace.fileExplorer.actions.back")}
+          </Button>
+        ) : null}
+        <Button variant="ghost" testID="files-retry" onPress={handleRetry}>
+          {t("workspace.fileExplorer.actions.retry")}
+        </Button>
       </View>
-    );
-  }
-
-  if (showInitialLoading) {
-    return (
-      <View style={styles.centerState}>
-        <ThemedLoadingSpinner size="small" uniProps={foregroundMutedColorMapping} />
-        <Text style={styles.loadingText}>{t("workspace.fileExplorer.states.loading")}</Text>
-      </View>
-    );
-  }
+    </View>
+  ) : null;
+  const emptyContent = error ? null : (
+    <View style={styles.centerState} testID="files-empty">
+      <Text style={styles.emptyText}>{emptyLabel}</Text>
+    </View>
+  );
+  const hasTreeContent = listRows.length > 0 || !error;
+  const showTree = !showInitialLoading && hasTreeContent;
 
   return (
     <View style={[styles.treePane, styles.treePaneFill]}>
@@ -1245,11 +1257,20 @@ function FileExplorerPaneContent(props: FileExplorerPaneContentProps) {
           onPress={handleSortCycle}
           style={sortTriggerStyleProp}
           testID="files-sort-trigger"
+          accessibilityRole="button"
+          accessibilityLabel={currentSortLabel}
         >
-          <Text style={styles.sortTriggerText} testID="files-sort-label">
-            {currentSortLabel}
-          </Text>
-          <ChevronDown size={12} color={theme.colors.foregroundMuted} />
+          {(state) => (
+            <>
+              <Text
+                style={toolbarLabelTriggerTextStyle(isToolbarLabelTriggerHighlighted(state))}
+                testID="files-sort-label"
+              >
+                {currentSortLabel}
+              </Text>
+              <ThemedChevronDown size={12} uniProps={extraMutedIconColorMapping} />
+            </>
+          )}
         </Pressable>
         <ToolbarControls style={styles.headerActions}>
           {onNewEntryAtRoot ? (
@@ -1261,9 +1282,9 @@ function FileExplorerPaneContent(props: FileExplorerPaneContentProps) {
                 testID="files-new-file"
                 onPress={handleNewFileAtRoot}
               >
-                <FilePlus
+                <ThemedFilePlus
                   size={paneContentToolbarIconSize(isCompact)}
-                  color={theme.colors.foregroundExtraMuted}
+                  uniProps={extraMutedIconColorMapping}
                 />
               </ToolbarButton>
               <ToolbarButton
@@ -1273,9 +1294,9 @@ function FileExplorerPaneContent(props: FileExplorerPaneContentProps) {
                 testID="files-new-folder"
                 onPress={handleNewFolderAtRoot}
               >
-                <FolderPlus
+                <ThemedFolderPlus
                   size={paneContentToolbarIconSize(isCompact)}
-                  color={theme.colors.foregroundExtraMuted}
+                  uniProps={extraMutedIconColorMapping}
                 />
               </ToolbarButton>
             </>
@@ -1289,14 +1310,14 @@ function FileExplorerPaneContent(props: FileExplorerPaneContentProps) {
             onPress={handleToggleHiddenFiles}
           >
             {showHiddenFiles ? (
-              <Eye
+              <ThemedEye
                 size={paneContentToolbarIconSize(isCompact)}
-                color={theme.colors.foregroundExtraMuted}
+                uniProps={extraMutedIconColorMapping}
               />
             ) : (
-              <EyeOff
+              <ThemedEyeOff
                 size={paneContentToolbarIconSize(isCompact)}
-                color={theme.colors.foregroundExtraMuted}
+                uniProps={extraMutedIconColorMapping}
               />
             )}
           </ToolbarButton>
@@ -1314,56 +1335,67 @@ function FileExplorerPaneContent(props: FileExplorerPaneContentProps) {
           >
             <View style={styles.refreshIcon}>
               {isRefreshFetching ? (
-                <LoadingSpinner
+                <ThemedLoadingSpinner
                   size={paneContentToolbarIconSize(isCompact)}
-                  color={theme.colors.foregroundExtraMuted}
+                  uniProps={extraMutedIconColorMapping}
                 />
               ) : (
-                <RotateCw
+                <ThemedRotateCw
                   size={paneContentToolbarIconSize(isCompact)}
-                  color={theme.colors.foregroundExtraMuted}
+                  uniProps={extraMutedIconColorMapping}
                 />
               )}
             </View>
           </ToolbarButton>
         </ToolbarControls>
       </PaneContentToolbar>
-      <ContextMenu>
-        <RootCreationContextTarget enabled={Boolean(onNewEntryAtRoot)}>
-          {listRows.length === 0 ? (
-            <View style={styles.centerState}>
-              <Text style={styles.emptyText}>{emptyLabel}</Text>
-            </View>
-          ) : (
-            <FlatList
-              ref={treeListRef}
-              style={styles.treeList}
-              data={listRows}
-              renderItem={renderTreeRow}
-              keyExtractor={listRowKeyExtractor}
-              testID="file-explorer-tree-scroll"
-              contentContainerStyle={styles.entriesContent}
-              onLayout={scrollbar.onLayout}
-              onScroll={scrollbar.onScroll}
-              onContentSizeChange={scrollbar.onContentSizeChange}
-              scrollEventThrottle={16}
-              showsVerticalScrollIndicator={!scrollbar.enabled}
-              initialNumToRender={24}
-              maxToRenderPerBatch={40}
-              windowSize={12}
+      {errorContent}
+      {showInitialLoading ? (
+        <View
+          style={styles.centerState}
+          accessibilityRole="progressbar"
+          accessibilityLabel={t("workspace.fileExplorer.states.loading")}
+        >
+          <ThemedLoadingSpinner size="small" uniProps={foregroundMutedColorMapping} />
+          <Text style={styles.loadingText}>{t("workspace.fileExplorer.states.loading")}</Text>
+        </View>
+      ) : null}
+      {showTree ? (
+        <ContextMenu>
+          <RootCreationContextTarget enabled={Boolean(onNewEntryAtRoot)}>
+            {listRows.length === 0 ? (
+              emptyContent
+            ) : (
+              <FlatList
+                ref={treeListRef}
+                style={styles.treeList}
+                data={listRows}
+                renderItem={renderTreeRow}
+                keyExtractor={listRowKeyExtractor}
+                testID="file-explorer-tree-scroll"
+                contentContainerStyle={styles.entriesContent}
+                onLayout={scrollbar.onLayout}
+                onScroll={scrollbar.onScroll}
+                onContentSizeChange={scrollbar.onContentSizeChange}
+                scrollEventThrottle={16}
+                showsVerticalScrollIndicator={!scrollbar.enabled}
+                initialNumToRender={24}
+                maxToRenderPerBatch={40}
+                windowSize={12}
+              />
+            )}
+            {listRows.length > 0 ? scrollbar.overlay : null}
+          </RootCreationContextTarget>
+          {onNewEntryAtRoot ? (
+            <FileActionsContextMenuContent
+              fileKind="directory"
+              onNewFile={handleNewFileAtRoot}
+              onNewFolder={handleNewFolderAtRoot}
+              testIDPrefix="files-empty-area"
             />
-          )}
-          {listRows.length > 0 ? scrollbar.overlay : null}
-        </RootCreationContextTarget>
-        {onNewEntryAtRoot ? (
-          <FileActionsContextMenuContent
-            fileKind="directory"
-            onNewFile={handleNewFileAtRoot}
-            onNewFolder={handleNewFolderAtRoot}
-            testIDPrefix="files-empty-area"
-          />
-        ) : null}
-      </ContextMenu>
+          ) : null}
+        </ContextMenu>
+      ) : null}
     </View>
   );
 }
@@ -1671,23 +1703,6 @@ const styles = StyleSheet.create((theme) => ({
     justifyContent: "space-between",
     backgroundColor: theme.colors.surfaceSidebar,
   },
-  sortTrigger: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: theme.spacing[1],
-    marginLeft: theme.spacing[3] - theme.spacing[1],
-    paddingHorizontal: theme.spacing[1],
-    height: 24,
-    borderRadius: theme.borderRadius.base,
-  },
-  sortTriggerHovered: {
-    backgroundColor: theme.colors.surfaceSidebarHover,
-  },
-  sortTriggerText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.foregroundMuted,
-  },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
@@ -1721,17 +1736,9 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.base,
     textAlign: "center",
   },
-  retryButton: {
-    borderRadius: theme.borderRadius.full,
-    borderWidth: theme.borderWidth[1],
-    borderColor: theme.colors.border,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[1],
-  },
-  retryButtonText: {
-    color: theme.colors.foregroundMuted,
-    fontSize: theme.fontSize.base,
-    fontWeight: theme.fontWeight.semibold,
+  inlineError: {
+    gap: theme.spacing[2],
+    padding: theme.spacing[3],
   },
   errorActions: {
     flexDirection: "row",
