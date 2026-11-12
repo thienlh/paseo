@@ -2435,8 +2435,10 @@ function areExpandableBadgePropsEqual(previous: ExpandableBadgeProps, next: Expa
 
 function getToolCallSummaryPresentation(toolName: string, detail: ToolCallDetail | undefined) {
   const type = detail?.type;
+  const isCodeMode = toolName.trim().toLowerCase() === "codemode";
   return {
     monospace:
+      isCodeMode ||
       toolName === "thinking" ||
       type === "shell" ||
       type === "read" ||
@@ -2554,7 +2556,7 @@ export const ToolCall = memo(function ToolCall({
     const openFilePath = presentation.openFilePath;
     if (!openFilePath) return undefined;
     const fileName = openFilePath.split(/[\\/]/).findLast(Boolean);
-    return fileName ? <MaterialFileIcon fileName={fileName} size={12} /> : undefined;
+    return fileName ? <MaterialFileIcon fileName={fileName} size={14} /> : undefined;
   }, [presentation.openFilePath]);
   const handleOpenFile = useMemo(() => {
     const openFilePath = presentation.openFilePath;
