@@ -99,6 +99,28 @@ describe("collapseTurns", () => {
     expect(result.hostIdByFoldedMessageId.get("intermediate")).toBe("prompt");
   });
 
+  it("counts raw tool calls and logical replies across the whole turn", () => {
+    const calls = [shell("one"), shell("two")];
+    const firstReply = { ...reply("early:segment:1"), messageId: "early" };
+    const secondReplyCard = { ...reply("early:segment:2"), messageId: "early" };
+    const result = collapse(
+      [
+        user("prompt"),
+        calls[0]!,
+        firstReply,
+        secondReplyCard,
+        pluginReply("final", "left"),
+        pluginReply("final", "right"),
+      ],
+      { getGroupedCalls: (id) => (id === "one" ? calls : undefined) },
+    );
+
+    expect(result.summaryRowsByHostId.get("prompt")).toMatchObject({
+      messageCount: 2,
+      tools: { toolCallCount: 2 },
+    });
+  });
+
   it.each([undefined, "thought", "tool_call"] as const)(
     "does not treat a plugin row with source kind %s as a reply",
     (sourceKind) => {
@@ -208,7 +230,8 @@ describe("collapseTurns", () => {
       hostId: "u1",
       timestamp: at,
       expanded: false,
-      tools: expect.objectContaining({ commandCount: 2 }),
+      messageCount: 2,
+      tools: expect.objectContaining({ toolCallCount: 2, commandCount: 2 }),
     });
     expect(result.summaryRowsByHostId.get("u1")).toBe(result.tail[1]);
     expect(result.hostIdByFoldedMessageId.get("early")).toBe("u1");

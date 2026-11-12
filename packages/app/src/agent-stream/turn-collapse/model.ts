@@ -78,11 +78,13 @@ function summaryRow(
   host: StreamItem,
   expanded: boolean,
   tools: OverviewSummary,
+  messageCount: number,
   previous: TurnSummaryItem | undefined,
 ): TurnSummaryItem {
   if (
     previous &&
     previous.expanded === expanded &&
+    previous.messageCount === messageCount &&
     hasSameWork(previous.tools, tools) &&
     hasSamePosition(previous.timelineCursor, host.timelineCursor)
   ) {
@@ -98,6 +100,7 @@ function summaryRow(
     timestamp: host.timestamp,
     hostId: host.id,
     expanded,
+    messageCount,
     tools,
   };
 }
@@ -111,6 +114,19 @@ function isAssistantReply(item: StreamItem): boolean {
     item.kind === "assistant_message" ||
     (item.kind === "plugin" && item.sourceKind === "assistant_message")
   );
+}
+
+function countAssistantReplies(items: readonly StreamItem[]): number {
+  const messageIds = new Set<string>();
+  for (const item of items) {
+    if (!isAssistantReply(item)) continue;
+    messageIds.add(
+      item.kind === "assistant_message"
+        ? (item.messageId ?? item.id)
+        : getStreamItemMessageId(item),
+    );
+  }
+  return messageIds.size;
 }
 
 function findLastReplyIndex(tail: StreamItem[], start: number, end: number): number {
@@ -166,10 +182,12 @@ export function collapseTurns(input: CollapseTurnsInput): TurnCollapse {
       return;
     }
     const expanded = input.expandedHostIds.has(host.id);
+    const messageCount = countAssistantReplies(tail.slice(runStart, runEnd));
     const summary = summaryRow(
       host,
       expanded,
       tools,
+      messageCount,
       input.previousSummaryRowsByHostId.get(host.id),
     );
     summaryRowsByHostId.set(host.id, summary);

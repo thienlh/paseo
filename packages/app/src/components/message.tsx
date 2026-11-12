@@ -1643,6 +1643,8 @@ export const TodoListCard = memo(function TodoListCard({
 
 interface ExpandableBadgeProps {
   label: string;
+  /** Compact decorative metadata that belongs directly beside the label. */
+  labelAccessory?: ReactNode;
   secondaryLabel?: string;
   secondaryLabelIcon?: ReactNode;
   /** Code-like details, such as a shell command, read better in the mono font. */
@@ -1749,6 +1751,7 @@ function ExpandableBadgeWebShimmerOverlay({
 
 interface ExpandableBadgeLabelRowProps {
   label: string;
+  labelAccessory?: ReactNode;
   labelStyle: StyleProp<TextStyle>;
   secondaryLabel?: string;
   secondaryLabelIcon?: ReactNode;
@@ -1773,6 +1776,7 @@ interface ExpandableBadgeLabelRowProps {
 
 function ExpandableBadgeLabelRow({
   label,
+  labelAccessory,
   labelStyle,
   secondaryLabel,
   secondaryLabelIcon,
@@ -1806,6 +1810,7 @@ function ExpandableBadgeLabelRow({
       >
         {label}
       </Text>
+      {labelAccessory}
       <ExpandableBadgeSecondaryLabel
         secondaryLabel={secondaryLabel}
         secondaryLabelIcon={secondaryLabelIcon}
@@ -2014,6 +2019,7 @@ function buildShimmerTextStyle(input: {
 
 export const ExpandableBadge = memo(function ExpandableBadge({
   label,
+  labelAccessory,
   style,
   secondaryLabel,
   secondaryLabelIcon,
@@ -2303,6 +2309,7 @@ export const ExpandableBadge = memo(function ExpandableBadge({
           <View style={expandableBadgeStylesheet.iconBadge}>{iconSlotNode}</View>
           <ExpandableBadgeLabelRow
             label={label}
+            labelAccessory={labelAccessory}
             labelStyle={labelStyle}
             secondaryLabel={secondaryLabel}
             secondaryLabelIcon={secondaryLabelIcon}
@@ -2352,8 +2359,12 @@ export const ExpandableBadge = memo(function ExpandableBadge({
   );
 }, areExpandableBadgePropsEqual);
 
+function hasSameExpandableBadgeLabel(previous: ExpandableBadgeProps, next: ExpandableBadgeProps) {
+  return previous.label === next.label && previous.labelAccessory === next.labelAccessory;
+}
+
 function areExpandableBadgePropsEqual(previous: ExpandableBadgeProps, next: ExpandableBadgeProps) {
-  if (previous.label !== next.label) return false;
+  if (!hasSameExpandableBadgeLabel(previous, next)) return false;
   if (previous.secondaryLabel !== next.secondaryLabel) return false;
   if (previous.secondaryLabelIcon !== next.secondaryLabelIcon) return false;
   if (previous.secondaryLabelMonospace !== next.secondaryLabelMonospace) return false;

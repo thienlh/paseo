@@ -13,6 +13,7 @@ const DIRECT_SEARCH_TOOL_SUFFIX_PATTERN = /(?:^|[_.:/])(?:web_search|llm_context
 
 export interface OverviewSummary {
   thoughtCount: number;
+  toolCallCount: number;
   editedFileCount: number;
   commandCount: number;
   readFileCount: number;
@@ -38,6 +39,7 @@ export function summarizeToolCalls(calls: readonly GroupableItem[]): OverviewSum
   const editedFiles = new Set<string>();
   const readFiles = new Set<string>();
   let thoughtCount = 0;
+  let toolCallCount = 0;
   let commandCount = 0;
   let searchCount = 0;
   let otherToolCount = 0;
@@ -49,6 +51,7 @@ export function summarizeToolCalls(calls: readonly GroupableItem[]): OverviewSum
       continue;
     }
     if (isTurnTrigger(call)) continue;
+    toolCallCount += 1;
     const descriptor = describeToolCall(call);
     const normalizedName = descriptor.name.trim().toLowerCase();
     const action = getPaseoToolActionLabel(descriptor.name);
@@ -69,6 +72,7 @@ export function summarizeToolCalls(calls: readonly GroupableItem[]): OverviewSum
 
   return {
     thoughtCount,
+    toolCallCount,
     editedFileCount: editedFiles.size,
     commandCount,
     readFileCount: readFiles.size,

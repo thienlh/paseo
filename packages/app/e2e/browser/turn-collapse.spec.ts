@@ -220,8 +220,13 @@ export default function contribute(client) {
 
       await expandAndCollapseLongPrompt(page);
 
-      const summary = page.getByTestId("turn-summary").last().getByRole("button");
-      await expect(summary).toHaveText(/^Edited 1 file/);
+      const summaryRow = page.getByTestId("turn-summary").last();
+      const summary = summaryRow.getByRole("button");
+      await expect(summary).toHaveText(/^[1-9]\d* tool calls, 1 message$/);
+      for (const activity of ["terminal", "search", "read", "edit"]) {
+        await expect(summaryRow.getByTestId(`turn-summary-activity-${activity}`)).toBeVisible();
+      }
+      await expect(summaryRow.getByTestId("turn-summary-activity-other")).toHaveCount(0);
       // Text chunks that stream back to back merge into one message, so the reply holds
       // at least the stream's last chunk.
       await expect(page.getByTestId("assistant-message").last()).toHaveText(
@@ -432,7 +437,7 @@ test("opening a turn keeps the received message above it clipped on every frame"
     await watchReceivedMessagePreview(page, "Sent by Reviewer");
     await page
       .getByTestId("turn-summary")
-      .getByRole("button", { name: "Ran 7 commands", exact: true })
+      .getByRole("button", { name: "7 tool calls, 1 message", exact: true })
       .click();
     await expect(page.getByText("echo stress-6", { exact: true })).toBeVisible();
     await expectReceivedMessagePreviewUndisturbed(page);
@@ -555,12 +560,12 @@ test("loads complete long turns and preserves expansion while revealing older hi
     await expectComposerVisible(page);
     const latest = page
       .getByTestId("turn-summary")
-      .getByRole("button", { name: "Ran 120 commands", exact: true });
+      .getByRole("button", { name: "120 tool calls, 1 message", exact: true });
     await expect(latest).toBeVisible();
     await expect(
       page
         .getByTestId("turn-summary")
-        .getByRole("button", { name: "Ran 60 commands", exact: true }),
+        .getByRole("button", { name: "60 tool calls, 1 message", exact: true }),
     ).toBeVisible();
     await expect.poll(() => rowsBetweenLatestSummaryAndReply(page)).toBe(0);
     await latest.click();

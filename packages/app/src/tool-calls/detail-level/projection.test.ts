@@ -245,6 +245,7 @@ describe("tool call detail-level projection", () => {
       isLoading: false,
       summary: {
         thoughtCount: 0,
+        toolCallCount: 4,
         editedFileCount: 1,
         commandCount: 1,
         readFileCount: 2,
