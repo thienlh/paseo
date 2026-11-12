@@ -71,6 +71,10 @@ import {
   useAgentToolCallExpansion,
   useExpandedToolCallGroups,
 } from "@/tool-calls/expansion-context";
+import {
+  UserMessageExpansionContext,
+  useAgentUserMessageExpansion,
+} from "@/components/user-message/expansion-context";
 import { ToolCallSheetProvider } from "@/components/tool-call-sheet";
 import { createStreamPresentation } from "./presentation";
 import { isTurnBoundary } from "./turn-membership";
@@ -392,6 +396,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
       new Set(),
     );
     const toolCallExpansion = useAgentToolCallExpansion(agentId);
+    const userMessageExpansion = useAgentUserMessageExpansion(agentId);
     const expandedToolCallGroups = useExpandedToolCallGroups(toolCallExpansion);
     const [expandedTurnHostIds, setExpandedTurnHostIds] = useState<ReadonlySet<string>>(new Set());
 
@@ -724,6 +729,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
       (layoutItem: StreamLayoutItem, item: Extract<StreamItem, { kind: "user_message" }>) => {
         return (
           <UserMessage
+            itemId={item.id}
             serverId={resolvedServerId}
             agentId={agentId}
             messageId={item.messageId}
@@ -1230,32 +1236,34 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
             <AssistantSelectionCopySurface style={stylesheet.container}>
               <MessageOuterSpacingProvider disableOuterSpacing>
                 <ToolCallExpansionContext.Provider value={toolCallExpansion}>
-                  {streamRenderStrategy.render({
-                    readingRowReplacements: presentation.readingRowReplacements,
-                    agentId,
-                    segments: renderModel.segments,
-                    historyRowRevision,
-                    liveHeadRowRevision: expandedToolCallGroups,
-                    boundary,
-                    renderers,
-                    listEmptyComponent,
-                    viewportRef,
-                    routeBottomAnchorRequest,
-                    isAuthoritativeHistoryReady,
-                    isInitialHistoryLoading,
-                    revealInitialHistory,
-                    onNearBottomChange: nearBottom.set,
-                    onReadingPositionChange: handleReadingPositionChange,
-                    onNearHistoryStart: loadOlder,
-                    isLoadingOlderHistory: isLoadingOlder,
-                    hasOlderHistory: hasOlder,
-                    olderHistoryProgressKey: progressKey,
-                    scrollEnabled: streamScrollEnabled,
-                    listStyle: stylesheet.list,
-                    baseListContentContainerStyle: stylesheet.listContentContainer,
-                    forwardListContentContainerStyle: stylesheet.forwardListContentContainer,
-                    contentMaxWidth,
-                  })}
+                  <UserMessageExpansionContext.Provider value={userMessageExpansion}>
+                    {streamRenderStrategy.render({
+                      readingRowReplacements: presentation.readingRowReplacements,
+                      agentId,
+                      segments: renderModel.segments,
+                      historyRowRevision,
+                      liveHeadRowRevision: expandedToolCallGroups,
+                      boundary,
+                      renderers,
+                      listEmptyComponent,
+                      viewportRef,
+                      routeBottomAnchorRequest,
+                      isAuthoritativeHistoryReady,
+                      isInitialHistoryLoading,
+                      revealInitialHistory,
+                      onNearBottomChange: nearBottom.set,
+                      onReadingPositionChange: handleReadingPositionChange,
+                      onNearHistoryStart: loadOlder,
+                      isLoadingOlderHistory: isLoadingOlder,
+                      hasOlderHistory: hasOlder,
+                      olderHistoryProgressKey: progressKey,
+                      scrollEnabled: streamScrollEnabled,
+                      listStyle: stylesheet.list,
+                      baseListContentContainerStyle: stylesheet.listContentContainer,
+                      forwardListContentContainerStyle: stylesheet.forwardListContentContainer,
+                      contentMaxWidth,
+                    })}
+                  </UserMessageExpansionContext.Provider>
                 </ToolCallExpansionContext.Provider>
               </MessageOuterSpacingProvider>
               <ChatOutlineRail
