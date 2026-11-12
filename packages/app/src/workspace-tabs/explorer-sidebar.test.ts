@@ -10,6 +10,11 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
 
 import { usePanelStore } from "@/stores/panel-store";
 import {
+  DEFAULT_EXECUTION_STATE,
+  reduceExecutionState,
+  resolveExecutionHeight,
+} from "@/screens/workspace/explorer-sidebar/execution/state";
+import {
   collectAllTabs,
   findPaneById,
   selectExplorerSidebarPaneId,
@@ -23,6 +28,67 @@ import {
 } from "@/workspace-tabs/explorer-sidebar";
 
 const WORKSPACE_KEY = "server-1:ws-main";
+
+describe("Explorer execution", () => {
+  it("preserves the supporting view and selected terminal while collapsing", () => {
+    const files = reduceExecutionState(DEFAULT_EXECUTION_STATE, {
+      type: "observe",
+      tabId: "files",
+      terminal: false,
+      scriptName: null,
+    });
+    const running = reduceExecutionState(files, {
+      type: "observe",
+      tabId: "terminal-1",
+      terminal: true,
+      scriptName: "dev",
+    });
+    const collapsed = reduceExecutionState(running, { type: "toggle" });
+    expect(collapsed).toEqual({
+      ...DEFAULT_EXECUTION_STATE,
+      supportingTabId: "files",
+      terminalTabId: "terminal-1",
+      observedTabId: "terminal-1",
+      scriptName: "dev",
+    });
+    expect(
+      reduceExecutionState(collapsed, {
+        type: "observe",
+        tabId: "terminal-1",
+        terminal: true,
+        scriptName: "dev",
+      }),
+    ).toBe(collapsed);
+    expect(reduceExecutionState(collapsed, { type: "view", view: "run" })).toEqual({
+      ...collapsed,
+      expanded: true,
+      surface: "execution",
+    });
+  });
+
+  it("returns to review on compact without forgetting the expanded execution area", () => {
+    const running = reduceExecutionState(DEFAULT_EXECUTION_STATE, {
+      type: "view",
+      view: "terminal",
+    });
+    const review = reduceExecutionState(running, {
+      type: "select",
+      tabId: "changes_tree",
+      terminal: false,
+      scriptName: null,
+    });
+    expect(review.surface).toBe("supporting");
+    expect(review.expanded).toBe(true);
+    expect(review.view).toBe("terminal");
+  });
+
+  it("preserves the height across hidden measurements and clamps only rendered geometry", () => {
+    expect(resolveExecutionHeight({ requested: 420, available: 0 })).toBe(420);
+    expect(resolveExecutionHeight({ requested: 420, available: 500 })).toBe(320);
+    expect(resolveExecutionHeight({ requested: 420, available: 900 })).toBe(420);
+    expect(resolveExecutionHeight({ requested: 10, available: 900 })).toBe(160);
+  });
+});
 
 beforeEach(() => {
   useWorkspaceLayoutStore.setState({

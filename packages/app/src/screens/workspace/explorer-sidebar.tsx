@@ -1,5 +1,7 @@
-import { useCallback, useMemo, type ReactNode } from "react";
-import { View } from "react-native";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { View, type LayoutChangeEvent } from "react-native";
+import { useIsCompactFormFactor } from "@/constants/layout";
+import { isWeb } from "@/constants/platform";
 import { useWorkspaceTabDrag } from "@/components/workspace-tab-drag-context";
 import { StyleSheet } from "react-native-unistyles";
 import { RetainedPanel } from "@/components/retained-panel";
@@ -16,6 +18,10 @@ import type { WorkspaceTabDescriptor } from "@/screens/workspace/workspace-tabs-
 import type { SplitPane } from "@/stores/workspace-layout-store";
 import type { WorkspaceTab } from "@/workspace-tabs/model";
 import { WindowChromeRegion, WindowChromeSafeArea } from "@/utils/desktop-window";
+import { ExplorerExecution } from "./explorer-sidebar/execution";
+import { useExplorerExecution } from "./explorer-sidebar/execution/use-execution";
+import type { ExecutionControlsProps } from "./explorer-sidebar/execution/controls";
+import type { TabDropPreview } from "@/components/split-container-tab-drop-preview";
 
 interface ExplorerSidebarDockProps extends Pick<
   WorkspaceDesktopTabsRowProps,
@@ -48,9 +54,27 @@ interface ExplorerSidebarDockProps extends Pick<
     tab: WorkspaceTabDescriptor;
   }) => WorkspacePaneContentModel;
   headerAction?: ReactNode;
+  workspaceKey: string;
+  executionControls: Omit<ExecutionControlsProps, "state" | "script" | "dispatch" | "compact">;
 }
 
-/** A dock shell over the shared panel host. It owns no workspace-pane capabilities. */
+function explorerDropIndex(input: {
+  preview: TabDropPreview | null;
+  paneId: string;
+  tabs: WorkspaceTabDescriptor[];
+  draggedTab: WorkspaceTab | undefined;
+  terminal: boolean;
+}): number | null {
+  if (!input.preview) return null;
+  if (input.preview.paneId !== input.paneId) return null;
+  if (!input.draggedTab) return null;
+  const draggingTerminal = input.draggedTab.target.kind === "terminal";
+  if (draggingTerminal !== input.terminal) return null;
+  const before = input.tabs.slice(0, input.preview.indicatorIndex);
+  return before.filter((tab) => (tab.kind === "terminal") === input.terminal).length;
+}
+
+/** Two presentation regions over one Explorer pane; every terminal mounts in only one host. */
 export function ExplorerSidebarDock({
   pane,
   uiTabs,
@@ -77,24 +101,69 @@ export function ExplorerSidebarDock({
   onReorderTabsInPane,
   buildPaneContentModel,
   headerAction,
+  workspaceKey,
+  executionControls,
 }: ExplorerSidebarDockProps) {
   const { activeDragTabId, tabDropPreview, externalDndContext } = useWorkspaceTabDrag();
   const paneState = useMemo(() => deriveWorkspacePaneState({ pane, tabs: uiTabs }), [pane, uiTabs]);
   const tabs = useMemo(() => paneState.tabs.map((tab) => tab.descriptor), [paneState.tabs]);
-  const activeTabId = paneState.activeTabId;
-  const tabItems = useMemo<WorkspaceDesktopTabRowItem[]>(
-    () =>
-      tabs.map((tab) => ({
-        tab,
-        isActive: tab.tabId === activeTabId,
-        isCloseHovered: hoveredCloseTabKey === tab.key,
-        isClosingTab: closingTabIds.has(tab.tabId),
-      })),
-    [activeTabId, closingTabIds, hoveredCloseTabKey, tabs],
-  );
+  const draggedTab = uiTabs.find((tab) => tab.tabId === activeDragTabId);
+  const supportingDropIndex = explorerDropIndex({
+    preview: tabDropPreview,
+    paneId: pane.id,
+    tabs,
+    draggedTab,
+    terminal: false,
+  });
+  const terminalDropIndex = explorerDropIndex({
+    preview: tabDropPreview,
+    paneId: pane.id,
+    tabs,
+    draggedTab,
+    terminal: true,
+  });
+  const compact = useIsCompactFormFactor();
+  const [availableHeight, setAvailableHeight] = useState(0);
+  const measure = useCallback((event: LayoutChangeEvent) => {
+    const height = event.nativeEvent.layout.height;
+    if (height > 0) setAvailableHeight(height);
+  }, []);
   const handleSelectTab = useCallback(
     (tabId: string) => onSelectTab(pane.id, tabId),
     [onSelectTab, pane.id],
+  );
+  const execution = useExplorerExecution({
+    workspaceKey,
+    tabs,
+    activeTabId: paneState.activeTabId,
+    scripts: executionControls.scripts,
+    onSelectTab: handleSelectTab,
+  });
+  const { supportingTabs, terminalTabs, supportingTabId, executionTabId, selectTab } = execution;
+  const supportingVisible =
+    !compact || !execution.state.expanded || execution.state.surface === "supporting";
+  const executionVisible = !compact || execution.state.surface === "execution";
+  const supportingFocused = !paneFocusSuspended && execution.state.surface === "supporting";
+  const executionFocused = !paneFocusSuspended && execution.state.surface === "execution";
+  const tabItems = useMemo<WorkspaceDesktopTabRowItem[]>(
+    () =>
+      supportingTabs.map((tab) => ({
+        tab,
+        isActive: tab.tabId === supportingTabId,
+        isCloseHovered: hoveredCloseTabKey === tab.key,
+        isClosingTab: closingTabIds.has(tab.tabId),
+      })),
+    [supportingTabId, closingTabIds, hoveredCloseTabKey, supportingTabs],
+  );
+  const terminalTabItems = useMemo<WorkspaceDesktopTabRowItem[]>(
+    () =>
+      terminalTabs.map((tab) => ({
+        tab,
+        isActive: tab.tabId === executionTabId,
+        isCloseHovered: hoveredCloseTabKey === tab.key,
+        isClosingTab: closingTabIds.has(tab.tabId),
+      })),
+    [closingTabIds, executionTabId, hoveredCloseTabKey, terminalTabs],
   );
   const handleReorderTabs = useCallback(
     (nextTabs: WorkspaceTabDescriptor[]) => {
@@ -106,17 +175,94 @@ export function ExplorerSidebarDock({
     [onReorderTabsInPane, pane.id],
   );
 
+  const groupForTab = useCallback(
+    (tabId: string) =>
+      terminalTabs.some((tab) => tab.tabId === tabId) ? terminalTabs : supportingTabs,
+    [supportingTabs, terminalTabs],
+  );
   const handleCloseTabsToLeft = useCallback(
-    (tabId: string) => onCloseTabsToLeft(tabId, tabs),
-    [onCloseTabsToLeft, tabs],
+    (tabId: string) => onCloseTabsToLeft(tabId, groupForTab(tabId)),
+    [onCloseTabsToLeft, groupForTab],
   );
   const handleCloseTabsToRight = useCallback(
-    (tabId: string) => onCloseTabsToRight(tabId, tabs),
-    [onCloseTabsToRight, tabs],
+    (tabId: string) => onCloseTabsToRight(tabId, groupForTab(tabId)),
+    [onCloseTabsToRight, groupForTab],
   );
   const handleCloseOtherTabs = useCallback(
-    (tabId: string) => onCloseOtherTabs(tabId, tabs),
-    [onCloseOtherTabs, tabs],
+    (tabId: string) => onCloseOtherTabs(tabId, groupForTab(tabId)),
+    [onCloseOtherTabs, groupForTab],
+  );
+  const focusSupporting = useCallback(() => {
+    if (supportingTabId) selectTab(supportingTabId);
+  }, [selectTab, supportingTabId]);
+  const focusExecution = useCallback(() => {
+    if (executionTabId) selectTab(executionTabId);
+  }, [selectTab, executionTabId]);
+
+  const tabRowProps = useMemo(
+    () =>
+      ({
+        host: "explorer",
+        launchPurpose: "supporting",
+        isFocused: isWorkspaceFocused,
+        ownsKeyboardShortcuts: false,
+        setHoveredCloseTabKey,
+        onCopyResumeCommand,
+        onCopyAgentId,
+        onCopyTerminalId,
+        onCopyFilePath,
+        onReloadAgent,
+        onRenameTab,
+        onCloseTabsToLeft: handleCloseTabsToLeft,
+        onCloseTabsToRight: handleCloseTabsToRight,
+        onCloseOtherTabs: handleCloseOtherTabs,
+        focusModeEnabled: false,
+        onExitFocusMode,
+        externalDndContext,
+        paneId: pane.id,
+        normalizedServerId,
+        normalizedWorkspaceId,
+        activeDragTabId,
+        onNavigateTab: selectTab,
+        onCloseTab,
+        onCreateNewTab,
+        onReorderTabs: handleReorderTabs,
+      }) satisfies Omit<WorkspaceDesktopTabsRowProps, "tabs">,
+    [
+      isWorkspaceFocused,
+      setHoveredCloseTabKey,
+      onCopyResumeCommand,
+      onCopyAgentId,
+      onCopyTerminalId,
+      onCopyFilePath,
+      onReloadAgent,
+      onRenameTab,
+      handleCloseTabsToLeft,
+      handleCloseTabsToRight,
+      handleCloseOtherTabs,
+      onExitFocusMode,
+      externalDndContext,
+      pane.id,
+      normalizedServerId,
+      normalizedWorkspaceId,
+      activeDragTabId,
+      selectTab,
+      onCloseTab,
+      onCreateNewTab,
+      handleReorderTabs,
+    ],
+  );
+
+  const terminalTabRail = useMemo(
+    () => (
+      <WorkspaceDesktopTabsRow
+        {...tabRowProps}
+        tabs={terminalTabItems}
+        showNewTabButton={false}
+        tabDropPreviewIndex={terminalDropIndex}
+      />
+    ),
+    [tabRowProps, terminalTabItems, terminalDropIndex],
   );
 
   return (
@@ -127,51 +273,56 @@ export function ExplorerSidebarDock({
             <TitlebarDragRegion />
             <View style={styles.tabRow}>
               <WorkspaceDesktopTabsRow
-                host="explorer"
-                launchPurpose="supporting"
-                isFocused={isWorkspaceFocused}
-                ownsKeyboardShortcuts={false}
-                setHoveredCloseTabKey={setHoveredCloseTabKey}
-                onCopyResumeCommand={onCopyResumeCommand}
-                onCopyAgentId={onCopyAgentId}
-                onCopyTerminalId={onCopyTerminalId}
-                onCopyFilePath={onCopyFilePath}
-                onReloadAgent={onReloadAgent}
-                onRenameTab={onRenameTab}
-                onCloseTabsToLeft={handleCloseTabsToLeft}
-                onCloseTabsToRight={handleCloseTabsToRight}
-                onCloseOtherTabs={handleCloseOtherTabs}
-                focusModeEnabled={false}
-                onExitFocusMode={onExitFocusMode}
-                externalDndContext={externalDndContext}
-                paneId={pane.id}
+                {...tabRowProps}
                 tabs={tabItems}
-                normalizedServerId={normalizedServerId}
-                normalizedWorkspaceId={normalizedWorkspaceId}
-                activeDragTabId={activeDragTabId}
-                tabDropPreviewIndex={
-                  tabDropPreview?.paneId === pane.id ? tabDropPreview.indicatorIndex : null
-                }
-                onNavigateTab={handleSelectTab}
-                onCloseTab={onCloseTab}
-                onCreateNewTab={onCreateNewTab}
-                onReorderTabs={handleReorderTabs}
+                tabDropPreviewIndex={supportingDropIndex}
               />
             </View>
             {headerAction ? <View style={styles.headerAction}>{headerAction}</View> : null}
             <View pointerEvents="none" style={styles.tabRailDivider} />
           </WindowChromeSafeArea>
-          <View style={styles.content}>
-            <WorkspacePanelHost
-              paneId={pane.id}
-              tabs={tabs}
-              activeTabId={activeTabId}
-              normalizedServerId={normalizedServerId}
-              normalizedWorkspaceId={normalizedWorkspaceId}
-              isWorkspaceFocused={isWorkspaceFocused}
-              isPaneFocused={!paneFocusSuspended}
-              buildPaneContentModel={buildPaneContentModel}
-            />
+          <View style={styles.content} onLayout={measure}>
+            <RetainedPanel active={supportingVisible}>
+              <View
+                style={styles.content}
+                onTouchStart={focusSupporting}
+                {...(isWeb ? { onPointerDown: focusSupporting } : {})}
+              >
+                <WorkspacePanelHost
+                  paneId={pane.id}
+                  tabs={supportingTabs}
+                  activeTabId={supportingTabId}
+                  normalizedServerId={normalizedServerId}
+                  normalizedWorkspaceId={normalizedWorkspaceId}
+                  isWorkspaceFocused={isWorkspaceFocused}
+                  isPaneFocused={supportingFocused}
+                  buildPaneContentModel={buildPaneContentModel}
+                />
+              </View>
+            </RetainedPanel>
+            <ExplorerExecution
+              {...executionControls}
+              state={execution.state}
+              dispatch={execution.dispatch}
+              script={execution.script}
+              compact={compact}
+              availableHeight={availableHeight}
+              visible={executionVisible}
+              hasTerminal={executionTabId !== null}
+              onFocus={focusExecution}
+              tabRail={terminalTabRail}
+            >
+              <WorkspacePanelHost
+                paneId={pane.id}
+                tabs={terminalTabs}
+                activeTabId={executionTabId}
+                normalizedServerId={normalizedServerId}
+                normalizedWorkspaceId={normalizedWorkspaceId}
+                isWorkspaceFocused={isWorkspaceFocused}
+                isPaneFocused={executionFocused}
+                buildPaneContentModel={buildPaneContentModel}
+              />
+            </ExplorerExecution>
           </View>
         </View>
       </WindowChromeRegion>

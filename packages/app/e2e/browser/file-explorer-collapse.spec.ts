@@ -11,6 +11,9 @@ import {
   openFileFromExplorer,
 } from "../support/helpers/file-explorer";
 import { delayDirectoryListingResponse } from "../support/helpers/directory-listing-gate";
+import { ensureExplorerSidebar } from "../support/helpers/workspace-tabs";
+import { daemonWsRoutePattern } from "../support/helpers/daemon-port";
+import type { WSOutboundMessage } from "@getpaseo/protocol/messages";
 import { gotoWorkspace } from "../support/helpers/launcher";
 import { seedWorkspace, type SeededWorkspace } from "../support/helpers/seed-client";
 
@@ -71,6 +74,63 @@ test("Files Refresh reveals new files when a cached collapsed folder is reopened
   await createFileOutsidePaseo("docs/NEXT.md");
   await refreshFiles(page);
   await expectExplorerEntryVisible(page, "NEXT.md");
+});
+
+test("Files keeps its toolbar visible during the initial directory load", async ({ page }) => {
+  const reply = await delayDirectoryListingResponse(page, ".");
+  await gotoWorkspace(page, workspace.workspaceId);
+  const explorer = await ensureExplorerSidebar(page);
+  await explorer.getByTestId("workspace-tab-files").click();
+  await reply.waitUntilHeld();
+  await expect(explorer.getByTestId("files-pane-header")).toBeVisible();
+  await expect(explorer.getByRole("progressbar", { name: "Loading files..." })).toBeVisible();
+  await reply.release();
+  await expectExplorerEntryVisible(page, "docs");
+  await expect(explorer.getByRole("progressbar")).toHaveCount(0);
+});
+
+test("Files keeps cached entries and its toolbar after a refresh error and lets the user retry", async ({
+  page,
+}) => {
+  let failNextListing = false;
+  await page.routeWebSocket(daemonWsRoutePattern(), (socket) => {
+    const server = socket.connectToServer();
+    socket.onMessage((message) => server.send(message));
+    server.onMessage((message) => {
+      if (typeof message === "string" && failNextListing) {
+        const envelope: WSOutboundMessage = JSON.parse(message);
+        if (envelope.type === "session" && envelope.message.type === "file_explorer_response") {
+          failNextListing = false;
+          socket.send(
+            JSON.stringify({
+              ...envelope,
+              message: {
+                ...envelope.message,
+                payload: {
+                  ...envelope.message.payload,
+                  directory: null,
+                  error: "Unable to refresh files",
+                },
+              },
+            }),
+          );
+          return;
+        }
+      }
+      socket.send(message);
+    });
+  });
+  await gotoWorkspace(page, workspace.workspaceId);
+  await openFileExplorer(page);
+  failNextListing = true;
+  await refreshFiles(page);
+  const explorer = page.getByTestId("workspace-explorer-sidebar").filter({ visible: true });
+  await expect(explorer.getByTestId("files-error")).toContainText("Unable to refresh files");
+  await expect(explorer.getByTestId("files-pane-header")).toBeVisible();
+  await expectExplorerEntryVisible(page, "docs");
+  await explorer.getByRole("button", { name: "Retry", exact: true }).click();
+  await expect(explorer.getByTestId("files-error")).toHaveCount(0);
+  await expectExplorerEntryVisible(page, "docs");
 });
 
 async function refreshFiles(page: import("@playwright/test").Page): Promise<void> {

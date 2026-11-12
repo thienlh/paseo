@@ -21,6 +21,7 @@ export interface ChangedFilesTreeProps {
   onSelectFile: (path: string) => void;
   collapsedFolderPaths: string[];
   onCollapsedFolderPathsChange: (paths: string[]) => void;
+  presentation?: "list" | "tree";
 }
 
 /** The changed-files tree shared by the desktop Changes rail and the compact Jump to file sheet. */
@@ -30,15 +31,17 @@ export function ChangedFilesTree({
   onSelectFile,
   collapsedFolderPaths,
   onCollapsedFolderPathsChange,
+  presentation = "tree",
 }: ChangedFilesTreeProps) {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const compressedTree = useMemo(() => compressSingleChildChains(buildDiffTree(files)), [files]);
   const allFolderPaths = useMemo(() => collectDirPaths(compressedTree), [compressedTree]);
   const collapsedFolders = useMemo(() => new Set(collapsedFolderPaths), [collapsedFolderPaths]);
-  const items = useMemo(
-    () => flattenDiffTree(compressedTree, collapsedFolders),
-    [collapsedFolders, compressedTree],
-  );
+  const items = useMemo(() => {
+    if (presentation === "tree") return flattenDiffTree(compressedTree, collapsedFolders);
+    const rows = flattenDiffTree(compressedTree, new Set());
+    return rows.flatMap((row) => (row.kind === "file" ? [{ ...row, depth: 0 }] : []));
+  }, [collapsedFolders, compressedTree, presentation]);
   const handleSelectPath = useCallback((path: string) => setSelectedPath(path), []);
   const handleSelectFile = useCallback(
     (path: string) => {
@@ -104,6 +107,7 @@ export function ChangedFilesTree({
           isSelected={selectedPath === item.file.path}
           depth={item.depth}
           showDir={false}
+          showPathDescription={presentation === "list"}
           onActivate={handleSelectFile}
           onSelect={handleSelectPath}
           onOpenFile={mode.onOpenFile}
@@ -128,6 +132,7 @@ export function ChangedFilesTree({
       collapsedFolders,
       mode,
       selectedPath,
+      presentation,
     ],
   );
   const keyExtractor = useCallback(

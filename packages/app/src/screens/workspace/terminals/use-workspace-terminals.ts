@@ -39,7 +39,7 @@ interface UseWorkspaceTerminalsInput {
   hasHydratedWorkspaces: boolean;
   isMissingWorkspaceDirectory: boolean;
   onTerminalCreated: (input: { terminalId: string; destination: TerminalTabDestination }) => void;
-  onScriptTerminalSelected: (terminalId: string) => void;
+  onScriptTerminalSelected: (terminalId: string, scriptName?: string) => void;
   onWorkspacePathUnavailable: () => void;
   onTerminalCreateQueued: () => void;
   onTerminalCreateFailed: (reason: string) => void;
@@ -244,7 +244,7 @@ export function useWorkspaceTerminals(input: UseWorkspaceTerminalsInput) {
   );
 
   const handleScriptTerminalStarted = useCallback(
-    (terminalId: string) => {
+    (terminalId: string, scriptName?: string) => {
       setPendingScriptTerminalIds((pendingTerminalIds) => {
         if (pendingTerminalIds.get(terminalId) === query.dataUpdatedAt) {
           return pendingTerminalIds;
@@ -253,7 +253,7 @@ export function useWorkspaceTerminals(input: UseWorkspaceTerminalsInput) {
         nextTerminalIds.set(terminalId, query.dataUpdatedAt);
         return nextTerminalIds;
       });
-      onScriptTerminalSelected(terminalId);
+      onScriptTerminalSelected(terminalId, scriptName);
       void queryClient.invalidateQueries({ queryKey });
     },
     [onScriptTerminalSelected, query.dataUpdatedAt, queryClient, queryKey],

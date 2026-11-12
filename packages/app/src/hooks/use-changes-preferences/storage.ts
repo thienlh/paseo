@@ -14,6 +14,7 @@ const changesPreferencesSchema = z.strictObject({
   wrapLines: z.boolean().optional(),
   hideWhitespace: z.boolean().optional(),
   inlineDiff: z.boolean().optional(),
+  fileListLayout: z.enum(["list", "tree"]).optional(),
   commitsCollapsed: z.boolean().optional(),
 });
 
@@ -23,6 +24,7 @@ export interface ChangesPreferences {
   wrapLines: boolean;
   hideWhitespace: boolean;
   inlineDiff: boolean;
+  fileListLayout: "list" | "tree";
   commitsCollapsed: boolean;
 }
 
@@ -32,6 +34,7 @@ export const DEFAULT_CHANGES_PREFERENCES: ChangesPreferences = {
   wrapLines: false,
   hideWhitespace: false,
   inlineDiff: false,
+  fileListLayout: "list",
   commitsCollapsed: true,
 };
 

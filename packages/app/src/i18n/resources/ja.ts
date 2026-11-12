@@ -733,6 +733,14 @@ export const ja: TranslationResources = {
         editTerminalProfiles: "プロファイルを編集",
       },
       explorerSidebar: {
+        execution: {
+          expand: "実行パネルを展開",
+          collapse: "実行パネルを折りたたむ",
+          chooseScript: "スクリプトを選択",
+          idle: "スクリプトを実行して出力を表示",
+          noScripts: "スクリプトが設定されていません",
+          noTerminal: "このワークスペースでターミナルを開く",
+        },
         open: "サイドパネルを開く",
         close: "サイドパネルを閉じる",
         toggle: "サイドパネルを切り替え",
@@ -995,6 +1003,9 @@ export const ja: TranslationResources = {
         jumpToFile: {
           title: "ファイルへ移動",
         },
+        filesChanged: "{{count}} 個のファイルを変更",
+        filesChanged_one: "{{count}} 個のファイルを変更",
+        filesChanged_other: "{{count}} 個のファイルを変更",
         binaryFile: "バイナリファイル",
         tooLarge: "差分が大きすぎて表示できません",
         previewTooLargeTitle: "この差分は大きすぎるためプレビューできません",
@@ -1004,6 +1015,7 @@ export const ja: TranslationResources = {
         switchToUnified: "ユニファイド差分に切り替え",
         switchToSplit: "左右比較差分に切り替え",
         options: "差分オプション",
+        treeView: "ツリー表示",
         inlineDiff: "インライン差分",
         hideWhitespace: "空白を非表示",
         showWhitespace: "空白を表示",

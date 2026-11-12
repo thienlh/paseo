@@ -14,6 +14,7 @@ import { useFileExplorerActions } from "@/hooks/use-file-explorer-actions";
 import { useWindowLayout, resolveWorkspaceActionPlacement } from "@/window-layout";
 import { revealWorkspaceTab } from "@/workspace-tabs/navigation";
 import { ExplorerSidebarDock } from "@/screens/workspace/explorer-sidebar";
+import { openExecutionTerminal } from "@/screens/workspace/explorer-sidebar/execution/open";
 import { ForgeShorthandProvider } from "@/git/forge-shorthand";
 import { ExplorerFrame } from "./explorer-sidebar/frame";
 import { WorkspaceTabDragScope } from "@/components/workspace-tab-drag-scope";
@@ -896,6 +897,7 @@ function paneLocalPlacement(paneId: string | null | undefined): WorkspaceTabPlac
 
 interface WorkspaceTerminalTabActionsInput {
   persistenceKey: string | null;
+  isCompact: boolean;
   openWorkspaceTabFocused: (
     workspaceKey: string,
     target: WorkspaceTabTarget,
@@ -921,7 +923,7 @@ interface WorkspaceTerminalTabActions {
     terminalId: string;
     destination: TerminalTabDestination;
   }) => void;
-  handleScriptTerminalSelected: (terminalId: string) => void;
+  handleScriptTerminalSelected: (terminalId: string, scriptName?: string) => void;
   handleWorkspacePathUnavailable: () => void;
   handleTerminalCreateQueued: () => void;
   handleTerminalCreateFailed: (reason: string) => void;
@@ -929,6 +931,7 @@ interface WorkspaceTerminalTabActions {
 
 function useWorkspaceTerminalTabActions({
   persistenceKey,
+  isCompact,
   openWorkspaceTabFocused,
   replaceWorkspaceTabTarget,
   labels,
@@ -955,17 +958,13 @@ function useWorkspaceTerminalTabActions({
     [openWorkspaceTabFocused, persistenceKey, replaceWorkspaceTabTarget],
   );
   const handleScriptTerminalSelected = useCallback(
-    (terminalId: string) => {
+    (terminalId: string, scriptName?: string) => {
       if (!persistenceKey) {
         return;
       }
-      openWorkspaceTabFocused(
-        persistenceKey,
-        { kind: "terminal", terminalId },
-        FOCUSED_PANE_PLACEMENT,
-      );
+      openExecutionTerminal({ workspaceKey: persistenceKey, isCompact, terminalId, scriptName });
     },
-    [openWorkspaceTabFocused, persistenceKey],
+    [isCompact, persistenceKey],
   );
   const handleWorkspacePathUnavailable = useCallback(() => {
     toast.error(labels.workspacePathUnavailable);
@@ -1193,6 +1192,7 @@ function WorkspaceScreenContent({
     handleTerminalCreateFailed,
   } = useWorkspaceTerminalTabActions({
     persistenceKey,
+    isCompact: isMobile,
     openWorkspaceTabFocused,
     replaceWorkspaceTabTarget,
     labels: {
@@ -1816,6 +1816,9 @@ function WorkspaceScreenContent({
       destination: input?.paneId ? { kind: "open", paneId: input.paneId } : { kind: "open" },
     });
   });
+  const handleCreateExecutionTerminal = useCallback(() => {
+    if (explorerSidebarPaneId) handleCreateTerminal({ paneId: explorerSidebarPaneId });
+  }, [explorerSidebarPaneId, handleCreateTerminal]);
 
   const handleCreateTerminalWithProfile = useCallback(
     (profile: TerminalProfile, paneId?: string) => {
@@ -3651,12 +3654,35 @@ function WorkspaceScreenContent({
     </DesktopCenterColumnChrome>
   );
 
+  const creatingExecutionTerminal = createTerminalMutation.isPending;
+  const executionControls = useMemo(
+    () => ({
+      scripts: workspaceScripts,
+      actions: scriptActions,
+      connected: isConnected,
+      creatingTerminal: creatingExecutionTerminal,
+      onCreateTerminal: handleCreateExecutionTerminal,
+      onViewTerminal: handleViewScriptTerminal,
+      onOpenUrl: handleOpenUrlInBrowserTab,
+    }),
+    [
+      workspaceScripts,
+      scriptActions,
+      isConnected,
+      creatingExecutionTerminal,
+      handleCreateExecutionTerminal,
+      handleViewScriptTerminal,
+      handleOpenUrlInBrowserTab,
+    ],
+  );
   const sharedExplorer = useMemo(() => {
     if (!workspaceLayout || !explorerSidebarPaneId || !persistenceKey) return null;
     const explorerPane = findPaneById(workspaceLayout.root, explorerSidebarPaneId);
     if (!explorerPane) return null;
     const dock = (
       <ExplorerSidebarDock
+        workspaceKey={persistenceKey}
+        executionControls={executionControls}
         pane={explorerPane}
         uiTabs={uiTabs}
         normalizedServerId={normalizedServerId}
@@ -3696,6 +3722,7 @@ function WorkspaceScreenContent({
     );
   }, [
     workspaceLayout,
+    executionControls,
     explorerSidebarPaneId,
     persistenceKey,
     isMobile,
