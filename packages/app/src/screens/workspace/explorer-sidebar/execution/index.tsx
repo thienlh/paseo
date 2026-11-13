@@ -3,12 +3,7 @@ import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 import { isWeb } from "@/constants/platform";
 import { RetainedPanel } from "@/components/retained-panel";
-import {
-  ExecutionControls,
-  ExecutionEmpty,
-  ExecutionScriptPicker,
-  type ExecutionControlsProps,
-} from "./controls";
+import { ExecutionControls, ExecutionEmpty, type ExecutionControlsProps } from "./controls";
 import { ExecutionResize } from "./resize";
 import { resolveExecutionHeight } from "./state";
 
@@ -72,7 +67,7 @@ export function ExplorerExecution({
           onTouchStart={onFocus}
           {...(isWeb ? { onPointerDown: onFocus } : {})}
         >
-          {state.view === "run" ? <ExecutionScriptPicker {...controls} /> : tabRail}
+          {state.view === "terminal" ? tabRail : null}
           <View style={styles.content}>
             {children}
             {!hasTerminal ? (
@@ -80,6 +75,7 @@ export function ExplorerExecution({
                 view={state.view}
                 hasScripts={controls.scripts.length > 0}
                 onCreateTerminal={controls.onCreateTerminal}
+                onConfigureScripts={controls.onConfigureScripts}
                 creatingTerminal={controls.creatingTerminal}
                 connected={controls.connected}
               />

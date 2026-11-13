@@ -22,6 +22,7 @@ import { ExplorerExecution } from "./explorer-sidebar/execution";
 import { useExplorerExecution } from "./explorer-sidebar/execution/use-execution";
 import type { ExecutionControlsProps } from "./explorer-sidebar/execution/controls";
 import type { TabDropPreview } from "@/components/split-container-tab-drop-preview";
+import { WorkspaceActions } from "@/git/workspace-actions";
 
 interface ExplorerSidebarDockProps extends Pick<
   WorkspaceDesktopTabsRowProps,
@@ -43,6 +44,7 @@ interface ExplorerSidebarDockProps extends Pick<
   uiTabs: WorkspaceTab[];
   normalizedServerId: string;
   normalizedWorkspaceId: string;
+  workspaceDirectory: string | null;
   isWorkspaceFocused: boolean;
   paneFocusSuspended: boolean;
   closingTabIds: Set<string>;
@@ -80,6 +82,7 @@ export function ExplorerSidebarDock({
   uiTabs,
   normalizedServerId,
   normalizedWorkspaceId,
+  workspaceDirectory,
   isWorkspaceFocused,
   paneFocusSuspended,
   closingTabIds,
@@ -269,6 +272,13 @@ export function ExplorerSidebarDock({
     <RetainedPanel active>
       <WindowChromeRegion corners="top-right">
         <View style={styles.dock} testID="workspace-explorer-sidebar">
+          {workspaceDirectory ? (
+            <WorkspaceActions
+              serverId={normalizedServerId}
+              workspaceId={normalizedWorkspaceId}
+              cwd={workspaceDirectory}
+            />
+          ) : null}
           <WindowChromeSafeArea placement="inline" style={styles.tabRail}>
             <TitlebarDragRegion />
             <View style={styles.tabRow}>

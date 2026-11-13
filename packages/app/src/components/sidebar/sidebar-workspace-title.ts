@@ -20,6 +20,7 @@ export function resolveSidebarWorkspaceAccessibilityLabel(input: {
   hostBadgeLabel?: string | null;
   pullRequestLabel?: string | null;
   serviceLabel?: string | null;
+  scriptLabel?: string | null;
   t: TFunction;
 }): string {
   return [
@@ -28,6 +29,7 @@ export function resolveSidebarWorkspaceAccessibilityLabel(input: {
     input.hostBadgeLabel,
     input.pullRequestLabel,
     input.serviceLabel,
+    input.scriptLabel,
     input.workspace.statusBucket === "done"
       ? null
       : getStatusBucketLabel(input.workspace.statusBucket, input.t),

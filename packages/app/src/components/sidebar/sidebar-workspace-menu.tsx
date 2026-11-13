@@ -36,6 +36,10 @@ import {
 } from "@/components/ui/context-menu";
 import { Shortcut } from "@/components/ui/shortcut";
 import { OpenInFileManagerMenuItem } from "@/workspace/open-in-file-manager/menu-item";
+import {
+  selectSidebarRunningScriptNames,
+  sidebarRunningScriptLabel,
+} from "@/components/sidebar/running-script";
 import { resolveSidebarWorkspaceAccessibilityLabel } from "@/components/sidebar/sidebar-workspace-title";
 import { bySizing } from "@/components/ui/control-geometry";
 import {
@@ -415,6 +419,7 @@ export function SidebarWorkspaceContextMenu({
     serviceLabel: serviceSummary
       ? t(workspaceServiceLabelKey(serviceSummary), { name: serviceSummary.name })
       : null,
+    scriptLabel: sidebarRunningScriptLabel(selectSidebarRunningScriptNames(workspace.scripts), t),
     t,
   });
   const workspaceTarget = useMemo<WorkspaceLabelTarget>(

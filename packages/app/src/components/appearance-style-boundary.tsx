@@ -40,6 +40,7 @@ export function appearanceStyleBoundaryKey(theme: Theme): string {
     theme.colors.surface1,
     theme.colors.surface2,
     theme.colors.border,
+    theme.colors.accent,
     theme.colors.accentBright,
     theme.colors.syntax.keyword,
     theme.colors.syntax.comment,

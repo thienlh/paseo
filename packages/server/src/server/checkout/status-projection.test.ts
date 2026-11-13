@@ -58,6 +58,7 @@ describe("checkout status projection", () => {
         state: "open",
         baseRefName: "main",
         headRefName: "feature/pr-pane",
+        headSha: "published-revision",
         isMerged: false,
         isDraft: true,
         mergeable: "MERGEABLE",
@@ -76,6 +77,7 @@ describe("checkout status projection", () => {
       "github",
     );
 
+    expect(payload).toHaveProperty("headSha", "published-revision");
     expect(payload).toHaveProperty("repoOwner", "internal-owner");
     expect(payload).toHaveProperty("repoName", "internal-repo");
     expect(payload).toHaveProperty("forge", "github");

@@ -20,6 +20,7 @@ import { waitForTerminalContent } from "../support/helpers/terminal-perf";
 import { daemonWsRoutePattern } from "../support/helpers/daemon-port";
 import { getServerId } from "../support/helpers/server-id";
 import { buildHostWorkspaceRoute } from "../../src/utils/host-routes";
+import path from "node:path";
 
 async function sampleRunActivity(bar: import("@playwright/test").Locator): Promise<string[]> {
   return bar.evaluate(async (element) => {
@@ -40,9 +41,9 @@ test("Explorer execution retries a failed script start and retains its session t
     paseoConfig: {
       scripts: {
         dev: {
-          type: "script",
+          type: "service",
           command:
-            "node -e \"console.log('EXECUTION_READY'); let n=0; setInterval(()=>console.log('EXECUTION_TICK '+ ++n),250)\"",
+            "node -e \"require('http').createServer((q,r)=>r.end('ok')).listen(Number(process.env.PORT || process.env.PASEO_PORT),()=>console.log('EXECUTION_READY')); let n=0; setInterval(()=>console.log('EXECUTION_TICK '+ ++n),250)\"",
         },
         worker: {
           type: "script",
@@ -107,6 +108,40 @@ test("Explorer execution retries a failed script start and retains its session t
     await run.click();
     await waitForTerminalContent(page, (text) => text.includes("EXECUTION_READY"), 15_000);
     await expect(run).toHaveText("Stop");
+    const header = explorer.getByTestId("explorer-execution-header");
+    const service = header.getByTestId("explorer-execution-open-service");
+    await expect(service).toBeVisible();
+    await expect(header.getByTestId("explorer-execution-script-picker")).toHaveAccessibleName(
+      "Choose script: dev",
+    );
+    await expect(body.getByTestId("explorer-execution-script-picker")).toHaveCount(0);
+    await expect(header.getByTestId("explorer-execution-run-view")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    const actionBounds = await run.boundingBox();
+    if (!actionBounds) throw new Error("Execution action has no bounds");
+    for (const id of [
+      "explorer-execution-terminal-view",
+      "explorer-execution-script-picker",
+      "explorer-execution-new-terminal",
+      "explorer-execution-open-service",
+      "explorer-execution-run",
+    ]) {
+      const control = await header.getByTestId(id).boundingBox();
+      const bar = await header.boundingBox();
+      if (!control || !bar) throw new Error("Execution header control has no bounds");
+      expect(control.x).toBeGreaterThanOrEqual(bar.x);
+      expect(control.x + control.width).toBeLessThanOrEqual(bar.x + bar.width);
+      expect(control.y + control.height / 2).toBeCloseTo(
+        actionBounds.y + actionBounds.height / 2,
+        0,
+      );
+    }
+    const headerBounds = await header.boundingBox();
+    const outputBounds = await body.getByTestId("terminal-surface").boundingBox();
+    if (!headerBounds || !outputBounds) throw new Error("Execution output has no bounds");
+    expect(outputBounds.y - (headerBounds.y + headerBounds.height)).toBeLessThanOrEqual(2);
     await expect(activityBar).toBeVisible();
     expect(new Set(await sampleRunActivity(activityBar)).size).toBeGreaterThan(1);
     await expect(explorer.getByTestId("file-explorer-tree-scroll")).toBeVisible();
@@ -152,8 +187,14 @@ test("Explorer execution retries a failed script start and retains its session t
     expect(restored.terminals.map((terminal) => terminal.id)).toEqual([terminalId]);
     await explorer.screenshot({ path: testInfo.outputPath("explorer-execution-light.png") });
     await page.emulateMedia({ colorScheme: "dark" });
+    await expect(header.getByTestId("explorer-execution-run-view")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     await explorer.screenshot({ path: testInfo.outputPath("explorer-execution-dark.png") });
-    const header = explorer.getByTestId("explorer-execution-header");
+    await explorer.screenshot({
+      path: path.resolve(__dirname, "../../../../.context/execution-toolbar-redesign.png"),
+    });
     for (let frame = 0; frame < 24; frame++) {
       await header.screenshot({
         path: testInfo.outputPath(`run-activity-${String(frame).padStart(2, "0")}.png`),
@@ -183,7 +224,9 @@ test("Explorer execution retries a failed script start and retains its session t
     await page.getByTestId("explorer-execution-script-worker").click();
     await run.click();
     await waitForTerminalContent(page, (text) => text.includes("WORKER_READY"), 15_000);
-    await expect(explorer.getByTestId("explorer-execution-script-picker")).toContainText("worker");
+    await expect(explorer.getByTestId("explorer-execution-script-picker")).toHaveAccessibleName(
+      "Choose script: worker",
+    );
     await expect(activityBar).toBeVisible();
     expect(new Set(await sampleRunActivity(activityBar)).size).toBe(1);
     await run.click();

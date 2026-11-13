@@ -2,7 +2,7 @@ import React, { useMemo, type ReactNode } from "react";
 import { View, Text } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 
-export type StatusBadgeVariant = "success" | "warning" | "error" | "muted";
+export type StatusBadgeVariant = "success" | "warning" | "error" | "muted" | "merged";
 
 interface StatusBadgeProps {
   label: string;
@@ -20,6 +20,7 @@ export function StatusBadge({ label, variant = "muted", leading, size = "sm" }: 
       variant === "success" && styles.pillSuccess,
       variant === "warning" && styles.pillWarning,
       variant === "error" && styles.pillError,
+      variant === "merged" && styles.pillMerged,
     ],
     [size, variant],
   );
@@ -29,6 +30,7 @@ export function StatusBadge({ label, variant = "muted", leading, size = "sm" }: 
       variant === "success" && styles.pillTextSuccess,
       variant === "warning" && styles.pillTextWarning,
       variant === "error" && styles.pillTextError,
+      variant === "merged" && styles.pillTextMerged,
     ],
     [variant],
   );
@@ -36,7 +38,9 @@ export function StatusBadge({ label, variant = "muted", leading, size = "sm" }: 
   return (
     <View style={pillStyle}>
       {leading}
-      <Text style={textStyle}>{label}</Text>
+      <Text style={textStyle} numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -65,11 +69,14 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.statusWarningTint,
     borderColor: "transparent",
   },
+  pillMerged: { backgroundColor: theme.colors.statusMergedTint, borderColor: "transparent" },
+  pillTextMerged: { color: theme.colors.statusMerged },
   pillError: {
     backgroundColor: theme.colors.statusDangerTint,
     borderColor: "transparent",
   },
   pillText: {
+    flexShrink: 1,
     fontSize: theme.fontSize.sm,
     fontWeight: theme.fontWeight.normal,
     color: theme.colors.foregroundMuted,

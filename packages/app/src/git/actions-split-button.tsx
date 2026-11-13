@@ -1,8 +1,8 @@
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useCallback, useMemo } from "react";
 import { View, Text, Pressable, type PressableStateCallbackType } from "react-native";
-import { StyleSheet, useUnistyles } from "react-native-unistyles";
-import { ChevronDown, GitBranch, MoreVertical } from "lucide-react-native";
+import { StyleSheet, withUnistyles } from "react-native-unistyles";
+import { Archive, ChevronDown, GitBranch, MoreVertical } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
@@ -13,11 +13,28 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Shortcut } from "@/components/ui/shortcut";
 import { useShortcutKeys } from "@/hooks/use-shortcut-keys";
-import { inlineUnistylesStyle } from "@/styles/unistyles-inline-style";
+import Animated, { FadeIn, ReduceMotion } from "react-native-reanimated";
+import { Button } from "@/components/ui/button";
+import { GitWorkflowLabel } from "./workflow-label";
 import type { ShortcutKey } from "@/utils/format-shortcut";
 import { actionsWithoutPrimary, type GitAction, type GitActions } from "@/git/policy";
 import { useGitActionRunner } from "@/git/use-actions";
 import { HEADER_CONTROL_HEIGHT } from "@/components/ui/control-geometry";
+
+const ThemedChevronDown = withUnistyles(ChevronDown, (theme) => ({
+  color: theme.colors.foregroundExtraMuted,
+}));
+const ThemedGitBranch = withUnistyles(GitBranch, (theme) => ({
+  color: theme.colors.foregroundMuted,
+}));
+const ThemedMoreVertical = withUnistyles(MoreVertical, (theme) => ({
+  color: theme.colors.foregroundMuted,
+}));
+const ThemedSpinner = withUnistyles(LoadingSpinner, (theme) => ({
+  color: theme.colors.foreground,
+}));
+const ArchiveIcon = withUnistyles(Archive, (theme) => ({ color: theme.colors.surface0 }));
+const actionEntrance = FadeIn.duration(100).reduceMotion(ReduceMotion.System);
 
 interface GitActionsSplitButtonProps {
   gitActions: GitActions;
@@ -75,18 +92,30 @@ function GitActionMenuItem({
   );
 }
 
+function ActionIcon({ action }: { action: GitAction }) {
+  if (action.status === "pending")
+    return <ThemedSpinner size="small" style={styles.splitButtonSpinnerOnly} />;
+  if (action.id === "archive-workspace") return <ArchiveIcon size={16} />;
+  return action.icon;
+}
+
+function WorkflowLabel({ state, hidden }: { state: GitActions["workflow"]; hidden?: boolean }) {
+  if (hidden || !state || state === "local" || state === "open" || state === "ready") return null;
+  return <GitWorkflowLabel state={state} />;
+}
+
 export function GitActionsSplitButton({
   gitActions,
   hideLabels,
   menuOnly = false,
 }: GitActionsSplitButtonProps) {
-  const { theme } = useUnistyles();
   const { t } = useTranslation();
   const runGitAction = useGitActionRunner();
   const archiveShortcutKeys = useShortcutKeys("archive-workspace");
 
   const getActionDisplayLabel = useCallback((action: GitAction): string => {
-    if (action.status === "pending") return action.pendingLabel;
+    if (action.status === "pending")
+      return action.id === "archive-workspace" ? action.pendingLabel : action.label;
     if (action.status === "success") return action.successLabel;
     return action.label;
   }, []);
@@ -100,33 +129,34 @@ export function GitActionsSplitButton({
 
   const overflowMenuButtonStyle = useMemo(() => [styles.iconButton, styles.overflowMenuButton], []);
 
+  const continueAction = gitActions.continueAction;
+  const handleContinue = useCallback(() => {
+    if (continueAction) runGitAction(continueAction);
+  }, [continueAction, runGitAction]);
   const primaryDisabled = gitActions.primary?.disabled;
   const primaryPressableStyle = useCallback(
     ({ hovered, pressed }: PressableStateCallbackType & { hovered?: boolean }) => [
       styles.splitButtonPrimary,
-      (Boolean(hovered) || pressed) &&
-        inlineUnistylesStyle({ backgroundColor: theme.colors.surface2 }),
+      (Boolean(hovered) || pressed) && styles.interaction,
       primaryDisabled && styles.splitButtonPrimaryDisabled,
     ],
-    [primaryDisabled, theme.colors.surface2],
+    [primaryDisabled],
   );
 
   const caretTriggerStyle = useCallback(
     ({ hovered, pressed, open }: { hovered: boolean; pressed: boolean; open: boolean }) => [
       styles.splitButtonCaret,
-      (hovered || pressed || open) &&
-        inlineUnistylesStyle({ backgroundColor: theme.colors.surface2 }),
+      (hovered || pressed || open) && styles.interaction,
     ],
-    [theme.colors.surface2],
+    [],
   );
 
   const menuOnlyTriggerStyle = useCallback(
     ({ hovered, pressed, open }: { hovered: boolean; pressed: boolean; open: boolean }) => [
       styles.menuOnlyTrigger,
-      (hovered || pressed || open) &&
-        inlineUnistylesStyle({ backgroundColor: theme.colors.surface2 }),
+      (hovered || pressed || open) && styles.interaction,
     ],
-    [theme.colors.surface2],
+    [],
   );
 
   const menuOnlyActions = [
@@ -147,8 +177,8 @@ export function GitActionsSplitButton({
           accessibilityRole="button"
           accessibilityLabel={t("workspace.header.actions.workspaceActions")}
         >
-          <GitBranch size={16} color={theme.colors.foregroundMuted} />
-          <ChevronDown size={12} color={theme.colors.foregroundExtraMuted} />
+          <ThemedGitBranch size={16} />
+          <ThemedChevronDown size={12} />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" testID="changes-primary-cta-menu">
           {menuOnlyActions.map((action, index) => (
@@ -178,8 +208,16 @@ export function GitActionsSplitButton({
 
   return (
     <View style={styles.row}>
+      <WorkflowLabel state={gitActions.workflow} hidden={hideLabels} />
       {gitActions.primary ? (
-        <View style={styles.splitButton}>
+        <View
+          style={[
+            styles.splitButton,
+            gitActions.workflow === "attention" && styles.attention,
+            gitActions.workflow === "waiting" && styles.waiting,
+            gitActions.primary.id === "archive-workspace" && styles.merged,
+          ]}
+        >
           <Pressable
             testID="changes-primary-cta"
             style={primaryPressableStyle}
@@ -188,22 +226,21 @@ export function GitActionsSplitButton({
             accessibilityRole="button"
             accessibilityLabel={gitActions.primary.label}
           >
-            {gitActions.primary.status === "pending" ? (
-              <LoadingSpinner
-                size="small"
-                color={theme.colors.foreground}
-                style={styles.splitButtonSpinnerOnly}
-              />
-            ) : (
+            <Animated.View key={gitActions.primary.id} entering={actionEntrance}>
               <View style={styles.splitButtonContent}>
-                {gitActions.primary.icon}
+                <ActionIcon action={gitActions.primary} />
                 {!hideLabels && (
-                  <Text style={styles.splitButtonText}>
+                  <Text
+                    style={[
+                      styles.splitButtonText,
+                      gitActions.primary.id === "archive-workspace" && styles.mergedText,
+                    ]}
+                  >
                     {getActionDisplayLabel(gitActions.primary)}
                   </Text>
                 )}
               </View>
-            )}
+            </Animated.View>
           </Pressable>
           {gitActions.secondary.length > 0 ? (
             <DropdownMenu>
@@ -213,7 +250,7 @@ export function GitActionsSplitButton({
                 accessibilityRole="button"
                 accessibilityLabel={t("workspace.git.actions.moreOptions")}
               >
-                <ChevronDown size={16} color={theme.colors.foregroundExtraMuted} />
+                <ThemedChevronDown size={16} />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" testID="changes-primary-cta-menu">
                 {gitActions.secondary.map((action, index) => (
@@ -237,6 +274,19 @@ export function GitActionsSplitButton({
           ) : null}
         </View>
       ) : null}
+      {gitActions.continueAction ? (
+        <Button
+          variant="outline"
+          size="sm"
+          style={styles.continueButton}
+          textStyle={styles.continueText}
+          disabled={gitActions.continueAction.disabled}
+          onPress={handleContinue}
+          testID="changes-continue-cta"
+        >
+          {gitActions.continueAction.label}
+        </Button>
+      ) : null}
       {gitActions.menu.length > 0 ? (
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -246,7 +296,7 @@ export function GitActionsSplitButton({
             accessibilityRole="button"
             accessibilityLabel={t("workspace.git.actions.moreActions")}
           >
-            <MoreVertical size={16} color={theme.colors.foregroundMuted} />
+            <ThemedMoreVertical size={16} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" width={220} testID="changes-overflow-content">
             {gitActions.menu.map((action) => (
@@ -265,13 +315,29 @@ export function GitActionsSplitButton({
 }
 
 const styles = StyleSheet.create((theme) => ({
+  interaction: { backgroundColor: theme.colors.interactionHighlight },
+  attention: {
+    backgroundColor: theme.colors.statusWarningTint,
+    borderColor: theme.colors.statusWarning,
+  },
+  waiting: { backgroundColor: theme.colors.statusWarningTint },
+  merged: { backgroundColor: theme.colors.statusMerged, borderColor: theme.colors.statusMerged },
+  mergedText: { color: theme.colors.surface0 },
+  continueButton: {
+    borderStyle: "dashed",
+    borderColor: theme.colors.statusMerged,
+    height: HEADER_CONTROL_HEIGHT,
+  },
+  continueText: { color: theme.colors.statusMerged },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[1],
-    flexShrink: 0,
+    flexShrink: 1,
+    minWidth: 0,
   },
   splitButton: {
+    flexShrink: 0,
     height: HEADER_CONTROL_HEIGHT,
     flexDirection: "row",
     alignItems: "stretch",

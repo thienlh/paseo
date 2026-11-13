@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { CheckoutPrStatusSchema } from "@getpaseo/protocol/messages";
+import { deriveGitWorkflowState, isCheckoutShipped } from "./workflow";
 import { i18n } from "@/i18n/i18next";
 
 import {
@@ -89,6 +90,8 @@ function createInput(
     shouldPromoteArchive: false,
     shipDefault: "pr",
     runtime: {
+      "continue-workspace": { disabled: false, status: "idle", handler: () => undefined },
+      "fix-pr": { disabled: false, status: "idle", handler: () => undefined },
       commit: {
         disabled: false,
         status: "idle",
@@ -114,32 +117,12 @@ function createInput(
         status: "idle",
         handler: () => undefined,
       },
-      "merge-pr-squash": {
+      "merge-pr": {
         disabled: false,
         status: "idle",
         handler: () => undefined,
       },
-      "merge-pr-merge": {
-        disabled: false,
-        status: "idle",
-        handler: () => undefined,
-      },
-      "merge-pr-rebase": {
-        disabled: false,
-        status: "idle",
-        handler: () => undefined,
-      },
-      "enable-pr-auto-merge-squash": {
-        disabled: false,
-        status: "idle",
-        handler: () => undefined,
-      },
-      "enable-pr-auto-merge-merge": {
-        disabled: false,
-        status: "idle",
-        handler: () => undefined,
-      },
-      "enable-pr-auto-merge-rebase": {
+      "enable-pr-auto-merge": {
         disabled: false,
         status: "idle",
         handler: () => undefined,
@@ -168,6 +151,16 @@ function createInput(
     ...rest,
   };
 }
+
+describe("chat-driven shipping", () => {
+  it("offers Create PR before committing or pushing a new feature", () => {
+    const actions = buildGitActions(
+      createInput({ isOnBaseBranch: false, hasRemote: true, hasUncommittedChanges: true }),
+    );
+    expect(actions.primary).toMatchObject({ id: "pr", unavailableMessage: undefined });
+    expect(actions.secondary.some((action) => action.id === "commit")).toBe(true);
+  });
+});
 
 describe("git-actions-policy", () => {
   afterEach(async () => {
@@ -313,7 +306,7 @@ describe("git-actions-policy", () => {
       }),
     );
 
-    expect(actions.primary).toMatchObject({ id: "merge-pr-merge", label: "Merge PR (merge)" });
+    expect(actions.primary).toMatchObject({ id: "merge-pr", label: "Merge PR" });
     expect(actionsWithoutPrimary(actions).map((action) => action.id)).toEqual([
       "pull",
       "push",
@@ -440,9 +433,7 @@ describe("git-actions-policy", () => {
       "merge-from-base",
       "merge-branch",
       "pr",
-      "merge-pr-squash",
-      "merge-pr-merge",
-      "merge-pr-rebase",
+      "merge-pr",
       "archive-workspace",
     ]);
     expect(
@@ -569,13 +560,13 @@ describe("git-actions-policy", () => {
     expect(actions.secondary.some((action) => action.id === "archive-workspace")).toBe(true);
   });
 
-  it("still promotes archive as primary for an idle Paseo-owned worktree", () => {
+  it("keeps Archive in the menu for an idle Paseo-owned worktree", () => {
     const actions = buildGitActions(createInput({ isPaseoOwnedWorktree: true }));
 
-    expect(actions.primary).toMatchObject({ id: "archive-workspace" });
+    expect(actions.primary).toBeNull();
   });
 
-  it("promotes squash-and-merge when an open PR is mergeable and the branch is in sync", () => {
+  it("promotes Merge PR when an open PR is mergeable and the branch is in sync", () => {
     const actions = buildGitActions(
       createInput({
         hasRemote: true,
@@ -591,8 +582,8 @@ describe("git-actions-policy", () => {
     );
 
     expect(actions.primary).toMatchObject({
-      id: "merge-pr-squash",
-      label: "Merge PR (squash)",
+      id: "merge-pr",
+      label: "Merge PR",
     });
   });
 
@@ -612,8 +603,8 @@ describe("git-actions-policy", () => {
     );
 
     expect(actions.primary).toMatchObject({
-      id: "merge-pr-squash",
-      label: "Merge PR (squash)",
+      id: "merge-pr",
+      label: "Merge PR",
     });
   });
 
@@ -638,17 +629,7 @@ describe("git-actions-policy", () => {
     expect(actions.secondary).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: "merge-pr-squash",
-          disabled: false,
-          unavailableMessage: undefined,
-        }),
-        expect.objectContaining({
-          id: "merge-pr-merge",
-          disabled: false,
-          unavailableMessage: undefined,
-        }),
-        expect.objectContaining({
-          id: "merge-pr-rebase",
+          id: "merge-pr",
           disabled: false,
           unavailableMessage: undefined,
         }),
@@ -672,12 +653,12 @@ describe("git-actions-policy", () => {
     );
 
     expect(actions.primary).toMatchObject({
-      id: "merge-pr-squash",
-      label: "Merge PR (squash)",
+      id: "merge-pr",
+      label: "Merge PR",
     });
   });
 
-  it("promotes push over Create PR when local commits are unpushed", () => {
+  it("lets Create PR handle the initial push", () => {
     const actions = buildGitActions(
       createInput({
         hasRemote: true,
@@ -689,8 +670,8 @@ describe("git-actions-policy", () => {
     );
 
     expect(actions.primary).toMatchObject({
-      id: "push",
-      label: "Push",
+      id: "pr",
+      label: "Create PR",
     });
   });
 
@@ -764,13 +745,13 @@ describe("git-actions-policy", () => {
     );
 
     expect(actions.primary).toMatchObject({
-      id: "merge-pr-squash",
-      label: "Merge PR (squash)",
+      id: "merge-pr",
+      label: "Merge PR",
     });
     expect(actions.secondary.some((action) => action.id === "merge-branch")).toBe(true);
   });
 
-  it("keeps the merge-pr actions in the feature branch menu", () => {
+  it("keeps the merge-pr action in the feature branch menu", () => {
     const actions = buildGitActions(
       createInput({
         hasRemote: true,
@@ -791,9 +772,7 @@ describe("git-actions-policy", () => {
       "merge-from-base",
       "merge-branch",
       "pr",
-      "merge-pr-squash",
-      "merge-pr-merge",
-      "merge-pr-rebase",
+      "merge-pr",
       "archive-workspace",
     ]);
   });
@@ -812,9 +791,7 @@ describe("git-actions-policy", () => {
       }),
     );
     const pullRequestActions = actions.secondary
-      .filter((action) =>
-        ["pr", "merge-pr-squash", "merge-pr-merge", "merge-pr-rebase"].includes(action.id),
-      )
+      .filter((action) => ["pr", "merge-pr"].includes(action.id))
       .map((action) => ({
         id: action.id,
         label: action.label,
@@ -836,31 +813,13 @@ describe("git-actions-policy", () => {
         startsGroup: false,
       },
       {
-        id: "merge-pr-squash",
-        label: "Merge PR (squash)",
+        id: "merge-pr",
+        label: "Merge PR",
         pendingLabel: "Merging PR...",
         successLabel: "PR merged",
         disabled: false,
         unavailableMessage: undefined,
         startsGroup: true,
-      },
-      {
-        id: "merge-pr-merge",
-        label: "Merge PR (merge)",
-        pendingLabel: "Merging PR...",
-        successLabel: "PR merged",
-        disabled: false,
-        unavailableMessage: undefined,
-        startsGroup: false,
-      },
-      {
-        id: "merge-pr-rebase",
-        label: "Merge PR (rebase)",
-        pendingLabel: "Merging PR...",
-        successLabel: "PR merged",
-        disabled: false,
-        unavailableMessage: undefined,
-        startsGroup: false,
       },
     ]);
   });
@@ -919,9 +878,7 @@ describe("git-actions-policy", () => {
         ...overrides,
       }),
     );
-    const mergePrActions = actions.secondary.filter((action) =>
-      ["merge-pr-squash", "merge-pr-merge", "merge-pr-rebase"].includes(action.id),
-    );
+    const mergePrActions = actions.secondary.filter((action) => action.id === "merge-pr");
 
     expect(mergePrActions).toEqual([]);
     expect(actions.secondary).toEqual(
@@ -958,8 +915,8 @@ describe("git-actions-policy", () => {
 
     expect(oldDaemonStatus.forgeSpecific).toBeUndefined();
     expect(actions.primary).toMatchObject({
-      id: "merge-pr-squash",
-      label: "Merge PR (squash)",
+      id: "merge-pr",
+      label: "Merge PR",
     });
     expect(actions.secondary.map((action) => action.id)).toEqual([
       "pull",
@@ -968,9 +925,7 @@ describe("git-actions-policy", () => {
       "merge-from-base",
       "merge-branch",
       "pr",
-      "merge-pr-squash",
-      "merge-pr-merge",
-      "merge-pr-rebase",
+      "merge-pr",
       "archive-workspace",
     ]);
   });
@@ -1001,8 +956,8 @@ describe("git-actions-policy", () => {
     );
 
     expect(actions.primary).toMatchObject({
-      id: "enable-pr-auto-merge-squash",
-      label: "Auto merge (squash)",
+      id: "enable-pr-auto-merge",
+      label: "Auto merge",
     });
     expect(actions.secondary.map((action) => action.id)).toEqual([
       "pull",
@@ -1011,22 +966,18 @@ describe("git-actions-policy", () => {
       "merge-from-base",
       "merge-branch",
       "pr",
-      "enable-pr-auto-merge-squash",
+      "enable-pr-auto-merge",
       "archive-workspace",
     ]);
-    expect(
-      actions.secondary.some((action) =>
-        ["merge-pr-squash", "merge-pr-merge", "merge-pr-rebase"].includes(action.id),
-      ),
-    ).toBe(false);
+    expect(actions.secondary.some((action) => action.id === "merge-pr")).toBe(false);
   });
 
   it.each([
-    ["SQUASH", "enable-pr-auto-merge-squash", "Auto merge (squash)"],
-    ["MERGE", "enable-pr-auto-merge-merge", "Auto merge (merge)"],
-    ["REBASE", "enable-pr-auto-merge-rebase", "Auto merge (rebase)"],
+    ["SQUASH", "enable-pr-auto-merge", "Auto merge"],
+    ["MERGE", "enable-pr-auto-merge", "Auto merge"],
+    ["REBASE", "enable-pr-auto-merge", "Auto merge"],
   ] as const)(
-    "labels the %s auto-merge action with its method",
+    "offers one auto-merge action regardless of the %s preference",
     (viewerDefaultMergeMethod, id, label) => {
       const actions = buildGitActions(
         createInput({
@@ -1053,6 +1004,7 @@ describe("git-actions-policy", () => {
       );
 
       expect(actions.primary).toMatchObject({ id, label });
+      expect(actions.secondary.filter((action) => action.id === id)).toHaveLength(1);
     },
   );
 
@@ -1113,11 +1065,7 @@ describe("git-actions-policy", () => {
         }),
       ]),
     );
-    expect(
-      actions.secondary.some((action) =>
-        ["merge-pr-squash", "merge-pr-merge", "merge-pr-rebase"].includes(action.id),
-      ),
-    ).toBe(false);
+    expect(actions.secondary.some((action) => action.id === "merge-pr")).toBe(false);
   });
 
   it("respects repository merge method policy for direct merge actions", () => {
@@ -1144,8 +1092,8 @@ describe("git-actions-policy", () => {
     );
 
     expect(actions.primary).toMatchObject({
-      id: "merge-pr-merge",
-      label: "Merge PR (merge)",
+      id: "merge-pr",
+      label: "Merge PR",
     });
     expect(actions.secondary.map((action) => action.id)).toEqual([
       "pull",
@@ -1154,7 +1102,7 @@ describe("git-actions-policy", () => {
       "merge-from-base",
       "merge-branch",
       "pr",
-      "merge-pr-merge",
+      "merge-pr",
       "archive-workspace",
     ]);
   });
@@ -1178,14 +1126,10 @@ describe("git-actions-policy", () => {
     );
 
     expect(actions.primary).toMatchObject({ id: "pr", label: "View PR" });
-    expect(
-      actions.secondary.some((action) =>
-        ["merge-pr-squash", "merge-pr-merge", "merge-pr-rebase"].includes(action.id),
-      ),
-    ).toBe(false);
+    expect(actions.secondary.some((action) => action.id === "merge-pr")).toBe(false);
   });
 
-  it("groups merge-pr actions behind their own menu separator via startsGroup", () => {
+  it("groups the merge-pr action behind its own menu separator via startsGroup", () => {
     const actions = buildGitActions(
       createInput({
         hasRemote: true,
@@ -1209,15 +1153,65 @@ describe("git-actions-policy", () => {
       .filter((action) => !action.startsGroup)
       .map((action) => action.id);
 
-    expect(groupStarters).toEqual(["merge-from-base", "merge-pr-squash", "archive-workspace"]);
-    expect(nonGroupStarters).toEqual([
-      "pull",
-      "push",
-      "pull-and-push",
-      "merge-branch",
-      "pr",
-      "merge-pr-merge",
-      "merge-pr-rebase",
-    ]);
+    expect(groupStarters).toEqual(["merge-from-base", "merge-pr", "archive-workspace"]);
+    expect(nonGroupStarters).toEqual(["pull", "push", "pull-and-push", "merge-branch", "pr"]);
+  });
+});
+
+describe("observed Git workflow", () => {
+  const checkout = {
+    headSha: "published",
+    currentBranch: "feature",
+    isDirty: false,
+    aheadOfOrigin: 0,
+    behindOfOrigin: 0,
+  };
+  const pr = { headSha: "published", headRefName: "feature", state: "closed", isMerged: true };
+  it("suggests completion only for the clean published revision", () => {
+    expect(deriveGitWorkflowState(checkout, pr)).toBe("merged");
+    expect(isCheckoutShipped({ ...checkout, aheadOfOrigin: null, behindOfOrigin: null }, pr)).toBe(
+      true,
+    );
+    expect(isCheckoutShipped({ ...checkout, headSha: "new-commit" }, pr)).toBe(false);
+    expect(isCheckoutShipped({ ...checkout, isDirty: true }, pr)).toBe(false);
+    expect(isCheckoutShipped({ ...checkout, aheadOfOrigin: 1 }, pr)).toBe(false);
+    expect(isCheckoutShipped({ ...checkout, currentBranch: "next-feature" }, pr)).toBe(false);
+    expect(isCheckoutShipped({ ...checkout, headSha: null }, pr)).toBe(false);
+    expect(isCheckoutShipped(null, pr)).toBe(false);
+  });
+  it("derives ready, waiting and attention from forge facts without a success latch", () => {
+    const open = { ...pr, state: "open", isMerged: false, forgeSpecific: githubStatus() };
+    expect(deriveGitWorkflowState(checkout, open)).toBe("ready");
+    expect(deriveGitWorkflowState(checkout, { ...open, checksStatus: "pending" })).toBe("waiting");
+    expect(deriveGitWorkflowState(checkout, { ...open, checksStatus: "failure" })).toBe(
+      "attention",
+    );
+    expect(deriveGitWorkflowState(checkout, { ...open, reviewDecision: "changes_requested" })).toBe(
+      "attention",
+    );
+    expect(deriveGitWorkflowState(checkout, { ...open, mergeable: "CONFLICTING" })).toBe(
+      "attention",
+    );
+    expect(deriveGitWorkflowState({ ...checkout, headSha: "new" }, open)).toBe("open");
+    expect(deriveGitWorkflowState({ ...checkout, isDirty: true }, open)).toBe("open");
+    expect(deriveGitWorkflowState(checkout, { ...open, isDraft: true })).toBe("open");
+  });
+  it("pairs Archive with Continue only after observed shipping", () => {
+    const actions = buildGitActions(
+      createInput({ shouldPromoteArchive: true, pullRequestIsMerged: true, hasPullRequest: true }),
+    );
+    expect(actions.primary?.id).toBe("archive-workspace");
+    expect(actions.continueAction?.id).toBe("continue-workspace");
+    const resumed = buildGitActions(
+      createInput({ pullRequestIsMerged: true, hasPullRequest: true, hasUncommittedChanges: true }),
+    );
+    expect(resumed.primary?.id).toBe("continue-workspace");
+    expect(resumed.continueAction).toBeUndefined();
+  });
+  it("offers fixing an open PR instead of merging when it needs attention", () => {
+    const actions = buildGitActions(
+      createInput({ hasPullRequest: true, pullRequestState: "open", workflow: "attention" }),
+    );
+    expect(actions.primary?.id).toBe("fix-pr");
   });
 });

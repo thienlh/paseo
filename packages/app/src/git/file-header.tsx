@@ -209,6 +209,48 @@ function FileHeaderStats({
   );
 }
 
+function FileHeaderName({
+  file,
+  showsBodyState,
+  showPathDescription,
+  testID,
+  isHovered,
+}: Pick<
+  FileHeaderContentProps,
+  "file" | "showsBodyState" | "showPathDescription" | "testID" | "isHovered"
+>) {
+  const { t } = useTranslation();
+  const fileName = fileNameForPath(file.path);
+  const directory = directorySuffix(file.path).trim();
+  const isBinary = file.status === "binary";
+  const binaryLabel = t("workspace.git.diff.binaryFile");
+  const description = isBinary ? [directory, binaryLabel].filter(Boolean).join(" · ") : directory;
+  const hasDescription = showPathDescription && description.length > 0;
+  const nameStyle = fileHeaderNameStyle(showsBodyState, isHovered);
+  return (
+    <View style={hasDescription ? styles.fileDescription : styles.fileName}>
+      <Text
+        style={[nameStyle, showPathDescription && styles.detailedName]}
+        numberOfLines={1}
+        ellipsizeMode="middle"
+        testID={testID ? `${testID}-name` : undefined}
+      >
+        {fileName}
+      </Text>
+      {hasDescription ? (
+        <Text
+          style={styles.pathDescription}
+          numberOfLines={1}
+          ellipsizeMode="middle"
+          testID={testID ? `${testID}-directory` : undefined}
+        >
+          {description}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 function FileHeaderContent({
   file,
   showDir,
@@ -218,49 +260,38 @@ function FileHeaderContent({
   dragSourceRef,
   isHovered,
 }: FileHeaderContentProps) {
-  const { t } = useTranslation();
   const fileName = fileNameForPath(file.path);
-  const directory = directorySuffix(file.path).trim();
-  const isBinary = file.status === "binary";
-  const binaryLabel = t("workspace.git.diff.binaryFile");
-  const description = isBinary ? [directory, binaryLabel].filter(Boolean).join(" · ") : directory;
   const showFileIcon = !showDir || showPathDescription;
-  const nameStyle = fileHeaderNameStyle(showsBodyState, isHovered);
   const changeIcon = <FileChangeIcon change={fileChange(file)} />;
   return (
     <View
-      style={[styles.content, showsBodyState && styles.documentContent]}
+      style={[
+        styles.content,
+        showsBodyState && styles.documentContent,
+        showPathDescription && styles.detailedContent,
+      ]}
       testID={testID ? `${testID}-header-content` : undefined}
     >
-      <View ref={dragSourceRef} style={showDir ? styles.left : [styles.left, styles.leftTree]}>
+      <View
+        ref={dragSourceRef}
+        style={[
+          styles.left,
+          !showDir && styles.leftTree,
+          showPathDescription && styles.detailedLeft,
+        ]}
+      >
         {showFileIcon ? (
-          <View style={styles.icon}>
+          <View style={[styles.icon, showPathDescription && styles.detailedIcon]}>
             <MaterialFileIcon fileName={fileName} size={WORKSPACE_TREE_ICON_SIZE} />
           </View>
         ) : null}
-        <View style={showPathDescription ? styles.fileDescription : styles.fileName}>
-          <Text
-            style={nameStyle}
-            numberOfLines={1}
-            ellipsizeMode="middle"
-            testID={testID ? `${testID}-name` : undefined}
-          >
-            {fileName}
-          </Text>
-          {showPathDescription ? (
-            <View style={styles.fileMetadata}>
-              <Text
-                style={styles.pathDescription}
-                numberOfLines={1}
-                ellipsizeMode="middle"
-                testID={testID ? `${testID}-directory` : undefined}
-              >
-                {description}
-              </Text>
-              <FileHeaderStats file={file} showPathDescription testID={testID} />
-            </View>
-          ) : null}
-        </View>
+        <FileHeaderName
+          file={file}
+          showsBodyState={showsBodyState}
+          showPathDescription={showPathDescription}
+          testID={testID}
+          isHovered={isHovered}
+        />
         {showDir && !showPathDescription ? (
           <Text style={styles.directory} numberOfLines={1}>
             {directorySuffix(file.path)}
@@ -268,8 +299,8 @@ function FileHeaderContent({
         ) : null}
         {!showDir && !showPathDescription ? <View style={styles.directorySpacer} /> : null}
       </View>
-      <View style={styles.right}>
-        {!showPathDescription ? <FileHeaderStats file={file} testID={testID} /> : null}
+      <View style={[styles.right, showPathDescription && styles.detailedRight]}>
+        <FileHeaderStats file={file} showPathDescription={showPathDescription} testID={testID} />
         {changeIcon}
       </View>
     </View>
@@ -317,7 +348,6 @@ export const FileHeader = memo(function FileHeader({
       styles.header,
       !showsBodyState && workspaceTreeRowStyles.row,
       showsBodyState && styles.documentHeader,
-      showPathDescription && styles.detailedHeader,
       depth > 0
         ? inlineUnistylesStyle({
             paddingLeft: treeRowPaddingLeft(depth),
@@ -329,7 +359,7 @@ export const FileHeader = memo(function FileHeader({
         isSelected,
       }),
     ],
-    [depth, hover.isHovered, isSelected, showPathDescription, showsBodyState],
+    [depth, hover.isHovered, isSelected, showsBodyState],
   );
   const canvasPressableStyle = useMemo(
     () => [pressableStyle, canvasRendered && styles.canvasInteraction],
@@ -453,10 +483,6 @@ const styles = StyleSheet.create((theme) => ({
     paddingRight: 0,
     paddingVertical: 0,
   },
-  detailedHeader: {
-    paddingVertical: theme.spacing[2],
-    minHeight: theme.spacing[12],
-  },
   content: {
     flex: 1,
     minWidth: 0,
@@ -471,6 +497,7 @@ const styles = StyleSheet.create((theme) => ({
     paddingLeft: theme.spacing[3],
     paddingRight: WORKSPACE_PANE_TRAILING_GLYPH_RAIL,
   },
+  detailedContent: { alignItems: "flex-start" },
   documentActive: { backgroundColor: theme.colors.surface1 },
   documentPressFeedback: { backgroundColor: theme.colors.surface1 },
   canvasInteraction: {
@@ -489,19 +516,14 @@ const styles = StyleSheet.create((theme) => ({
     userSelect: "none",
   },
   leftTree: { gap: WORKSPACE_TREE_ICON_LABEL_GAP },
+  detailedLeft: { alignItems: "flex-start" },
   fileName: { minWidth: 0, flexShrink: 1 },
   fileDescription: { flex: 1, minWidth: 0, gap: theme.spacing[0.5] },
   pathDescription: {
-    flex: 1,
     minWidth: 0,
     color: theme.colors.foregroundMuted,
     fontSize: theme.fontSize.sm,
     fontWeight: theme.fontWeight.normal,
-  },
-  fileMetadata: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[2],
   },
   binaryLabel: {
     color: theme.colors.foregroundMuted,
@@ -514,6 +536,7 @@ const styles = StyleSheet.create((theme) => ({
     flexShrink: 0,
     userSelect: "none",
   },
+  detailedRight: { height: theme.fontSize.base * 1.5 },
   icon: {
     width: WORKSPACE_TREE_ICON_SIZE,
     height: WORKSPACE_TREE_ICON_SIZE,
@@ -521,6 +544,8 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     justifyContent: "center",
   },
+  detailedIcon: { height: theme.fontSize.base * 1.5 },
+  detailedName: { lineHeight: theme.fontSize.base * 1.5 },
   name: {
     fontSize: theme.fontSize.base,
     fontWeight: theme.fontWeight.normal,

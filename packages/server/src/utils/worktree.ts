@@ -1261,6 +1261,8 @@ async function listExactGitWorktreePaths(cwd: string): Promise<Set<string> | nul
 }
 
 export interface DeletePaseoWorktreeOptions {
+  /** Archive retains a dirty checkout so unarchive can recover local files. */
+  preserveChanges?: boolean;
   cwd: string | null;
   worktreePath?: string;
   teardownCwds?: string[];
@@ -1334,6 +1336,7 @@ export async function deletePaseoWorktree({
   paseoHome,
   worktreesBaseRoot,
   registryProven,
+  preserveChanges = false,
   worktreeManagers,
   worktreeManagerPluginId,
   removeReason = "archive",
@@ -1393,6 +1396,14 @@ export async function deletePaseoWorktree({
       await pruneWorktreesBestEffort(cwd);
       return;
     }
+  }
+
+  if (preserveChanges) {
+    // Do not fall through to recursive removal on failure: Git's refusal protects
+    // tracked modifications and untracked files, including writes during Undo.
+    if (!cwd) throw new Error("Cannot safely remove worktree without its repository");
+    await runGitCommand(["worktree", "remove", resolvedWorktree], { cwd, timeout: 120_000 });
+    return;
   }
 
   if (cwd) {

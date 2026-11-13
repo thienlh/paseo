@@ -18,6 +18,8 @@ export interface ProjectConfigSessionOptions {
   host: ProjectConfigSessionHost;
   projectRegistry: Pick<ProjectRegistry, "list">;
   logger: pino.Logger;
+  /** Fired after paseo.json is saved, so open workspaces can pick up script changes. */
+  onConfigWritten?: (repoRoot: string) => void;
 }
 
 /**
@@ -31,11 +33,13 @@ export class ProjectConfigSession {
   private readonly host: ProjectConfigSessionHost;
   private readonly projectRegistry: Pick<ProjectRegistry, "list">;
   private readonly logger: pino.Logger;
+  private readonly onConfigWritten: ((repoRoot: string) => void) | undefined;
 
   constructor(options: ProjectConfigSessionOptions) {
     this.host = options.host;
     this.projectRegistry = options.projectRegistry;
     this.logger = options.logger;
+    this.onConfigWritten = options.onConfigWritten;
   }
 
   async handleReadProjectConfigRequest(
@@ -126,6 +130,7 @@ export class ProjectConfigSession {
           : { hasUncommittedWorktreeSetupChanges: setupCommitStatus }),
       },
     });
+    this.onConfigWritten?.(repoRoot);
   }
 
   private async readSetupCommitStatus(

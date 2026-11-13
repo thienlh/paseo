@@ -17,6 +17,7 @@ import {
 import type { PluginThemeOption } from "@/plugins/themes";
 import { DEFAULT_THEME_PREFERENCE } from "@/hooks/use-settings/storage";
 import { applyRootUiFont } from "./apply-root-font";
+import { applySystemAccentColors } from "./system-accent";
 
 const ALL_THEME_KEYS = Object.keys(REGISTERED_THEMES) as (keyof typeof REGISTERED_THEMES)[];
 
@@ -60,6 +61,8 @@ export interface AppearanceInput {
   codeFontSize: number; // already clamped
   contentMaxWidth: number | undefined; // undefined fills the available width
   syntaxTheme: SyntaxThemeId;
+  /** macOS system accent. Null keeps each theme's own accent. */
+  systemAccent?: string | null;
 }
 
 /**
@@ -123,23 +126,30 @@ export function applyAppearance(input: AppearanceInput): void {
         input.codeFontSize,
       );
       const lineHeight = { ...t.lineHeight, diff: diffLineHeight };
+      const syntax = resolveSyntaxColors(input.syntaxTheme, t.colorScheme);
       if (t.colorScheme === "light") {
+        const colors = input.systemAccent
+          ? applySystemAccentColors({ ...t.colors, syntax }, input.systemAccent, t.colorScheme)
+          : { ...t.colors, syntax };
         return {
           ...t,
           fontFamily,
           fontSize,
           lineHeight,
           contentMaxWidth,
-          colors: { ...t.colors, syntax: resolveSyntaxColors(input.syntaxTheme, t.colorScheme) },
+          colors,
         };
       }
+      const colors = input.systemAccent
+        ? applySystemAccentColors({ ...t.colors, syntax }, input.systemAccent, t.colorScheme)
+        : { ...t.colors, syntax };
       return {
         ...t,
         fontFamily,
         fontSize,
         lineHeight,
         contentMaxWidth,
-        colors: { ...t.colors, syntax: resolveSyntaxColors(input.syntaxTheme, t.colorScheme) },
+        colors,
       };
     });
   }

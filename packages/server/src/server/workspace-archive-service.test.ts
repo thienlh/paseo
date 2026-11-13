@@ -242,6 +242,41 @@ describe("archiveByScope", () => {
     },
   );
 
+  test("archive keeps uncommitted and untracked work recoverable on disk", async () => {
+    const { tempDir, repoDir } = createGitRepo();
+    const paseoHome = path.join(tempDir, ".paseo");
+    const worktree = await createPaseoOwnedWorktree(repoDir, paseoHome, "keep-local-work");
+    writeFileSync(path.join(worktree.worktreePath, "tracked.txt"), "original");
+    execFileSync("git", ["add", "tracked.txt"], { cwd: worktree.worktreePath });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "Track file"], {
+      cwd: worktree.worktreePath,
+    });
+    writeFileSync(path.join(worktree.worktreePath, "tracked.txt"), "keep my edits");
+    writeFileSync(path.join(worktree.worktreePath, "notes.txt"), "keep my notes");
+    const result = await archiveByScope(
+      createArchiveDeps({
+        paseoHome,
+        activeWorkspaces: [
+          { workspaceId: "ws-dirty", cwd: worktree.worktreePath, kind: "worktree" },
+        ],
+      }),
+      { scope: { kind: "workspace", workspaceId: "ws-dirty" }, requestId: "archive-dirty" },
+    );
+    assertArchiveResult(result, { archivedWorkspaceIds: ["ws-dirty"], removedDirectory: false });
+    expect(readFileSync(path.join(worktree.worktreePath, "tracked.txt"), "utf8")).toBe(
+      "keep my edits",
+    );
+    expect(readFileSync(path.join(worktree.worktreePath, "notes.txt"), "utf8")).toBe(
+      "keep my notes",
+    );
+    expect(
+      execFileSync("git", ["branch", "--show-current"], {
+        cwd: worktree.worktreePath,
+        encoding: "utf8",
+      }).trim(),
+    ).toBe("keep-local-work");
+  });
+
   test("workspace scope archives the record and removes the directory on last reference", async () => {
     const { tempDir, repoDir } = createGitRepo();
     const paseoHome = path.join(tempDir, ".paseo");
@@ -784,9 +819,12 @@ describe("archiveByScope", () => {
     expect(deps.emitWorkspaceUpdatesForWorkspaceIds).not.toHaveBeenCalled();
   });
 
-  test.each(["intact", "missing"] as const)(
-    "worktree scope removes an owned directory with zero matching records and %s Git administration",
-    async (gitAdministration) => {
+  test.each([
+    { gitAdministration: "intact", removed: true },
+    { gitAdministration: "missing", removed: false },
+  ] as const)(
+    "worktree archive preserves files when Git cannot verify removal ($gitAdministration)",
+    async ({ gitAdministration, removed }) => {
       const { tempDir, repoDir } = createGitRepo();
       const paseoHome = path.join(tempDir, ".paseo");
       const worktree = await createPaseoOwnedWorktree(repoDir, paseoHome, "zero-records");
@@ -809,10 +847,10 @@ describe("archiveByScope", () => {
 
       assertArchiveResult(result, {
         archivedWorkspaceIds: [],
-        removedDirectory: true,
+        removedDirectory: removed,
       });
-      expect(existsSync(worktree.worktreePath)).toBe(false);
-      expect(invalidateWorktrees).toHaveBeenCalledTimes(1);
+      expect(existsSync(worktree.worktreePath)).toBe(!removed);
+      expect(invalidateWorktrees).toHaveBeenCalledTimes(Number(removed));
     },
   );
 

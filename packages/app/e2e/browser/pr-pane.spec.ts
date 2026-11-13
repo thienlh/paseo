@@ -24,7 +24,9 @@ import {
 
 const GITHUB_AUTH = hasGithubAuth();
 
-test("hides the empty Checks toolbar until local changes can be reviewed", async ({ page }) => {
+test("reviews local changes from the Explorer header without a Checks toolbar", async ({
+  page,
+}) => {
   const workspace = await seedWorkspace({ repoPrefix: "checks-empty-toolbar-" });
 
   try {
@@ -33,6 +35,7 @@ test("hides the empty Checks toolbar until local changes can be reviewed", async
     await openPrPane(page);
     const emptyState = page.getByTestId("pull-request-empty-state");
     const toolbar = emptyState.getByTestId("pull-request-empty-toolbar");
+    const header = page.getByTestId("git-workflow-bar").filter({ visible: true });
     await expect(emptyState).toBeVisible();
     await expect(emptyState.getByTestId("checks-review-start")).toHaveCount(0);
     await expect(toolbar).toHaveCount(0);
@@ -42,8 +45,16 @@ test("hides the empty Checks toolbar until local changes can be reviewed", async
     if (!refreshed.success) {
       throw new Error(`Failed to refresh checkout: ${JSON.stringify(refreshed.error)}`);
     }
-    await expect(emptyState.getByTestId("checks-review-start")).toBeVisible();
-    await expect(toolbar).toBeVisible();
+    const review = header.getByTestId("checks-review-start");
+    await expect(review).toBeVisible();
+    await expect(emptyState.getByTestId("checks-review-start")).toHaveCount(0);
+    await expect(toolbar).toHaveCount(0);
+    await page.getByTestId("workspace-tab-changes_tree").filter({ visible: true }).click();
+    await expect(review).toBeVisible();
+    await review.click();
+    await expect(
+      page.getByTestId("user-message").filter({ hasText: "Review the local changes" }),
+    ).toBeVisible({ timeout: 30_000 });
   } finally {
     await workspace.cleanup();
   }

@@ -279,7 +279,7 @@ test("Changes without a comparison base explains how to view pending changes", a
 test("Explorer Changes separates filenames from paths and labels binary files without line counts", async ({
   page,
 }, testInfo) => {
-  const workspace = await createWorkspaceWithMountedTabDiff();
+  const workspace = await createWorkspaceWithMountedTabDiff({ includeRootFileSortingFirst: true });
   const directory = "src/screens/workspace/details";
   const fileName = "workspace-explorer-presentation.tsx";
   await mkdir(path.join(workspace.repoPath, directory), { recursive: true });
@@ -292,13 +292,28 @@ test("Explorer Changes separates filenames from paths and labels binary files wi
   const fileRow = tree.getByTestId(/^diff-tree-file-\d+$/).filter({ hasText: fileName });
   const name = fileRow.getByTestId(/-name$/);
   const description = fileRow.getByTestId(/-directory$/);
-  await expect(explorer.getByTestId("changes-summary")).toContainText("3 files changed");
+  await expect(explorer.getByTestId("changes-summary")).toContainText("4 files changed");
   await expect(name).toHaveText(fileName);
   await expect(description).toHaveText(directory);
   const nameBounds = await name.boundingBox();
   const descriptionBounds = await description.boundingBox();
   if (!nameBounds || !descriptionBounds) throw new Error("Changed file text has no bounds");
   expect(descriptionBounds.y).toBeGreaterThanOrEqual(nameBounds.y + nameBounds.height);
+  const rootRow = tree.getByTestId(/^diff-tree-file-\d+$/).filter({ hasText: "a-root-note.txt" });
+  await expect(rootRow.getByTestId(/-directory$/)).toHaveCount(0);
+  for (const row of [fileRow, rootRow]) {
+    const titleBounds = await row.getByTestId(/-name$/).boundingBox();
+    const statBounds = await row.getByTestId(/-stat$/).boundingBox();
+    if (!titleBounds || !statBounds) throw new Error("Changed file row has no bounds");
+    expect(statBounds.y + statBounds.height / 2).toBeCloseTo(
+      titleBounds.y + titleBounds.height / 2,
+      0,
+    );
+  }
+  const rootBounds = await rootRow.boundingBox();
+  const nestedBounds = await fileRow.boundingBox();
+  if (!rootBounds || !nestedBounds) throw new Error("Changed file rows have no bounds");
+  expect(rootBounds.height).toBeLessThan(nestedBounds.height);
 
   const binaryRow = tree.getByTestId(/^diff-tree-file-\d+$/).filter({ hasText: "preview.png" });
   await expect(binaryRow.getByText("Binary file", { exact: true })).toBeVisible();
@@ -315,6 +330,9 @@ test("Explorer Changes separates filenames from paths and labels binary files wi
     .poll(() => name.evaluate((element) => getComputedStyle(element).color))
     .not.toBe(lightForeground);
   await explorer.screenshot({ path: testInfo.outputPath("explorer-file-rows-dark.png") });
+  await explorer.screenshot({
+    path: path.resolve(__dirname, "../../../../.context/changes-file-rows-aligned.png"),
+  });
   await fileRow.getByTestId(/-toggle$/).click();
   const diff = page.getByTestId("working-diff-panel").filter({ visible: true });
   await expect(diffHeaderForPath(diff, `${directory}/${fileName}`)).toBeInViewport();

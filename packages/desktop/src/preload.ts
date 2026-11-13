@@ -38,6 +38,18 @@ contextBridge.exposeInMainWorld("paseoDesktop", {
   windowChromeMode: readWindowChromeMode(),
   browserHostLabel: readArgValue("--paseo-browser-host-label="),
   browserHostInstanceId: readArgValue("--paseo-browser-host-instance-id="),
+  accent: {
+    get: () => ipcRenderer.invoke("paseo:accent:get") as Promise<string | null>,
+    onChange: (handler: (color: string | null) => void): (() => void) => {
+      const listener = (_ipcEvent: Electron.IpcRendererEvent, color: unknown) => {
+        handler(typeof color === "string" ? color : null);
+      };
+      ipcRenderer.on("paseo:accent:changed", listener);
+      return () => {
+        ipcRenderer.removeListener("paseo:accent:changed", listener);
+      };
+    },
+  },
   invoke: (command: string, args?: Record<string, unknown>) =>
     ipcRenderer.invoke("paseo:invoke", command, args),
   getPendingOpenProject: () =>

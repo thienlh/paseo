@@ -4025,6 +4025,7 @@ export const ServerInfoStatusPayloadSchema = z
         // feature gate and checkoutGithubSetAutoMerge fallback after 2027-01-17
         // once the supported daemon floor is >= v0.2.0.
         checkoutForgeSetAutoMerge: z.boolean().optional(),
+        checkoutHeadIdentity: z.boolean().optional(),
         // COMPAT(checkoutGithubSetAutoMerge): added in v0.1.75 and retained as
         // the fallback for checkoutForgeSetAutoMerge. Stop advertising and
         // consuming it after 2027-01-17 once supported floors are >= v0.2.0.
@@ -4442,6 +4443,7 @@ export type ForgeWeb = z.infer<typeof ForgeWebSchema>;
 
 const WorkspaceGitRuntimePayloadSchema = z
   .object({
+    headSha: z.string().nullable().optional(),
     currentBranch: z.string().nullable().optional(),
     remoteUrl: z.string().nullable().optional(),
     isPaseoOwnedWorktree: z.boolean().optional(),
@@ -4470,6 +4472,8 @@ export const WorkspaceGitHubRuntimePayloadSchema = z
         state: z.string(),
         baseRefName: z.string(),
         headRefName: z.string(),
+        headSha: z.string().nullable().optional(),
+        forgeSpecific: z.unknown().optional(),
         isMerged: z.boolean(),
         isDraft: z.boolean().optional(),
         mergeable: z.enum(["MERGEABLE", "CONFLICTING", "UNKNOWN"]).catch("UNKNOWN").optional(),
@@ -5805,6 +5809,7 @@ const AheadBehindSchema = z.object({
 });
 
 const CheckoutStatusCommonSchema = z.object({
+  headSha: z.string().nullable().optional(),
   cwd: z.string(),
   error: CheckoutErrorSchema.nullable(),
   requestId: z.string(),
@@ -5927,6 +5932,7 @@ const CheckoutPrGithubStatusSchema = CheckoutPrGithubStatusObjectSchema.optional
 const CheckoutPrForgeSpecificSchema = z.unknown().optional();
 
 export const CheckoutPrStatusSchema = z.object({
+  headSha: z.string().nullable().optional(),
   // COMPAT(forge): added in v0.2.0-beta.1. Remove the GitHub default after
   // 2027-01-17 once the supported daemon floor is >= v0.2.0.
   forge: z.string().optional().default("github"),

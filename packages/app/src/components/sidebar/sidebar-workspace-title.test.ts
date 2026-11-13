@@ -58,11 +58,12 @@ describe("resolveSidebarWorkspaceAccessibilityLabel", () => {
       hostBadgeLabel: "Build host",
       pullRequestLabel: "Pull request 42",
       serviceLabel: "Service web running",
+      scriptLabel: "run script",
       t: i18n.t,
     });
 
     expect(label).toBe(
-      "Search project, fix/search, Build host, Pull request 42, Service web running, Working",
+      "Search project, fix/search, Build host, Pull request 42, Service web running, run script, Working",
     );
   });
 

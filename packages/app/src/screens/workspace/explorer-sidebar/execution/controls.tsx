@@ -1,22 +1,16 @@
-import { useCallback, useMemo } from "react";
-import { Text, View } from "react-native";
-import { ChevronDown, ChevronUp, Play, Plus, Square, Eye } from "lucide-react-native";
+import { useCallback, useMemo, type ReactNode } from "react";
+import { Text, View, type PressableStateCallbackType } from "react-native";
+import { ScrollView } from "@/components/ui/scroll-view";
+import { PressHighlight } from "@/components/ui/press-highlight";
+import { isWeb } from "@/constants/platform";
+import { ChevronDown, ChevronUp, Play, Plus, Square, Globe } from "lucide-react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { ToolbarButton, ToolbarControls } from "@/components/ui/pane-content-toolbar";
-import { SegmentedControl } from "@/components/ui/segmented-control";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  toolbarLabelTriggerStyle,
-  toolbarLabelTriggerTextStyle,
-  isToolbarLabelTriggerHighlighted,
-} from "@/components/ui/toolbar-label-trigger";
+import { ToolbarButton } from "@/components/ui/pane-content-toolbar";
+import { HEADER_CONTROL_HEIGHT } from "@/components/ui/control-geometry";
+import { WORKSPACE_SECONDARY_HEADER_HEIGHT } from "@/constants/layout";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { extraMutedIconColorMapping } from "@/components/ui/icon-color";
 import type { WorkspaceDescriptor } from "@/stores/session-store";
 import type { WorkspaceScriptActions } from "@/screens/workspace/scripts/use-workspace-script-actions";
@@ -39,12 +33,51 @@ export interface ExecutionControlsProps {
   onViewTerminal: (terminalId: string) => void;
   onCreateTerminal: () => void;
   onOpenUrl: (url: string) => void;
+  onConfigureScripts?: () => void;
 }
 
 const ThemedChevronDown = withUnistyles(ChevronDown);
 const ThemedChevronUp = withUnistyles(ChevronUp);
 const ThemedPlus = withUnistyles(Plus);
-const ThemedEye = withUnistyles(Eye);
+const ThemedRunActivity = withUnistyles(RunActivity, (theme) => ({
+  color: theme.colors.foregroundMuted,
+}));
+
+interface ExecutionTabProps {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  testID: string;
+  children?: ReactNode;
+}
+
+function ExecutionTab({ label, selected, onPress, testID, children }: ExecutionTabProps) {
+  const accessibilityState = useMemo(() => ({ selected }), [selected]);
+  const tabStyle = useCallback(
+    ({ hovered, pressed }: PressableStateCallbackType & { hovered?: boolean }) => [
+      styles.tab,
+      (hovered || pressed) && styles.interaction,
+    ],
+    [],
+  );
+  return (
+    <PressHighlight
+      style={tabStyle}
+      highlightStyle={styles.interaction}
+      onPress={onPress}
+      accessibilityRole="tab"
+      accessibilityState={accessibilityState}
+      aria-selected={selected}
+      testID={testID}
+    >
+      {children}
+      <Text style={[styles.tabText, selected && styles.selectedText]} numberOfLines={1}>
+        {label}
+      </Text>
+      {selected ? <View pointerEvents="none" style={styles.tabIndicator} /> : null}
+    </PressHighlight>
+  );
+}
 
 export function ExecutionControls(props: ExecutionControlsProps) {
   const { t } = useTranslation();
@@ -60,28 +93,6 @@ export function ExecutionControls(props: ExecutionControlsProps) {
     scripts,
   } = props;
   const running = scripts.some((entry) => entry.lifecycle === "running");
-  const runIcon = useCallback(
-    ({ color, size }: { color: string; size: number }) => (
-      <RunActivity running={running} connected={connected} color={color} size={size} />
-    ),
-    [connected, running],
-  );
-  const options = useMemo(
-    () => [
-      {
-        value: "run" as const,
-        label: t("workspace.scripts.actions.run"),
-        icon: runIcon,
-        testID: "explorer-execution-run-view",
-      },
-      {
-        value: "terminal" as const,
-        label: t("workspace.tabs.fallback.terminal"),
-        testID: "explorer-execution-terminal-view",
-      },
-    ],
-    [t, runIcon],
-  );
   const selectView = useCallback(
     (view: ExplorerExecutionState["view"] | "") => {
       if (!view) return;
@@ -97,7 +108,10 @@ export function ExecutionControls(props: ExecutionControlsProps) {
     const terminalId = script?.lifecycle === "running" ? script.terminalId : null;
     if (revealRun && terminalId !== null) onViewTerminal(terminalId);
   }, [dispatch, onViewTerminal, script, state.expanded, state.view]);
-  const selectedView = state.expanded && state.surface === "execution" ? state.view : "";
+  const executionVisible = state.expanded && (!compact || state.surface === "execution");
+  const selectedView = executionVisible ? state.view : "";
+  const selectRun = useCallback(() => selectView("run"), [selectView]);
+  const selectTerminal = useCallback(() => selectView("terminal"), [selectView]);
   const terminalDisabled = !connected || creatingTerminal;
   const accessibilityState = useMemo(() => ({ expanded: state.expanded }), [state.expanded]);
   const toggleLabel = state.expanded
@@ -118,16 +132,29 @@ export function ExecutionControls(props: ExecutionControlsProps) {
           <ThemedChevronUp size={16} uniProps={extraMutedIconColorMapping} />
         )}
       </ToolbarButton>
-      <SegmentedControl
-        options={options}
-        value={selectedView}
-        onValueChange={selectView}
-        size="sm"
-      />
-      <View style={styles.spacer} />
-      {state.view === "run" ? (
-        <RunButton {...props} />
-      ) : (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabs}
+        contentContainerStyle={styles.tabTrack}
+      >
+        <ExecutionTab
+          label={t("workspace.scripts.actions.run")}
+          selected={selectedView === "run"}
+          onPress={selectRun}
+          testID="explorer-execution-run-view"
+        >
+          <ThemedRunActivity running={running} connected={connected} size={14} />
+        </ExecutionTab>
+        <View style={styles.tabAction}>
+          <ExecutionScriptPicker {...props} />
+        </View>
+        <ExecutionTab
+          label={t("workspace.tabs.fallback.terminal")}
+          selected={selectedView === "terminal"}
+          onPress={selectTerminal}
+          testID="explorer-execution-terminal-view"
+        />
         <ToolbarButton
           label={t("workspace.tabs.actions.newTerminal")}
           compact={compact}
@@ -137,7 +164,11 @@ export function ExecutionControls(props: ExecutionControlsProps) {
         >
           <ThemedPlus size={16} uniProps={extraMutedIconColorMapping} />
         </ToolbarButton>
-      )}
+      </ScrollView>
+      <View style={styles.actions}>
+        <ExecutionServiceButton {...props} />
+        <RunButton {...props} />
+      </View>
     </View>
   );
 }
@@ -162,6 +193,8 @@ function RunButton({ script, actions, connected, dispatch }: ExecutionControlsPr
       loading={pending}
       disabled={disabled}
       onPress={handlePress}
+      style={styles.actionButton}
+      textStyle={styles.actionText}
       testID="explorer-execution-run"
     >
       {label}
@@ -169,70 +202,63 @@ function RunButton({ script, actions, connected, dispatch }: ExecutionControlsPr
   );
 }
 
-export function ExecutionScriptPicker({
+function ExecutionServiceButton({ script, actions, onOpenUrl }: ExecutionControlsProps) {
+  const { t } = useTranslation();
+  const selectedLink = script ? actions.resolveLinks(script).selected : null;
+  const open = useCallback(() => {
+    if (selectedLink) void openServiceUrl(selectedLink.url, { openInApp: onOpenUrl });
+  }, [onOpenUrl, selectedLink]);
+  if (!script || !selectedLink) return null;
+  const label = script.port === null ? selectedLink.label : `:${script.port}`;
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      leftIcon={Globe}
+      onPress={open}
+      style={styles.actionButton}
+      textStyle={styles.actionText}
+      accessibilityLabel={t("workspace.scripts.accessibility.openService", {
+        scriptName: script.scriptName,
+      })}
+      testID="explorer-execution-open-service"
+    >
+      {label}
+    </Button>
+  );
+}
+
+function ExecutionScriptPicker({
   script,
   scripts,
-  actions,
   dispatch,
   onViewTerminal,
-  onOpenUrl,
   compact,
 }: ExecutionControlsProps) {
   const { t } = useTranslation();
-  const selectedLink = script ? actions.resolveLinks(script).selected : null;
-  const handleService = useCallback(() => {
-    if (selectedLink) void openServiceUrl(selectedLink.url, { openInApp: onOpenUrl });
-  }, [onOpenUrl, selectedLink]);
   if (!script) return null;
   return (
-    <View style={styles.scriptHeader}>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          style={toolbarLabelTriggerStyle}
-          testID="explorer-execution-script-picker"
-          accessibilityRole="button"
-          accessibilityLabel={t("workspace.tabs.explorerSidebar.execution.chooseScript")}
-        >
-          {(state) => (
-            <>
-              <ScriptIcon script={script} size={14} />
-              <Text
-                style={toolbarLabelTriggerTextStyle(isToolbarLabelTriggerHighlighted(state))}
-                numberOfLines={1}
-              >
-                {script.scriptName}
-              </Text>
-              <ThemedChevronDown size={12} uniProps={extraMutedIconColorMapping} />
-            </>
-          )}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" width={240}>
-          {scripts.map((entry) => (
-            <ScriptOption
-              key={entry.scriptName}
-              script={entry}
-              selected={entry.scriptName === script.scriptName}
-              dispatch={dispatch}
-              onViewTerminal={onViewTerminal}
-            />
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <View style={styles.spacer} />
-      {script.exitCode === null ? null : <ExitCodeBadge code={script.exitCode} />}
-      <ToolbarControls>
-        {selectedLink ? (
-          <ToolbarButton
-            label={t("workspace.scripts.actions.openService")}
-            compact={compact}
-            onPress={handleService}
-            testID="explorer-execution-open-service"
-          >
-            <ThemedEye size={16} uniProps={extraMutedIconColorMapping} />
-          </ToolbarButton>
-        ) : null}
-      </ToolbarControls>
-    </View>
+    <DropdownMenu>
+      <ToolbarButton
+        kind="menu"
+        compact={compact}
+        testID="explorer-execution-script-picker"
+        label={`${t("workspace.tabs.explorerSidebar.execution.chooseScript")}: ${script.scriptName}`}
+      >
+        <ThemedChevronDown size={12} uniProps={extraMutedIconColorMapping} />
+      </ToolbarButton>
+      <DropdownMenuContent align="start" width={240}>
+        {scripts.map((entry) => (
+          <ScriptOption
+            key={entry.scriptName}
+            script={entry}
+            selected={entry.scriptName === script.scriptName}
+            dispatch={dispatch}
+            onViewTerminal={onViewTerminal}
+          />
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -247,6 +273,11 @@ function ScriptOption({
   dispatch: ExecutionControlsProps["dispatch"];
   onViewTerminal: ExecutionControlsProps["onViewTerminal"];
 }) {
+  const leading = useMemo(() => <ScriptIcon script={script} size={14} />, [script]);
+  const trailing = useMemo(
+    () => (script.exitCode === null ? undefined : <ExitCodeBadge code={script.exitCode} />),
+    [script.exitCode],
+  );
   const select = useCallback(() => {
     dispatch({ type: "script", name: script.scriptName });
     const terminalId = script.lifecycle === "running" ? script.terminalId : null;
@@ -254,6 +285,8 @@ function ScriptOption({
   }, [dispatch, onViewTerminal, script]);
   return (
     <DropdownMenuItem
+      leading={leading}
+      trailing={trailing}
       selected={selected}
       onSelect={select}
       testID={`explorer-execution-script-${script.scriptName}`}
@@ -267,12 +300,14 @@ export function ExecutionEmpty({
   view,
   hasScripts,
   onCreateTerminal,
+  onConfigureScripts,
   creatingTerminal,
   connected,
 }: {
   view: ExplorerExecutionState["view"];
   hasScripts: boolean;
   onCreateTerminal: () => void;
+  onConfigureScripts?: () => void;
   creatingTerminal: boolean;
   connected: boolean;
 }) {
@@ -281,9 +316,21 @@ export function ExecutionEmpty({
   if (!hasScripts) label = t("workspace.tabs.explorerSidebar.execution.noScripts");
   if (view === "terminal") label = t("workspace.tabs.explorerSidebar.execution.noTerminal");
   const disabled = !connected || creatingTerminal;
+  const configureScripts = !hasScripts && view !== "terminal" ? onConfigureScripts : undefined;
   return (
     <View style={styles.empty} testID="explorer-execution-empty">
-      <Text style={styles.emptyText}>{label}</Text>
+      {configureScripts ? (
+        <PressHighlight
+          accessibilityRole="link"
+          onPress={configureScripts}
+          testID="explorer-execution-configure-scripts"
+          style={styles.emptyLink}
+        >
+          <Text style={styles.emptyLinkText}>{label}</Text>
+        </PressHighlight>
+      ) : (
+        <Text style={styles.emptyText}>{label}</Text>
+      )}
       {view === "terminal" ? (
         <Button
           variant="ghost"
@@ -301,20 +348,53 @@ export function ExecutionEmpty({
 
 const styles = StyleSheet.create((theme) => ({
   header: {
+    height: WORKSPACE_SECONDARY_HEADER_HEIGHT,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: theme.spacing[1],
+    paddingRight: theme.spacing[2],
+    borderBottomWidth: theme.borderWidth[1],
+    borderBottomColor: theme.colors.border,
+  },
+  tabs: { flex: 1, minWidth: 0, alignSelf: "stretch" },
+  tabTrack: { flexDirection: "row", alignItems: "center", height: "100%" },
+  tabAction: { alignSelf: "stretch", alignItems: "center", justifyContent: "center" },
+  actions: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[1],
-    padding: theme.spacing[1],
-    minHeight: theme.spacing[8],
+    paddingLeft: theme.spacing[1],
+    flexShrink: 0,
   },
-  spacer: { flex: 1, minWidth: 0 },
-  scriptHeader: {
+  tab: {
+    position: "relative",
+    height: "100%",
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing[2],
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
+    flexShrink: 0,
+    gap: theme.spacing[1],
+    paddingHorizontal: theme.spacing[1],
   },
+  interaction: { backgroundColor: theme.colors.interactionHighlight },
+  tabText: { fontSize: theme.fontSize.sm, color: theme.colors.foregroundMuted },
+  selectedText: { color: theme.colors.foreground },
+  tabIndicator: {
+    position: "absolute",
+    left: theme.spacing[1],
+    right: theme.spacing[1],
+    bottom: 0,
+    height: theme.borderWidth[2],
+    backgroundColor: theme.colors.foregroundMuted,
+  },
+  actionButton: {
+    height: HEADER_CONTROL_HEIGHT,
+    minHeight: HEADER_CONTROL_HEIGHT,
+    paddingHorizontal: theme.spacing[2],
+    paddingVertical: 0,
+    borderRadius: theme.borderRadius.md,
+    gap: theme.spacing[1],
+  },
+  actionText: { fontWeight: theme.fontWeight.normal },
   empty: {
     flex: 1,
     alignItems: "center",
@@ -326,5 +406,12 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.foregroundMuted,
     fontSize: theme.fontSize.sm,
     textAlign: "center",
+  },
+  emptyLink: isWeb ? { cursor: "pointer" as const } : {},
+  emptyLinkText: {
+    color: theme.colors.accent,
+    fontSize: theme.fontSize.sm,
+    textAlign: "center",
+    textDecorationLine: "underline",
   },
 }));
