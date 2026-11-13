@@ -8,19 +8,11 @@ import type { PullRequestContextAttachment } from "@/attachments/types";
 import { useWorkspaceAttachmentsStore } from "@/attachments/workspace-attachments-store";
 import { Button } from "@/components/ui/button";
 import { useProviderIcon } from "@/components/provider-icons";
-import type { Forge } from "@/git/forge";
 import {
   foregroundMutedColorMapping,
   Section,
   SummaryPill,
 } from "@/git/pull-request-panel/section-kit";
-import { useCheckoutStatusQuery } from "@/git/use-status-query";
-import { PullRequestReviewButton } from "./button";
-import {
-  pullRequestReviewSubjectFromPane,
-  selectReviewSubject,
-  type ReviewSubject,
-} from "./context";
 import { findingSummary, formatFindingLocation, type ReviewFinding } from "./findings";
 import { useLatestReviewFindings } from "./use-review-findings";
 
@@ -28,67 +20,6 @@ const ThemedMessageSquare = withUnistyles(MessageSquare);
 const SUMMARY_FINDINGS_ICON = (
   <ThemedMessageSquare size={11} uniProps={foregroundMutedColorMapping} />
 );
-
-export interface ChecksReviewPullRequest {
-  number: number;
-  title: string;
-  url: string;
-  state: string;
-  forge: Forge;
-  baseRefName: string;
-  headRefName: string;
-}
-
-export function useChecksReviewSubject({
-  serverId,
-  cwd,
-  pullRequest,
-}: {
-  serverId: string;
-  cwd: string;
-  pullRequest: ChecksReviewPullRequest | null;
-}): ReviewSubject | null {
-  const { status } = useCheckoutStatusQuery({ serverId, cwd });
-  const gitStatus = status && status.isGit ? status : null;
-  return useMemo(
-    () =>
-      selectReviewSubject({
-        pullRequest: pullRequest ? pullRequestReviewSubjectFromPane(pullRequest) : null,
-        isDirty: Boolean(gitStatus?.isDirty),
-        branch: gitStatus?.currentBranch,
-        baseRef: gitStatus?.baseRef,
-      }),
-    [gitStatus?.baseRef, gitStatus?.currentBranch, gitStatus?.isDirty, pullRequest],
-  );
-}
-
-/**
- * Starts a review of the pull request or, without one, of the local changes. It is the Checks
- * panel's one accent action and sits in its toolbar, beside View.
- */
-export function ChecksReviewButton({
-  serverId,
-  workspaceId,
-  cwd,
-  subject,
-}: {
-  serverId: string;
-  workspaceId?: string | null;
-  cwd: string;
-  subject: ReviewSubject | null;
-}) {
-  if (!subject || !workspaceId) {
-    return null;
-  }
-  return (
-    <PullRequestReviewButton
-      serverId={serverId}
-      workspaceId={workspaceId}
-      cwd={cwd}
-      subject={subject}
-    />
-  );
-}
 
 /**
  * The Review section of the Checks panel: lists the newest review's findings from

@@ -761,6 +761,8 @@ export async function createPaseoDaemon(
       daemonPort: () => (boundListenTarget?.type === "tcp" ? boundListenTarget.port : null),
       resolveWorkspaceDirectory: async (workspaceId) =>
         (await workspaceRegistry?.get(workspaceId))?.cwd ?? null,
+      resolveProjectRoot: async (workspaceId) =>
+        (await workspaceRegistry?.get(workspaceId))?.mainRepoRoot ?? null,
       logger,
       serviceProxyPublicBaseUrl,
     }),

@@ -27,6 +27,8 @@ import {
 } from "@/utils/status-indicator-geometry";
 import { shouldRenderSyncedStatusLoader } from "@/utils/status-loader";
 import { StatusRing } from "@/components/status-ring";
+import { RunningScriptMark } from "@/components/sidebar/running-script-mark";
+import { selectSidebarRunningScriptNames } from "@/components/sidebar/running-script";
 import { resolveSidebarWorkspacePrimaryLabel } from "@/components/sidebar/sidebar-workspace-title";
 import { DensityIcon } from "@/components/ui/density-icon";
 import { SCRIM_WIDTH, TrailingActionScrim } from "@/components/ui/trailing-action-scrim";
@@ -132,16 +134,21 @@ export const SidebarWorkspaceRowContent = memo(function SidebarWorkspaceRowConte
     settings: { workspaceTitleSource },
   } = useAppSettings();
   const workspaceLabel = resolveSidebarWorkspacePrimaryLabel({ workspace, workspaceTitleSource });
+  const runningScriptNames = useMemo(
+    () => selectSidebarRunningScriptNames(workspace.scripts),
+    [workspace.scripts],
+  );
   // The workspace carries label names; their colors live in its host's catalog, so the row is
   // where the two meet — the meta line is handed finished definitions.
   const labels = useWorkspaceLabelDefinitions(workspace.serverId, workspace.labels);
   const workspaceBranchTextStyle = useMemo(
     () => [
       styles.workspaceBranchText,
+      runningScriptNames.length > 0 && styles.workspaceBranchTextWithMark,
       isHovered && styles.workspaceBranchTextHovered,
       isCreating && styles.workspaceBranchTextCreating,
     ],
-    [isHovered, isCreating],
+    [isCreating, isHovered, runningScriptNames.length],
   );
 
   return (
@@ -171,13 +178,18 @@ export const SidebarWorkspaceRowContent = memo(function SidebarWorkspaceRowConte
             {titleEditor ? (
               <View style={styles.workspaceTitleEditorSlot}>{titleEditor}</View>
             ) : (
-              <Text
-                style={workspaceBranchTextStyle}
-                numberOfLines={1}
-                testID={`sidebar-workspace-title-${workspace.workspaceKey}`}
-              >
-                {workspaceLabel}
-              </Text>
+              <View style={styles.workspaceTitleCluster}>
+                <Text
+                  style={workspaceBranchTextStyle}
+                  numberOfLines={1}
+                  testID={`sidebar-workspace-title-${workspace.workspaceKey}`}
+                >
+                  {workspaceLabel}
+                </Text>
+                {runningScriptNames.length > 0 ? (
+                  <RunningScriptMark names={runningScriptNames} />
+                ) : null}
+              </View>
             )}
             <View style={sidebarWorkspaceRowStyles.rowRight}>{children}</View>
           </View>
@@ -535,6 +547,13 @@ const styles = StyleSheet.create((theme) => ({
     justifyContent: "space-between",
     gap: theme.spacing[2],
   },
+  workspaceTitleCluster: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[1.5],
+  },
   shortcutBadgeOverlay: {
     position: "absolute",
     top: 1,
@@ -581,6 +600,11 @@ const styles = StyleSheet.create((theme) => ({
     opacity: 0.76,
     flex: 1,
     minWidth: 0,
+  },
+  // A running script sits immediately after the name, so the title stops growing into that slot.
+  workspaceBranchTextWithMark: {
+    flexGrow: 0,
+    flexShrink: 1,
   },
   workspaceTitleEditorSlot: {
     height: TITLE_LINE_HEIGHT,

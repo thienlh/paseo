@@ -1141,6 +1141,9 @@ export class Session {
       },
       projectRegistry: this.projectRegistry,
       logger: this.sessionLogger,
+      onConfigWritten: (repoRoot) => {
+        void this.republishScriptsForProjectRoot(repoRoot);
+      },
     });
     this.daemonSession = new DaemonSession({
       host: {
@@ -6141,6 +6144,7 @@ export class Session {
     }
 
     return {
+      headSha: snapshot.git.headSha,
       currentBranch: snapshot.git.currentBranch,
       remoteUrl: snapshot.git.remoteUrl,
       isPaseoOwnedWorktree: snapshot.git.isPaseoOwnedWorktree,
@@ -8003,6 +8007,22 @@ export class Session {
           this.workspaceScripts.emitStatusUpdate(workspaceId, workspaceDirectory),
       },
       request,
+    );
+  }
+
+  private async republishScriptsForProjectRoot(repoRoot: string): Promise<void> {
+    const root = resolve(repoRoot);
+    const workspaces = await this.workspaceRegistry.listActive();
+    await Promise.all(
+      workspaces
+        .filter(
+          (workspace) =>
+            resolve(workspace.cwd) === root ||
+            (workspace.mainRepoRoot !== null && resolve(workspace.mainRepoRoot) === root),
+        )
+        .map((workspace) =>
+          this.workspaceScripts.emitStatusUpdate(workspace.workspaceId, workspace.cwd),
+        ),
     );
   }
 

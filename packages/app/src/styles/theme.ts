@@ -179,6 +179,7 @@ const darkStatusColors = {
 // Dark surfaces swallow more of the tint, so the dark band runs a little stronger.
 function statusTints(colors: typeof lightStatusColors, alphaHex: string) {
   return {
+    statusMergedTint: `${colors.statusMerged}${alphaHex}`,
     statusSuccessTint: `${colors.statusSuccess}${alphaHex}`,
     statusDangerTint: `${colors.statusDanger}${alphaHex}`,
     statusWarningTint: `${colors.statusWarning}${alphaHex}`,

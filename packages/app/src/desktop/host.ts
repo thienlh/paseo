@@ -172,9 +172,16 @@ export interface DesktopInvokeBridge {
   invoke?: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
 }
 
+export interface DesktopAccentBridge {
+  /** Raw macOS accent from Electron, `#RRGGBB` or `#RRGGBBAA`. */
+  get?: () => Promise<string | null>;
+  onChange?: (handler: (color: string | null) => void) => () => void;
+}
+
 export interface DesktopHostBridge {
   platform?: string;
   windowChromeMode?: string;
+  accent?: DesktopAccentBridge;
   invoke?: DesktopInvokeBridge["invoke"];
   getPendingOpenProject?: () => Promise<string | null>;
   agentNavigation?: DesktopAgentNavigationBridge;

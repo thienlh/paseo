@@ -14,6 +14,7 @@ import { useFileExplorerActions } from "@/hooks/use-file-explorer-actions";
 import { useWindowLayout, resolveWorkspaceActionPlacement } from "@/window-layout";
 import { revealWorkspaceTab } from "@/workspace-tabs/navigation";
 import type { LayoutChangeEvent } from "react-native";
+import { openProjectSettings } from "@/navigation/settings-navigation";
 import { ExplorerSidebarDock } from "@/screens/workspace/explorer-sidebar";
 import { openExecutionTerminal } from "@/screens/workspace/explorer-sidebar/execution/open";
 import { ForgeShorthandProvider } from "@/git/forge-shorthand";
@@ -59,6 +60,7 @@ import {
   MobileWorkspaceTabSwitcher,
 } from "@/screens/workspace/compact-workspace-header";
 import { WorkspaceHeaderProjectRow } from "@/screens/workspace/workspace-header-project-row";
+import { WorkspaceHeaderIcon } from "@/screens/workspace/workspace-header-icon";
 import { ScreenTitle } from "@/components/headers/screen-title";
 import {
   FloatingPanelPortalHost,
@@ -66,7 +68,6 @@ import {
 } from "@/components/ui/floating-panel-portal";
 import { SplitContainer } from "@/components/split-container";
 import { RetainedPanel } from "@/components/retained-panel";
-import { WorkspaceActions } from "@/git/workspace-actions";
 import { WorkspaceOpenInEditorButton } from "@/workspace/open-in-editor/button";
 import { WorkspaceScriptsButton, useWorkspaceScriptActions } from "@/screens/workspace/scripts";
 import { ImportSessionSheet } from "@/components/import-session-sheet";
@@ -165,11 +166,7 @@ import {
   WorkspaceExplorerSidebarToggle,
   WorkspaceHeaderExplorerToggle,
 } from "@/screens/workspace/workspace-explorer-toggle";
-import {
-  useHasWindowChromeObstruction,
-  WindowChromeRegion,
-  WindowChromeSafeArea,
-} from "@/utils/desktop-window";
+import { WindowChromeRegion, WindowChromeSafeArea } from "@/utils/desktop-window";
 import {
   resolveWorkspaceHeaderRenderState,
   type WorkspaceHeaderCheckoutState,
@@ -254,6 +251,15 @@ function getWorkspaceScripts(
   workspaceDescriptor: WorkspaceDescriptor | null | undefined,
 ): WorkspaceDescriptor["scripts"] {
   return workspaceDescriptor?.scripts ?? EMPTY_WORKSPACE_SCRIPTS;
+}
+
+function configureScriptsAction(
+  serverId: string,
+  workspace: WorkspaceDescriptor | null | undefined,
+): (() => void) | undefined {
+  const projectId = workspace?.projectId;
+  if (!serverId || !projectId) return undefined;
+  return () => openProjectSettings(serverId, projectId);
 }
 
 interface WorkspaceFileLocationFields {
@@ -484,6 +490,7 @@ function useCloseTabs(): UseCloseTabsResult {
 }
 
 interface WorkspaceHeaderTitleBarProps {
+  workspace: WorkspaceDescriptor | null;
   isLoading: boolean;
   title: string;
   subtitle: string;
@@ -500,6 +507,7 @@ interface WorkspaceHeaderTitleBarProps {
 }
 
 function WorkspaceHeaderTitleBar({
+  workspace,
   isLoading,
   title,
   subtitle,
@@ -523,7 +531,10 @@ function WorkspaceHeaderTitleBar({
         </View>
       ) : (
         <View style={styles.headerTitleTextGroup}>
-          <ScreenTitle testID="workspace-header-title">{title}</ScreenTitle>
+          <View style={styles.headerTitleRow}>
+            <WorkspaceHeaderIcon serverId={normalizedServerId} workspace={workspace} />
+            <ScreenTitle testID="workspace-header-title">{title}</ScreenTitle>
+          </View>
           <WorkspaceHeaderProjectRow
             subtitle={subtitle}
             isSubtitleDistinct={isSubtitleDistinct}
@@ -1063,10 +1074,8 @@ function WorkspaceScreenContent({
   const workspacePanelActive = usePanelStore((state) => state.mobilePanel.target === "agent");
   const canRenderDesktopPaneSplits = supportsDesktopPaneSplits();
   const layoutMode = useWorkspaceLayoutStore((state) => state.layoutMode);
-  const hasMacTrafficLights = useHasWindowChromeObstruction("top-left");
   const explorerToggleOwner = resolveWorkspaceExplorerToggleOwner({
     isMobile,
-    hasMacTrafficLights,
   });
   const isFocusModeEnabled = usePanelStore((state) => state.desktop.focusModeEnabled);
   const toggleFocusMode = usePanelStore((state) => state.toggleFocusMode);
@@ -3260,21 +3269,16 @@ function WorkspaceScreenContent({
             hideLabels
           />
         ) : null}
-        {workspaceDirectory ? (
-          <>
-            <WorkspaceActions serverId={normalizedServerId} cwd={workspaceDirectory} />
-            {workspaceActionsInBar ? null : (
-              <WorkspaceHeaderExplorerToggle
-                owner={explorerToggleOwner}
-                onPress={handleToggleExplorerSidebar}
-                label={explorerSidebarToggleLabel}
-                tooltipLabel={t("workspace.tabs.explorerSidebar.toggle")}
-                tooltipKeys={EXPLORER_TOGGLE_KEYS}
-                style={styles.compactHeaderActionButton}
-                accessibilityState={explorerSidebarToggleAccessibilityState}
-              />
-            )}
-          </>
+        {workspaceDirectory && !workspaceActionsInBar ? (
+          <WorkspaceHeaderExplorerToggle
+            owner={explorerToggleOwner}
+            onPress={handleToggleExplorerSidebar}
+            label={explorerSidebarToggleLabel}
+            tooltipLabel={t("workspace.tabs.explorerSidebar.toggle")}
+            tooltipKeys={EXPLORER_TOGGLE_KEYS}
+            style={styles.compactHeaderActionButton}
+            accessibilityState={explorerSidebarToggleAccessibilityState}
+          />
         ) : null}
       </View>
     ),
@@ -3359,6 +3363,7 @@ function WorkspaceScreenContent({
             <>
               <SidebarMenuToggle />
               <WorkspaceHeaderTitleBar
+                workspace={workspaceDescriptor}
                 isLoading={isWorkspaceHeaderLoading}
                 title={workspaceHeaderTitle}
                 subtitle={workspaceHeaderSubtitle}
@@ -3385,6 +3390,7 @@ function WorkspaceScreenContent({
       handleCopyWorkspacePath,
       handleOpenSetupTab,
       headerRight,
+      workspaceDescriptor,
       isWorkspaceHeaderLoading,
       normalizedServerId,
       openImportSheet,
@@ -3726,6 +3732,7 @@ function WorkspaceScreenContent({
       connected: isConnected,
       creatingTerminal: creatingExecutionTerminal,
       onCreateTerminal: handleCreateExecutionTerminal,
+      onConfigureScripts: configureScriptsAction(normalizedServerId, workspaceDescriptor),
       onViewTerminal: handleViewScriptTerminal,
       onOpenUrl: handleOpenUrlInBrowserTab,
     }),
@@ -3735,6 +3742,8 @@ function WorkspaceScreenContent({
       isConnected,
       creatingExecutionTerminal,
       handleCreateExecutionTerminal,
+      normalizedServerId,
+      workspaceDescriptor,
       handleViewScriptTerminal,
       handleOpenUrlInBrowserTab,
     ],
@@ -3746,6 +3755,7 @@ function WorkspaceScreenContent({
     const dock = (
       <ExplorerSidebarDock
         workspaceKey={persistenceKey}
+        workspaceDirectory={workspaceDirectory}
         executionControls={executionControls}
         pane={explorerPane}
         uiTabs={uiTabs}
@@ -3787,6 +3797,7 @@ function WorkspaceScreenContent({
     );
   }, [
     workspaceLayout,
+    workspaceDirectory,
     executionControls,
     explorerSidebarPaneId,
     persistenceKey,
@@ -4006,6 +4017,13 @@ const styles = StyleSheet.create((theme) => ({
       xs: 0,
       md: theme.spacing[2],
     },
+  },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[2],
+    flexShrink: 1,
+    minWidth: 0,
   },
   headerTitleSkeleton: {
     width: 220,

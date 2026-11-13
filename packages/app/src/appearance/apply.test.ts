@@ -47,7 +47,12 @@ interface FakeTheme {
   };
   lineHeight: { diff: number };
   contentMaxWidth: number;
-  colors: { foreground: string; syntax: Record<string, string> };
+  colors: {
+    foreground: string;
+    syntax: Record<string, string>;
+    accent?: string;
+    success?: string;
+  };
 }
 
 function makeFakeTheme(): FakeTheme {
@@ -198,6 +203,20 @@ describe("applyAppearance", () => {
     applyAppearance(makeInput({ codeFontSize: 18 }));
 
     expect(runCapturedUpdater().lineHeight.diff).toBe(Math.round(18 * 1.5)); // 27
+  });
+
+  it("replaces the theme accent with the macOS system accent", () => {
+    applyAppearance(makeInput({ systemAccent: "#007AFFFF" }));
+
+    const { colors } = runCapturedUpdater();
+    expect(colors.accent).toBe("#007aff");
+    expect(colors.success).toBe("#007aff");
+  });
+
+  it("keeps the theme accent when no system accent is available", () => {
+    applyAppearance(makeInput());
+
+    expect(runCapturedUpdater().colors.accent).toBeUndefined();
   });
 
   it("swaps colors.syntax to the resolved palette for the named theme", () => {

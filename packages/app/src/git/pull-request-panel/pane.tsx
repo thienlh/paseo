@@ -191,7 +191,6 @@ export function PullRequestPane({
   data,
   activityLoading,
   workspaceAttachmentScopeKey,
-  reviewAction,
   reviewSection,
 }: {
   serverId: string;
@@ -199,8 +198,6 @@ export function PullRequestPane({
   data: PrPaneData;
   activityLoading: boolean;
   workspaceAttachmentScopeKey?: string;
-  /** The Checks panel's Review button, shown first in the toolbar, before View. */
-  reviewAction?: ReactNode;
   /** The Checks panel's Review section, shown last, after Activity. */
   reviewSection?: ReactNode;
 }) {
@@ -488,7 +485,6 @@ export function PullRequestPane({
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <PaneContentToolbar style={styles.toolbar} testID="pr-pane-toolbar">
           <View style={styles.toolbarActions}>
-            {reviewAction}
             <Button
               variant="ghost"
               size="sm"

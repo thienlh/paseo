@@ -29,6 +29,7 @@ import {
   shell,
   webContents,
 } from "electron";
+import { registerSystemAccent } from "./accent.js";
 import { registerDaemonManager } from "./daemon/daemon-manager.js";
 import { parsePassthroughCliArgsFromArgv, runPassthroughCli } from "./daemon/cli/passthrough.js";
 import { closeAllTransportSessions } from "./daemon/local-transport.js";
@@ -967,6 +968,7 @@ async function bootstrap(): Promise<void> {
   ensureNotificationCenterRegistration();
   registerDaemonManager();
   registerWindowManager({ mode: DESKTOP_WINDOW_CHROME_MODE });
+  registerSystemAccent();
   registerDialogHandlers();
   registerNotificationHandlers();
   const openExternalUrl = createExternalUrlOpener({ open: shell.openExternal });

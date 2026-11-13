@@ -11,12 +11,7 @@ import {
   PullRequestPaneSkeleton,
 } from "@/git/pull-request-panel";
 import type { UsePrPaneDataResult } from "@/git/pull-request-panel/use-data";
-import {
-  ChecksReviewButton,
-  ChecksReviewSection,
-  useChecksReviewSubject,
-} from "@/git/pull-request-review/checks-review-section";
-import { PaneContentToolbar } from "@/components/ui/pane-content-toolbar";
+import { ChecksReviewSection } from "@/git/pull-request-review/checks-review-section";
 
 import { resolvePullRequestContentState } from "./state";
 export {
@@ -46,24 +41,6 @@ export function PullRequestContent(input: {
     cwd: input.cwd,
   });
   const data = input.prPane.data;
-  const reviewSubject = useChecksReviewSubject({
-    serverId: input.serverId,
-    cwd: input.cwd,
-    pullRequest: data ?? null,
-  });
-  const hasReviewAction = Boolean(reviewSubject && input.workspaceId);
-  // The Checks panel shows for every git workspace, so its Review section does not wait for a PR.
-  const reviewAction = useMemo(
-    () => (
-      <ChecksReviewButton
-        serverId={input.serverId}
-        workspaceId={input.workspaceId}
-        cwd={input.cwd}
-        subject={reviewSubject}
-      />
-    ),
-    [input.cwd, input.serverId, input.workspaceId, reviewSubject],
-  );
   const reviewSection = useMemo(
     () => (
       <ChecksReviewSection
@@ -83,7 +60,6 @@ export function PullRequestContent(input: {
         data={data}
         activityLoading={input.prPane.activityLoading}
         workspaceAttachmentScopeKey={workspaceAttachmentScopeKey}
-        reviewAction={reviewAction}
         reviewSection={reviewSection}
       />
     );
@@ -97,11 +73,6 @@ export function PullRequestContent(input: {
   }
   return (
     <ScrollView style={styles.scroll} testID="pull-request-empty-state">
-      {hasReviewAction ? (
-        <PaneContentToolbar style={styles.toolbar} testID="pull-request-empty-toolbar">
-          {reviewAction}
-        </PaneContentToolbar>
-      ) : null}
       {reviewSection}
       <View style={styles.empty}>
         <Text style={styles.emptyTitle}>{t("panels.pullRequest.emptyTitle")}</Text>
@@ -114,11 +85,6 @@ export function PullRequestContent(input: {
 const styles = StyleSheet.create((theme) => ({
   scroll: {
     flex: 1,
-  },
-  toolbar: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: theme.spacing[3],
   },
   empty: {
     alignItems: "center",

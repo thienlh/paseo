@@ -17,6 +17,7 @@ import {
 import { PLUGIN_THEME_PREFERENCE } from "@/styles/theme";
 import { applyAppearance, applyTheme } from "./apply";
 import { AppearanceSystemBars } from "./system-bars";
+import { useSystemAccentColor } from "./use-system-accent";
 
 interface ContributedThemes {
   options: PluginThemeOption[];
@@ -29,12 +30,14 @@ const ContributedThemesContext = createContext<ContributedThemes | null>(null);
 export function AppearanceProvider({ children }: { children: ReactNode }) {
   const { settings, updateSettings, isLoading } = useAppSettings();
   const systemColorScheme = useColorScheme();
+  const systemAccent = useSystemAccentColor();
   const [hasAppliedAppearance, setHasAppliedAppearance] = useState(false);
   const options = usePluginThemeCatalog();
   const selected = useMemo(() => {
     if (settings.theme !== PLUGIN_THEME_PREFERENCE) return null;
     return options.find((option) => option.id === settings.pluginThemeId) ?? null;
   }, [options, settings.pluginThemeId, settings.theme]);
+  const appliedSystemAccent = selected ? null : systemAccent;
 
   useEffect(() => {
     if (isLoading) return;
@@ -52,6 +55,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       codeFontSize: settings.codeFontSize,
       contentMaxWidth: resolveContentMaxWidth({ contentMaxWidth: settings.contentMaxWidth }),
       syntaxTheme: settings.syntaxTheme,
+      systemAccent: appliedSystemAccent,
     });
     setHasAppliedAppearance(true);
   }, [
@@ -67,6 +71,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     settings.codeFontSize,
     settings.contentMaxWidth,
     settings.syntaxTheme,
+    appliedSystemAccent,
   ]);
 
   const select = useCallback(

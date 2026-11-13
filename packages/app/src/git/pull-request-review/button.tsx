@@ -1,9 +1,10 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { StyleSheet } from "react-native-unistyles";
 import { TextSearch } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { create } from "zustand";
 import { Button } from "@/components/ui/button";
+import { HEADER_CONTROL_HEIGHT } from "@/components/ui/control-geometry";
 import { useToast } from "@/contexts/toast-context";
 import { useFormPreferences } from "@/hooks/use-form-preferences";
 import { useHostRuntimeClient } from "@/runtime/host-runtime";
@@ -11,7 +12,9 @@ import { useSessionStore } from "@/stores/session-store";
 import { useWorkspaceLayoutStore } from "@/stores/workspace-layout-store";
 import { toErrorMessage } from "@/utils/error-messages";
 import { buildWorkspaceTabPersistenceKey } from "@/workspace-tabs/model";
-import type { ReviewSubject } from "./context";
+import { useCheckoutStatusQuery } from "@/git/use-status-query";
+import { useCheckoutPrStatusQuery } from "@/git/use-pr-status-query";
+import { selectPullRequestReviewSubject, selectReviewSubject, type ReviewSubject } from "./context";
 import { startReviewChat } from "./start";
 
 interface PullRequestReviewState {
@@ -23,6 +26,46 @@ const usePullRequestReviewStore = create<PullRequestReviewState>((set) => ({
   inFlight: false,
   setInFlight: (inFlight) => set({ inFlight }),
 }));
+
+function renderReviewIcon(color: string) {
+  return <TextSearch size={16} color={color} />;
+}
+
+export function WorkspaceReviewButton({
+  serverId,
+  workspaceId,
+  cwd,
+}: {
+  serverId: string;
+  workspaceId: string;
+  cwd: string;
+}) {
+  const { status } = useCheckoutStatusQuery({ serverId, cwd });
+  const git = status && status.isGit ? status : null;
+  const { status: pullRequest, forge } = useCheckoutPrStatusQuery({
+    serverId,
+    cwd,
+    enabled: git !== null,
+  });
+  const subject = useMemo(() => {
+    const currentPullRequest = pullRequest?.headRefName === git?.currentBranch ? pullRequest : null;
+    return selectReviewSubject({
+      pullRequest: selectPullRequestReviewSubject({ status: currentPullRequest, forge }),
+      isDirty: Boolean(git?.isDirty),
+      branch: git?.currentBranch,
+      baseRef: git?.baseRef,
+    });
+  }, [forge, git, pullRequest]);
+  if (!subject) return null;
+  return (
+    <PullRequestReviewButton
+      serverId={serverId}
+      workspaceId={workspaceId}
+      cwd={cwd}
+      subject={subject}
+    />
+  );
+}
 
 export function PullRequestReviewButton({
   serverId,
@@ -95,11 +138,12 @@ export function PullRequestReviewButton({
     <Button
       variant="default"
       size="sm"
-      leftIcon={TextSearch}
+      leftIcon={renderReviewIcon}
       loading={inFlight}
       disabled={inFlight}
       onPress={startReview}
       style={styles.button}
+      textStyle={styles.buttonText}
       testID="checks-review-start"
       accessibilityLabel={t("workspace.git.pr.actions.review")}
     >
@@ -108,14 +152,18 @@ export function PullRequestReviewButton({
   );
 }
 
-// Matches the toolbar's View button, so the two sit on one line at one height.
 const styles = StyleSheet.create((theme) => ({
   button: {
     gap: theme.spacing[1],
-    minHeight: 24,
-    height: 24,
+    minHeight: HEADER_CONTROL_HEIGHT,
+    height: HEADER_CONTROL_HEIGHT,
     paddingVertical: 0,
     paddingHorizontal: theme.spacing[2],
-    borderRadius: theme.borderRadius.base,
+    borderRadius: theme.borderRadius.md,
+  },
+  buttonText: {
+    fontSize: theme.fontSize.base,
+    lineHeight: theme.fontSize.base * 1.5,
+    fontWeight: theme.fontWeight.normal,
   },
 }));

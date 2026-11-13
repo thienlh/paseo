@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import type { Logger } from "pino";
 import type {
   ScriptStatusUpdateMessage,
@@ -46,6 +47,34 @@ export async function readPaseoConfigForProjection(
     "Failed to parse paseo.json; treating workspace as having no scripts",
   );
   return null;
+}
+
+/**
+ * Scripts for a workspace. A checkout with its own paseo.json uses that file. A worktree that
+ * has none yet uses the project root, which is where project settings writes the file — an
+ * uncommitted paseo.json is not copied into worktrees, and the panel would otherwise say the
+ * project has no scripts.
+ *
+ * A file that fails to parse does not fall back. Guessing past a broken config would hide the
+ * failure.
+ */
+export async function readWorkspaceScriptConfig(
+  workspaceDirectory: string,
+  logger: Logger,
+  projectRoot?: string | null,
+): Promise<PaseoConfig | null> {
+  const own = await readPaseoConfig(workspaceDirectory);
+  if (!own.ok) {
+    logger.warn(
+      { configPath: own.configPath, workspaceDirectory, err: own.error },
+      "Failed to parse paseo.json; treating workspace as having no scripts",
+    );
+    return null;
+  }
+  if (own.config || !projectRoot || resolve(projectRoot) === resolve(workspaceDirectory)) {
+    return own.config;
+  }
+  return readPaseoConfigForProjection(projectRoot, logger);
 }
 
 function resolveDaemonPort(daemonPort: number | null | (() => number | null)): number | null {
@@ -279,6 +308,7 @@ export function createScriptStatusEmitter({
   daemonPort,
   serviceProxyPublicBaseUrl,
   resolveWorkspaceDirectory,
+  resolveProjectRoot,
   logger,
 }: {
   sessions: () => SessionEmitter[];
@@ -287,6 +317,7 @@ export function createScriptStatusEmitter({
   daemonPort: number | null | (() => number | null);
   serviceProxyPublicBaseUrl?: string | null;
   resolveWorkspaceDirectory: (workspaceId: string) => string | null | Promise<string | null>;
+  resolveProjectRoot?: (workspaceId: string) => string | null | Promise<string | null>;
   logger: Logger;
 }): (workspaceId: string, scripts: ScriptHealthEntry[]) => Promise<void> {
   return async (workspaceId, scripts) => {
@@ -304,7 +335,11 @@ export function createScriptStatusEmitter({
       const projected = buildWorkspaceScriptPayloads({
         workspaceId,
         workspaceDirectory,
-        paseoConfig: await readPaseoConfigForProjection(workspaceDirectory, logger),
+        paseoConfig: await readWorkspaceScriptConfig(
+          workspaceDirectory,
+          logger,
+          await resolveProjectRoot?.(workspaceId),
+        ),
         serviceProxy,
         runtimeStore,
         daemonPort: resolvedDaemonPort,

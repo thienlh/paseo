@@ -493,6 +493,7 @@ async function maybeRemoveDirectory(
   request.checkpoint();
   try {
     await deletePaseoWorktree({
+      preserveChanges: true,
       cwd: backing.mainRepoRoot,
       worktreePath: backing.path,
       teardownCwds: [],
