@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, Text, View, type ViewStyle } from "react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import {
@@ -191,12 +191,15 @@ export function PullRequestPane({
   data,
   activityLoading,
   workspaceAttachmentScopeKey,
+  reviewSection,
 }: {
   serverId: string;
   cwd: string;
   data: PrPaneData;
   activityLoading: boolean;
   workspaceAttachmentScopeKey?: string;
+  /** The Checks panel's Review section, shown last, after Activity. */
+  reviewSection?: ReactNode;
 }) {
   const { t } = useTranslation();
   const isCompact = useIsCompactFormFactor();
@@ -616,6 +619,13 @@ export function PullRequestPane({
               ))
             : null}
         </Section>
+
+        {reviewSection ? (
+          <>
+            <View style={styles.divider} />
+            {reviewSection}
+          </>
+        ) : null}
       </ScrollView>
     </View>
   );

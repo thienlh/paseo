@@ -22,6 +22,8 @@ export interface TurnCollapse {
    * keeps the previous row object for a turn whose work and open state are unchanged.
    */
   summaryRowsByHostId: ReadonlyMap<string, TurnSummaryItem>;
+  /** The tool calls a folded turn's summary row stands for, by host, for its file changes. */
+  foldedCallsByHostId: ReadonlyMap<string, readonly (ToolCallItem | ThoughtItem)[]>;
 }
 
 export interface CollapseTurnsInput {
@@ -38,17 +40,18 @@ export interface CollapseTurnsInput {
 const EMPTY_IDS: ReadonlySet<string> = new Set();
 const EMPTY_ROWS: ReadonlyMap<string, TurnSummaryItem> = new Map();
 const EMPTY_HOSTS: ReadonlyMap<string, string> = new Map();
+const EMPTY_CALLS: ReadonlyMap<string, readonly (ToolCallItem | ThoughtItem)[]> = new Map();
 
-function summarizeTurn(
+function collectTurnCalls(
   items: readonly StreamItem[],
   getGroupedCalls: CollapseTurnsInput["getGroupedCalls"],
-): OverviewSummary {
+): (ToolCallItem | ThoughtItem)[] {
   const calls: (ToolCallItem | ThoughtItem)[] = [];
   for (const item of items) {
     if ((item.kind === "tool_call" || item.kind === "thought") && !isTurnTrigger(item))
       calls.push(...(getGroupedCalls(item.id) ?? [item]));
   }
-  return summarizeToolCalls(calls);
+  return calls;
 }
 
 function hasWork(tools: OverviewSummary): boolean {
@@ -75,11 +78,13 @@ function summaryRow(
   host: StreamItem,
   expanded: boolean,
   tools: OverviewSummary,
+  messageCount: number,
   previous: TurnSummaryItem | undefined,
 ): TurnSummaryItem {
   if (
     previous &&
     previous.expanded === expanded &&
+    previous.messageCount === messageCount &&
     hasSameWork(previous.tools, tools) &&
     hasSamePosition(previous.timelineCursor, host.timelineCursor)
   ) {
@@ -95,6 +100,7 @@ function summaryRow(
     timestamp: host.timestamp,
     hostId: host.id,
     expanded,
+    messageCount,
     tools,
   };
 }
@@ -108,6 +114,19 @@ function isAssistantReply(item: StreamItem): boolean {
     item.kind === "assistant_message" ||
     (item.kind === "plugin" && item.sourceKind === "assistant_message")
   );
+}
+
+function countAssistantReplies(items: readonly StreamItem[]): number {
+  const messageIds = new Set<string>();
+  for (const item of items) {
+    if (!isAssistantReply(item)) continue;
+    messageIds.add(
+      item.kind === "assistant_message"
+        ? (item.messageId ?? item.id)
+        : getStreamItemMessageId(item),
+    );
+  }
+  return messageIds.size;
 }
 
 function findLastReplyIndex(tail: StreamItem[], start: number, end: number): number {
@@ -139,6 +158,7 @@ export function collapseTurns(input: CollapseTurnsInput): TurnCollapse {
   const nestedItemIds = new Set<string>();
   const hostIdByFoldedMessageId = new Map<string, string>();
   const hostIdByHiddenRowId = new Map<string, string>();
+  const foldedCallsByHostId = new Map<string, readonly (ToolCallItem | ThoughtItem)[]>();
 
   let runStart = 0;
   const flushRun = (runEnd: number) => {
@@ -155,19 +175,23 @@ export function collapseTurns(input: CollapseTurnsInput): TurnCollapse {
       return;
     }
     const folded = tail.slice(runStart, replyIndex);
-    const tools = summarizeTurn(folded, input.getGroupedCalls);
+    const calls = collectTurnCalls(folded, input.getGroupedCalls);
+    const tools = summarizeToolCalls(calls);
     if (!hasWork(tools) && !folded.some(isAssistantReply)) {
       output.push(...tail.slice(runStart, runEnd));
       return;
     }
     const expanded = input.expandedHostIds.has(host.id);
+    const messageCount = countAssistantReplies(tail.slice(runStart, runEnd));
     const summary = summaryRow(
       host,
       expanded,
       tools,
+      messageCount,
       input.previousSummaryRowsByHostId.get(host.id),
     );
     summaryRowsByHostId.set(host.id, summary);
+    foldedCallsByHostId.set(host.id, calls);
     const revealed = expanded
       ? folded.flatMap<StreamItem>((item) =>
           item.kind === "tool_call" || item.kind === "thought"
@@ -207,6 +231,7 @@ export function collapseTurns(input: CollapseTurnsInput): TurnCollapse {
       hostIdByFoldedMessageId: EMPTY_HOSTS,
       hostIdByHiddenRowId: EMPTY_HOSTS,
       summaryRowsByHostId: EMPTY_ROWS,
+      foldedCallsByHostId: EMPTY_CALLS,
     };
   }
   return {
@@ -215,5 +240,6 @@ export function collapseTurns(input: CollapseTurnsInput): TurnCollapse {
     hostIdByFoldedMessageId,
     hostIdByHiddenRowId,
     summaryRowsByHostId,
+    foldedCallsByHostId,
   };
 }

@@ -1,5 +1,7 @@
 import { isTurnTrigger, isTurnBoundary } from "@/agent-stream/turn-membership";
 import type { ToolCallDetail } from "@getpaseo/protocol/agent-types";
+import { splitProviderMessage } from "@/components/provider-image";
+import { isPaseoToolName, parseMcpToolName } from "@getpaseo/protocol/tool-name-normalization";
 import type { StreamItem, ToolCallItem, ThoughtItem } from "@/types/stream";
 
 export interface ToolCallDescriptor {
@@ -23,6 +25,7 @@ export interface GroupedHistory<TGroup> {
   tail: StreamItem[];
   groupsByHostId: Map<string, TGroup>;
   pendingCalls: readonly GroupableItem[];
+  pendingProviderImages: readonly StreamItem[];
 }
 
 export interface GroupedToolCalls<TGroup> {
@@ -77,6 +80,26 @@ export function isGroupableToolCall(
   return descriptor.detail.type !== "plan" && descriptor.name.trim().toLowerCase() !== "speak";
 }
 
+export function getMcpServerForCall(call: StreamItem): string | null {
+  if (call.kind !== "tool_call") return null;
+  const name = describeToolCall(call).name;
+  if (isPaseoToolName(name)) return null;
+  return parseMcpToolName(name)?.server ?? null;
+}
+
+function hasCompatibleMcpServer(pending: readonly GroupableItem[], item: StreamItem): boolean {
+  const previous = pending.at(-1);
+  if (!previous) return true;
+  return getMcpServerForCall(previous) === getMcpServerForCall(item);
+}
+
+function shouldDeferProviderImage(pending: readonly GroupableItem[], item: StreamItem): boolean {
+  if (pending.length === 0 || item.kind !== "assistant_message") return false;
+  const previous = pending.at(-1);
+  if (previous === undefined || getMcpServerForCall(previous) === null) return false;
+  return splitProviderMessage(item.text).some((segment) => segment.kind === "image");
+}
+
 function createRun(calls: readonly GroupableItem[], isSealed: boolean): ToolCallRun {
   const first = calls[0];
   const latest = calls.at(-1);
@@ -123,15 +146,9 @@ export function prepareGroupedHistory<TGroup>(input: {
   const output: StreamItem[] = [];
   const groups = new Map<string, TGroup>();
   let pending: GroupableItem[] = [];
+  let deferredProviderImages: StreamItem[] = [];
 
-  for (const item of input.tail) {
-    if (
-      isGroupableToolCall(item, input.autoExpandReasoning) &&
-      !isTurnBoundary(pending.at(-1) ?? null, item)
-    ) {
-      pending.push(item);
-      continue;
-    }
+  const flush = () => {
     appendRun({
       calls: pending,
       isSealed: true,
@@ -139,7 +156,25 @@ export function prepareGroupedHistory<TGroup>(input: {
       groups,
       buildGroup: input.buildGroup,
     });
+    output.push(...deferredProviderImages);
     pending = [];
+    deferredProviderImages = [];
+  };
+
+  for (const item of input.tail) {
+    if (shouldDeferProviderImage(pending, item)) {
+      deferredProviderImages.push(item);
+      continue;
+    }
+    if (
+      isGroupableToolCall(item, input.autoExpandReasoning) &&
+      !isTurnBoundary(pending.at(-1) ?? null, item) &&
+      hasCompatibleMcpServer(pending, item)
+    ) {
+      pending.push(item);
+      continue;
+    }
+    flush();
     if (isGroupableToolCall(item, input.autoExpandReasoning)) pending.push(item);
     else output.push(item);
   }
@@ -151,11 +186,13 @@ export function prepareGroupedHistory<TGroup>(input: {
     groups,
     buildGroup: input.buildGroup,
   });
+  output.push(...deferredProviderImages);
 
   return {
     tail: groups.size > 0 ? output : input.tail,
     groupsByHostId: groups,
     pendingCalls: pending,
+    pendingProviderImages: deferredProviderImages,
   };
 }
 
@@ -171,9 +208,12 @@ export function groupLiveToolCalls<TGroup>(input: {
   let pending = [...input.history.pendingCalls];
   let hostPlacement: "history" | "head" | null = pending.length > 0 ? "history" : null;
   let pendingIncludesHead = false;
+  let deferredProviderImages = [...input.history.pendingProviderImages];
 
   const flush = (isSealed: boolean) => {
     if (pending.length === 0) {
+      head.push(...deferredProviderImages);
+      deferredProviderImages = [];
       return;
     }
     const run = createRun(pending, isSealed);
@@ -184,13 +224,22 @@ export function groupLiveToolCalls<TGroup>(input: {
     if (run.calls.length > 1 && needsLiveGroup) {
       liveGroups.set(run.id, input.buildGroup(run));
     }
+    head.push(...deferredProviderImages);
+    deferredProviderImages = [];
     pending = [];
     hostPlacement = null;
     pendingIncludesHead = false;
   };
 
   for (const item of input.head) {
-    if (isTurnBoundary(pending.at(-1) ?? null, item)) flush(true);
+    if (shouldDeferProviderImage(pending, item)) {
+      deferredProviderImages.push(item);
+      pendingIncludesHead = true;
+      continue;
+    }
+    if (isTurnBoundary(pending.at(-1) ?? null, item) || !hasCompatibleMcpServer(pending, item)) {
+      flush(true);
+    }
     if (isGroupableToolCall(item, input.autoExpandReasoning)) {
       if (pending.length === 0) {
         hostPlacement = "head";

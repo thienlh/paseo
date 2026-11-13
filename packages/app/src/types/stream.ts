@@ -842,6 +842,8 @@ export interface TurnSummaryItem {
    */
   hostId: string;
   expanded: boolean;
+  /** Logical assistant replies, including the final reply that remains visible. */
+  messageCount: number;
   tools: OverviewSummary;
 }
 

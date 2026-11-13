@@ -23,6 +23,14 @@ export function useSidebarWorkspaceTrailing(): SidebarWorkspaceTrailing {
   return sidebarWorkspaceTrailing;
 }
 
+function hasVisibleDiffStat(workspace: SidebarWorkspaceEntry): boolean {
+  if (workspace.prHint?.state === "merged") {
+    return false;
+  }
+  const diffStat = workspace.diffStat;
+  return Boolean(diffStat && (diffStat.additions > 0 || diffStat.deletions > 0));
+}
+
 /** Whether the slot has anything to draw for this workspace under the current preference. */
 export function hasSidebarWorkspaceTrailing({
   workspace,
@@ -31,7 +39,7 @@ export function hasSidebarWorkspaceTrailing({
   workspace: SidebarWorkspaceEntry;
   trailing: SidebarWorkspaceTrailing;
 }): boolean {
-  if (trailing === "diff") return workspace.diffStat !== null;
+  if (trailing === "diff") return hasVisibleDiffStat(workspace);
   if (trailing === "timestamp") return workspace.statusEnteredAt !== null;
   return false;
 }
@@ -39,13 +47,19 @@ export function hasSidebarWorkspaceTrailing({
 export function SidebarWorkspaceTrailingContent({
   workspace,
   trailing,
+  selected,
 }: {
   workspace: SidebarWorkspaceEntry;
   trailing: SidebarWorkspaceTrailing;
+  selected: boolean;
 }) {
-  if (trailing === "diff" && workspace.diffStat) {
+  if (trailing === "diff" && workspace.diffStat && hasVisibleDiffStat(workspace)) {
     return (
-      <DiffStat additions={workspace.diffStat.additions} deletions={workspace.diffStat.deletions} />
+      <DiffStat
+        additions={workspace.diffStat.additions}
+        deletions={workspace.diffStat.deletions}
+        muted={!selected}
+      />
     );
   }
   if (trailing === "timestamp" && workspace.statusEnteredAt) {

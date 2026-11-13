@@ -21,6 +21,110 @@ describe("shared tool-call display mapping", () => {
     });
   });
 
+  it.each([
+    [{ content: "first\nsecond\nthird", limit: 200 }, "Read 3 lines"],
+    [{ content: "first\nsecond\n", limit: 200 }, "Read 2 lines"],
+    [{ content: "", limit: 200 }, "Read 0 lines"],
+    [{ limit: 1 }, "Read 1 line"],
+    [{ limit: 155 }, "Read 155 lines"],
+  ])("includes the available read line count in the label: %o", (read, displayName) => {
+    const display = buildToolCallDisplayModel({
+      name: "read_file",
+      status: "completed",
+      error: null,
+      detail: { type: "read", filePath: "/tmp/repo/src/index.ts", ...read },
+      cwd: "/tmp/repo",
+    });
+    expect(display).toEqual({ displayName, summary: "src/index.ts" });
+  });
+
+  it("includes the write line count", () => {
+    const display = buildToolCallDisplayModel({
+      name: "Write",
+      status: "completed",
+      error: null,
+      detail: {
+        type: "write",
+        filePath: "/tmp/repo/src/provider-image.ts",
+        content: "first\nsecond\nthird",
+      },
+      cwd: "/tmp/repo",
+    });
+
+    expect(display).toEqual({ displayName: "Write 3 lines", summary: "src/provider-image.ts" });
+  });
+
+  it("shows the first non-empty reasoning line beside Thinking", () => {
+    const display = buildToolCallDisplayModel({
+      name: "thinking",
+      status: "running",
+      error: null,
+      detail: {
+        type: "unknown",
+        input: "\n  Check the generated patch first.  \nThen run the focused tests.",
+        output: null,
+      },
+    });
+    expect(display).toEqual({
+      displayName: "Thinking",
+      summary: "Check the generated patch first.",
+    });
+  });
+
+  it("includes a failed shell call's exit code beside its command", () => {
+    const display = buildToolCallDisplayModel({
+      name: "Bash",
+      status: "failed",
+      error: null,
+      detail: { type: "shell", command: "npm test", exitCode: 2 },
+    });
+    expect(display).toMatchObject({ displayName: "Shell", summary: "npm test · exit 2" });
+  });
+
+  it("shows the first meaningful code statement beside Codemode", () => {
+    const display = buildToolCallDisplayModel({
+      name: "codemode",
+      status: "running",
+      error: null,
+      detail: {
+        type: "unknown",
+        input: {
+          code: '// Move the session\n\nconst result = await tools.opencode.session_move({ directory: "west-monroe" });\nconsole.log(result);',
+        },
+      },
+    });
+
+    expect(display).toEqual({
+      displayName: "Codemode",
+      summary: 'const result = await tools.opencode.session_move({ directory: "west-monroe" });',
+    });
+  });
+
+  it("prefers an explicitly invoked function for Codemode", () => {
+    const display = buildToolCallDisplayModel({
+      name: "codemode",
+      status: "running",
+      error: null,
+      detail: { type: "unknown", input: { toolName: "tools.opencode.session_move" } },
+    });
+
+    expect(display).toEqual({
+      displayName: "Codemode",
+      summary: "tools.opencode.session_move",
+    });
+  });
+
+  it("keeps Codemode compact when no code is available yet", () => {
+    const display = buildToolCallDisplayModel({
+      name: "codemode",
+      status: "running",
+      error: null,
+      detail: { type: "unknown", input: null },
+    });
+
+    expect(display).toEqual({ displayName: "Codemode" });
+  });
+
   it("does not infer summaries from unknown raw detail", () => {
     const display = buildToolCallDisplayModel({
       name: "exec_command",
@@ -86,6 +190,27 @@ describe("shared tool-call display mapping", () => {
     });
   });
 
+  it("labels a shell call with the agent's description and keeps the command as summary", () => {
+    const described = buildToolCallDisplayModel({
+      name: "Bash",
+      status: "completed",
+      error: null,
+      detail: { type: "shell", command: "git status", description: "Show working tree status" },
+    });
+    const bare = buildToolCallDisplayModel({
+      name: "Bash",
+      status: "completed",
+      error: null,
+      detail: { type: "shell", command: "git status", description: "  " },
+    });
+
+    expect(described).toMatchObject({
+      displayName: "Show working tree status",
+      summary: "git status",
+    });
+    expect(bare).toMatchObject({ displayName: "Shell", summary: "git status" });
+  });
+
   it("provides errorText for failed calls", () => {
     const display = buildToolCallDisplayModel({
       name: "shell",
@@ -135,6 +260,17 @@ describe("shared tool-call display mapping", () => {
     });
   });
 
+  it("shows the method and server for an MCP tool call", () => {
+    const display = buildToolCallDisplayModel({
+      name: "mcp__Claude_Browser__computer",
+      status: "completed",
+      error: null,
+      detail: { type: "unknown", input: null, output: null },
+    });
+
+    expect(display).toEqual({ displayName: "Computer", summary: "Claude Browser" });
+  });
+
   it("humanizes Paseo MCP tool names (Claude Code format)", () => {
     const display = buildToolCallDisplayModel({
       name: "mcp__paseo__create_agent",
@@ -173,6 +309,71 @@ describe("shared tool-call display mapping", () => {
       detail: { type: "unknown", input: null, output: null },
     });
     expect(display.displayName).toBe("Speak");
+  });
+
+  it("renders a settled AskUserQuestion as the user's answers", () => {
+    const display = buildToolCallDisplayModel({
+      name: "AskUserQuestion",
+      status: "completed",
+      error: null,
+      detail: {
+        type: "unknown",
+        input: {
+          questions: [
+            { question: "Which library should we use?", header: "Library" },
+            { question: "Where should it live?", header: "Placement" },
+          ],
+        },
+        output: {
+          output: {
+            answers: {
+              "Which library should we use?": "date-fns",
+              Placement: "In the sidebar",
+            },
+          },
+        },
+      },
+    });
+
+    expect(display).toEqual({
+      displayName: "[ANSWERED]",
+      summary: "date-fns, In the sidebar",
+    });
+  });
+
+  it("renders a dismissed AskUserQuestion as cancelled", () => {
+    const display = buildToolCallDisplayModel({
+      name: "mcp__conductor__AskUserQuestion",
+      status: "failed",
+      error: { message: "Dismissed by user" },
+      detail: {
+        type: "unknown",
+        input: {
+          questions: [{ question: "Which library should we use?", header: "Library" }],
+        },
+        output: null,
+      },
+    });
+
+    expect(display).toEqual({
+      displayName: "[CANCELLED]",
+      summary: "Which library should we use?",
+    });
+  });
+
+  it("leaves a pending AskUserQuestion on the generic tool label", () => {
+    const display = buildToolCallDisplayModel({
+      name: "AskUserQuestion",
+      status: "running",
+      error: null,
+      detail: {
+        type: "unknown",
+        input: { questions: [{ question: "Which library?", header: "Library" }] },
+        output: null,
+      },
+    });
+
+    expect(display.displayName).toBe("Askuserquestion");
   });
 
   it("labels plan detail rows as Plan", () => {

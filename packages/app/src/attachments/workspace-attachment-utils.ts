@@ -15,7 +15,8 @@ export function isPullRequestContextAttachment(
     attachment?.kind === "forge.change_request_check" ||
     attachment?.kind === "github.pull_request_comment" ||
     attachment?.kind === "github.pull_request_review" ||
-    attachment?.kind === "github.pull_request_check"
+    attachment?.kind === "github.pull_request_check" ||
+    attachment?.kind === "paseo.review_finding"
   );
 }
 

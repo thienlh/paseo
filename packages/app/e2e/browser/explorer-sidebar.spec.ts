@@ -20,6 +20,35 @@ function explorerSidebar(page: Parameters<typeof ensureExplorerSidebar>[0]) {
   return page.getByTestId("workspace-explorer-sidebar").filter({ visible: true });
 }
 
+test("moves a terminal into Explorer execution while keeping its supporting view visible", async ({
+  page,
+}) => {
+  const workspace = await seedWorkspace({ repoPrefix: "explorer-execution-drag-" });
+  try {
+    const created = await workspace.client.createTerminal(
+      workspace.repoPath,
+      "Dragged terminal",
+      undefined,
+      { workspaceId: workspace.workspaceId },
+    );
+    if (!created.terminal) throw new Error(created.error ?? "Terminal creation failed");
+    const tabId = `terminal_${created.terminal.id}`;
+    await gotoWorkspace(page, workspace.workspaceId);
+    await openFilesPanel(page);
+    await dragTabIntoExplorer(page, tabId);
+    const explorer = explorerSidebar(page);
+    await expect(explorer.getByTestId("file-explorer-tree-scroll")).toBeVisible();
+    await expect(explorer.getByTestId("explorer-execution-body")).toBeVisible();
+    await expect(explorer.getByTestId(`workspace-tab-${tabId}`)).toBeVisible();
+    await expect(
+      page.getByTestId("workspace-pane-main").getByTestId(`workspace-tab-${tabId}`),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("terminal-surface").filter({ visible: true })).toHaveCount(1);
+  } finally {
+    await workspace.cleanup();
+  }
+});
+
 async function expectExplorerActiveTabForeground(
   page: Parameters<typeof ensureExplorerSidebar>[0],
 ) {
@@ -270,7 +299,7 @@ async function revealPhoneExplorer(page: Parameters<typeof ensureExplorerSidebar
 }
 
 async function cycleWorkspaceTheme(page: Parameters<typeof ensureExplorerSidebar>[0]) {
-  await page.keyboard.press("Control+Alt+t");
+  await page.keyboard.press("ControlOrMeta+Alt+t");
 }
 
 test("retains the Explorer host through appearance changes and folding", async ({ page }) => {
@@ -375,7 +404,7 @@ test("updates populated code and diff appearance without losing the editor insta
     await explorerSidebar(page).getByTestId("workspace-tab-changes_tree").click();
     const diff = explorerSidebar(page).getByTestId("git-diff-canvas");
     await expect(diff).toBeVisible();
-    await page.keyboard.press("Control+,");
+    await page.keyboard.press("ControlOrMeta+,");
     await openSettingsSection(page, "appearance");
     await page.getByLabel("Code font size", { exact: true }).fill("19");
     await page.getByLabel("Code font size", { exact: true }).press("Tab");
@@ -437,7 +466,7 @@ test("retains populated Explorer chat and terminal attachments through appearanc
     const composer = explorer.getByRole("textbox", { name: "Message agent..." });
     await composer.fill("Unsubmitted Explorer draft");
     const composerNode = await composer.elementHandle();
-    await page.keyboard.press("Control+,");
+    await page.keyboard.press("ControlOrMeta+,");
     await openSettingsSection(page, "appearance");
     await page.getByLabel("Content font size", { exact: true }).fill("20");
     await page.getByLabel("Content font size", { exact: true }).press("Tab");

@@ -3,13 +3,18 @@ import { useTranslation } from "react-i18next";
 import { Text, View, type PressableStateCallbackType } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 import { PressHighlight } from "@/components/ui/press-highlight";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DropdownTrigger } from "@/components/ui/dropdown-trigger";
+import { settingsStyles } from "@/styles/settings";
 import { DEFAULT_THEME_PREFERENCE, useAppSettings, type AppSettings } from "@/hooks/use-settings";
 import type { PluginThemeOption } from "@/plugins/themes";
 import {
   THEME_OPTIONS,
+  DARK_THEME_OPTIONS,
   PLUGIN_THEME_PREFERENCE,
   darkTheme,
   lightTheme,
+  type DarkThemePreference,
   type Theme,
 } from "@/styles/theme";
 import { useContributedThemes } from "./provider";
@@ -42,30 +47,105 @@ export function ThemePicker() {
     },
     [updateSettings],
   );
+  const selectPreferredDark = useCallback(
+    (preferredDarkTheme: DarkThemePreference) => {
+      void updateSettings({ preferredDarkTheme });
+    },
+    [updateSettings],
+  );
 
   return (
-    <View
-      style={styles.grid}
-      accessibilityRole="radiogroup"
-      accessibilityLabel={t("settings.appearance.theme.title")}
-    >
-      {PICKER_THEME_OPTIONS.map((option) => (
-        <BuiltInThemeTile
-          key={option.name}
-          value={option.name}
-          selected={selectedPluginTheme === null && builtInValue === option.name}
-          onSelect={selectBuiltIn}
-        />
-      ))}
-      {pluginThemes.map((option) => (
-        <PluginThemeTile
-          key={option.id}
-          option={option}
-          selected={selectedPluginTheme?.id === option.id}
-          onSelect={select}
-        />
-      ))}
+    <View>
+      <View
+        style={styles.grid}
+        accessibilityRole="radiogroup"
+        accessibilityLabel={t("settings.appearance.theme.title")}
+      >
+        {PICKER_THEME_OPTIONS.map((option) => (
+          <BuiltInThemeTile
+            key={option.name}
+            value={option.name}
+            selected={selectedPluginTheme === null && builtInValue === option.name}
+            onSelect={selectBuiltIn}
+          />
+        ))}
+        {pluginThemes.map((option) => (
+          <PluginThemeTile
+            key={option.id}
+            option={option}
+            selected={selectedPluginTheme?.id === option.id}
+            onSelect={select}
+          />
+        ))}
+      </View>
+      {settings.theme === "auto" ? (
+        <PreferredDarkThemeRow value={settings.preferredDarkTheme} onChange={selectPreferredDark} />
+      ) : null}
     </View>
+  );
+}
+
+export function PreferredDarkThemeRow({
+  value,
+  onChange,
+}: {
+  value: DarkThemePreference;
+  onChange: (value: DarkThemePreference) => void;
+}) {
+  const { t } = useTranslation();
+  const selectedLabel = t(`settings.appearance.theme.options.${value}`);
+  return (
+    <View style={[settingsStyles.row, settingsStyles.rowBorder]}>
+      <View style={settingsStyles.rowContent}>
+        <Text style={settingsStyles.rowTitle}>
+          {t("settings.appearance.theme.preferredDarkTitle")}
+        </Text>
+        <Text style={settingsStyles.rowHint}>
+          {t("settings.appearance.theme.preferredDarkHint")}
+        </Text>
+      </View>
+      <DropdownMenu>
+        <DropdownTrigger
+          accessibilityLabel={t("settings.appearance.theme.preferredDarkAccessibility", {
+            value: selectedLabel,
+          })}
+        >
+          {selectedLabel}
+        </DropdownTrigger>
+        <DropdownMenuContent side="bottom" align="end" width={220}>
+          {DARK_THEME_OPTIONS.map((option) => (
+            <PreferredDarkThemeOption
+              key={option.name}
+              value={option.name}
+              selected={value === option.name}
+              onChange={onChange}
+            />
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </View>
+  );
+}
+
+function PreferredDarkThemeOption({
+  value,
+  selected,
+  onChange,
+}: {
+  value: DarkThemePreference;
+  selected: boolean;
+  onChange: (value: DarkThemePreference) => void;
+}) {
+  const { t } = useTranslation();
+  const handleSelect = useCallback(() => onChange(value), [onChange, value]);
+  return (
+    <DropdownMenuItem
+      selected={selected}
+      onSelect={handleSelect}
+      testID={`preferred-dark-theme-option-${value}`}
+    >
+      {t(`settings.appearance.theme.options.${value}`)}
+    </DropdownMenuItem>
   );
 }
 
@@ -187,14 +267,18 @@ function ThemePreview({ theme }: { theme: Theme }) {
   );
 }
 
-/** "System" follows the OS: light on the left half, dark on the right. */
+/** "System" follows the OS: light on the left half, the preferred dark variant on the right. */
 function SystemThemePreview() {
+  const { settings } = useAppSettings();
+  const preferredDark = DARK_THEME_OPTIONS.find(
+    (option) => option.name === settings.preferredDarkTheme,
+  );
   return (
     <View style={styles.preview}>
       <ThemePreview theme={lightTheme} />
       <View style={styles.systemDarkHalf}>
         <View style={styles.systemDarkOffset}>
-          <ThemePreview theme={darkTheme} />
+          <ThemePreview theme={preferredDark?.theme ?? darkTheme} />
         </View>
       </View>
     </View>

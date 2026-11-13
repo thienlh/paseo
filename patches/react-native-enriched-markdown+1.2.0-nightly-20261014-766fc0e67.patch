@@ -1423,28 +1423,33 @@ index 250fa18..ea79a10 100644
 -{"version":3,"names":["parserPromise","initializeParser","then","module","default","wasmModule","cwrap","catch","error","isASTNode","value","type","parseMarkdown","markdown","underline","latexMath","superscript","subscript","highlight","hardSoftBreaks","preserveBlankLines","admonitions","parse","result","JSON","Error"],"sourceRoot":"../../../src","sources":["web/parseMarkdown.ts"],"mappings":";;AAeA;AACA;AACA,IAAIA,aAAsC,GAAG,IAAI;;AAEjD;AACA;AACA,SAASC,gBAAgBA,CAAA,EAAqB;EAC5C,IAAI,CAACD,aAAa,EAAE;IAClBA,aAAa,GAAG,MAAM,CAAC,aAAa,CAAC,CAClCE,IAAI,CAAEC,MAAM,IAAKA,MAAM,CAACC,OAAO,CAAC,CAAC,CAAC,CAClCF,IAAI,CAAEG,UAAU,IACfA,UAAU,CAACC,KAAK,CAAC,eAAe,EAAE,QAAQ,EAAE,CAC1C,QAAQ,EACR,QAAQ,EACR,QAAQ,EACR,QAAQ,EACR,QAAQ,EACR,QAAQ,EACR,QAAQ,EACR,QAAQ,EACR,QAAQ,CACT,CACH,CAAC,CACAC,KAAK,CAAEC,KAAK,IAAK;MAChBR,aAAa,GAAG,IAAI;MACpB,MAAMQ,KAAK;IACb,CAAC,CAAqB;EAC1B;EACA,OAAOR,aAAa;AACtB;AAEA,SAASS,SAASA,CAACC,KAAc,EAAoB;EACnD,OACE,OAAOA,KAAK,KAAK,QAAQ,IACzBA,KAAK,KAAK,IAAI,IACd,MAAM,IAAIA,KAAK,IACf,OAAQA,KAAK,CAAaC,IAAI,KAAK,QAAQ;AAE/C;AAEA,OAAO,eAAeC,aAAaA,CACjCC,QAAgB,EAChB;EACEC,SAAS,GAAG,KAAK;EACjBC,SAAS,GAAG,IAAI;EAChBC,WAAW,GAAG,KAAK;EACnBC,SAAS,GAAG,KAAK;EACjBC,SAAS,GAAG,KAAK;EACjBC,cAAc,GAAG,KAAK;EACtBC,kBAAkB,GAAG,KAAK;EAC1BC,WAAW,GAAG;AACL,CAAC,GAAG,CAAC,CAAC,EACC;EAClB,MAAMC,KAAK,GAAG,MAAMrB,gBAAgB,CAAC,CAAC;EAEtC,MAAMsB,MAAe,GAAGC,IAAI,CAACF,KAAK,CAChCA,KAAK,CACHT,QAAQ,EACRC,SAAS,GAAG,CAAC,GAAG,CAAC,EACjBC,SAAS,GAAG,CAAC,GAAG,CAAC,EACjBC,WAAW,GAAG,CAAC,GAAG,CAAC,EACnBC,SAAS,GAAG,CAAC,GAAG,CAAC,EACjBC,SAAS,GAAG,CAAC,GAAG,CAAC,EACjBC,cAAc,GAAG,CAAC,GAAG,CAAC,EACtBC,kBAAkB,GAAG,CAAC,GAAG,CAAC,EAC1BC,WAAW,GAAG,CAAC,GAAG,CACpB,CACF,CAAC;EAED,IAAI,CAACZ,SAAS,CAACc,MAAM,CAAC,EAAE;IACtB,MAAM,IAAIE,KAAK,CAAC,kCAAkC,CAAC;EACrD;EAEA,OAAOF,MAAM;AACf","ignoreList":[]}
 +{"version":3,"names":["readyParser","parserPromise","initializeParser","then","module","default","wasmModule","cwrap","parse","catch","error","isASTNode","value","type","parseMarkdownSync","markdown","underline","latexMath","superscript","subscript","highlight","hardSoftBreaks","preserveBlankLines","admonitions","result","JSON","Error","parseMarkdown","flags"],"sourceRoot":"../../../src","sources":["web/parseMarkdown.ts"],"mappings":";;AAeA;AACA;AACA,IAAIA,WAA2B,GAAG,IAAI;AACtC,IAAIC,aAAsC,GAAG,IAAI;;AAEjD;AACA;AACA,SAASC,gBAAgBA,CAAA,EAAqB;EAC5C,IAAI,CAACD,aAAa,EAAE;IAClBA,aAAa,GAAG,MAAM,CAAC,aAAa,CAAC,CAClCE,IAAI,CAAEC,MAAM,IAAKA,MAAM,CAACC,OAAO,CAAC,CAAC,CAAC,CAClCF,IAAI,CAAEG,UAAU,IACfA,UAAU,CAACC,KAAK,CAAC,eAAe,EAAE,QAAQ,EAAE,CAC1C,QAAQ,EACR,QAAQ,EACR,QAAQ,EACR,QAAQ,EACR,QAAQ,EACR,QAAQ,EACR,QAAQ,EACR,QAAQ,EACR,QAAQ,CACT,CACH,CAAC,CACAJ,IAAI,CAAEK,KAAK,IAAK;MACfR,WAAW,GAAGQ,KAAgB;MAC9B,OAAOA,KAAK;IACd,CAAC,CAAC,CACDC,KAAK,CAAEC,KAAK,IAAK;MAChBT,aAAa,GAAG,IAAI;MACpB,MAAMS,KAAK;IACb,CAAC,CAAqB;EAC1B;EACA,OAAOT,aAAa;AACtB;AAEA,SAASU,SAASA,CAACC,KAAc,EAAoB;EACnD,OACE,OAAOA,KAAK,KAAK,QAAQ,IACzBA,KAAK,KAAK,IAAI,IACd,MAAM,IAAIA,KAAK,IACf,OAAQA,KAAK,CAAaC,IAAI,KAAK,QAAQ;AAE/C;AAEA,OAAO,SAASC,iBAAiBA,CAC/BC,QAAgB,EAChB;EACEC,SAAS,GAAG,KAAK;EACjBC,SAAS,GAAG,IAAI;EAChBC,WAAW,GAAG,KAAK;EACnBC,SAAS,GAAG,KAAK;EACjBC,SAAS,GAAG,KAAK;EACjBC,cAAc,GAAG,KAAK;EACtBC,kBAAkB,GAAG,KAAK;EAC1BC,WAAW,GAAG;AACL,CAAC,GAAG,CAAC,CAAC,EACD;EAChB,MAAMf,KAAK,GAAGR,WAAW;EACzB,IAAI,CAACQ,KAAK,EAAE,OAAO,IAAI;EAEvB,MAAMgB,MAAe,GAAGC,IAAI,CAACjB,KAAK,CAChCA,KAAK,CACHO,QAAQ,EACRC,SAAS,GAAG,CAAC,GAAG,CAAC,EACjBC,SAAS,GAAG,CAAC,GAAG,CAAC,EACjBC,WAAW,GAAG,CAAC,GAAG,CAAC,EACnBC,SAAS,GAAG,CAAC,GAAG,CAAC,EACjBC,SAAS,GAAG,CAAC,GAAG,CAAC,EACjBC,cAAc,GAAG,CAAC,GAAG,CAAC,EACtBC,kBAAkB,GAAG,CAAC,GAAG,CAAC,EAC1BC,WAAW,GAAG,CAAC,GAAG,CACpB,CACF,CAAC;EAED,IAAI,CAACZ,SAAS,CAACa,MAAM,CAAC,EAAE;IACtB,MAAM,IAAIE,KAAK,CAAC,kCAAkC,CAAC;EACrD;EAEA,OAAOF,MAAM;AACf;AAEA,OAAO,eAAeG,aAAaA,CACjCZ,QAAgB,EAChBa,KAAgB,GAAG,CAAC,CAAC,EACH;EAClB,MAAM1B,gBAAgB,CAAC,CAAC;EACxB,OAAOY,iBAAiB,CAACC,QAAQ,EAAEa,KAAK,CAAC;AAC3C","ignoreList":[]}
 diff --git a/node_modules/react-native-enriched-markdown/lib/module/web/renderers/BlockRenderers.js b/node_modules/react-native-enriched-markdown/lib/module/web/renderers/BlockRenderers.js
-index dd70713..ca0385a 100644
+index dd70713..e561088 100644
 --- a/node_modules/react-native-enriched-markdown/lib/module/web/renderers/BlockRenderers.js
 +++ b/node_modules/react-native-enriched-markdown/lib/module/web/renderers/BlockRenderers.js
-@@ -101,12 +101,28 @@ function AdmonitionRenderer({
+@@ -101,16 +101,37 @@ function AdmonitionRenderer({
    });
  }
  function CodeBlockRenderer({
 +  capabilities,
    node,
    styles,
++  parentType,
    renderChildren,
    callbacks
  }) {
    const language = node.attributes?.language;
++  const resolvedCodeBlockStyle = parentType === 'ListItem' ? {
++    ...styles.codeBlock,
++    marginTop: styles.paragraph.marginBottom
++  } : styles.codeBlock;
 +  const CustomCodeBlock = capabilities.renderers?.codeBlock;
 +  if (CustomCodeBlock) {
 +    // The custom renderer owns the block's look; the library keeps its spacing,
 +    // including the zeroed trailing margin of the last block.
 +    return /*#__PURE__*/_jsx("div", {
 +      style: {
-+        marginTop: styles.codeBlock.marginTop,
-+        marginBottom: styles.codeBlock.marginBottom
++        marginTop: resolvedCodeBlockStyle.marginTop,
++        marginBottom: resolvedCodeBlockStyle.marginBottom
 +      },
 +      children: /*#__PURE__*/_jsx(CustomCodeBlock, {
 +        code: extractNodeText(node),
@@ -1455,7 +1460,21 @@ index dd70713..ca0385a 100644
    const label = language ? `Code block: ${language}` : 'Code block';
    if (callbacks.onCodeBlockPress == null) {
      return /*#__PURE__*/_jsx("pre", {
-@@ -214,7 +230,10 @@ function ImageRenderer({
+-      style: styles.codeBlock,
++      style: resolvedCodeBlockStyle,
+       "aria-label": label,
+       children: /*#__PURE__*/_jsx("code", {
+         style: styles.codeBlockFont,
+@@ -138,7 +159,7 @@ function CodeBlockRenderer({
+   };
+   return /*#__PURE__*/_jsx("pre", {
+     style: {
+-      ...styles.codeBlock,
++      ...resolvedCodeBlockStyle,
+       cursor: 'pointer'
+     },
+     "aria-label": label,
+@@ -214,7 +235,10 @@ function ImageRenderer({
      src: url,
      alt: alt,
      title: title,
@@ -3431,6 +3450,17 @@ new file mode 100644
 diff --git a/node_modules/react-native-enriched-markdown/src/types/MarkdownStyle.ts b/node_modules/react-native-enriched-markdown/src/types/MarkdownStyle.ts
 --- a/node_modules/react-native-enriched-markdown/src/types/MarkdownStyle.ts
 +++ b/node_modules/react-native-enriched-markdown/src/types/MarkdownStyle.ts
+@@ -162,8 +162,9 @@ interface StrongStyle {
+    * Controls whether bold is applied on top of the custom fontFamily.
+    * Only relevant when fontFamily is set. Defaults to 'bold'.
+    * Set to 'normal' to use the font face as-is without adding bold.
++   * Set to '600' to use a semibold font face.
+    */
+-  fontWeight?: 'bold' | 'normal';
++  fontWeight?: 'bold' | 'normal' | '600';
+   color?: string;
+ }
+ 
 @@ -197,6 +197,8 @@
  interface CodeStyle {
    fontFamily?: string;
@@ -3443,6 +3473,17 @@ diff --git a/node_modules/react-native-enriched-markdown/src/types/MarkdownStyle
 diff --git a/node_modules/react-native-enriched-markdown/lib/typescript/src/types/MarkdownStyle.d.ts b/node_modules/react-native-enriched-markdown/lib/typescript/src/types/MarkdownStyle.d.ts
 --- a/node_modules/react-native-enriched-markdown/lib/typescript/src/types/MarkdownStyle.d.ts
 +++ b/node_modules/react-native-enriched-markdown/lib/typescript/src/types/MarkdownStyle.d.ts
+@@ -148,8 +148,9 @@ interface StrongStyle {
+      * Controls whether bold is applied on top of the custom fontFamily.
+      * Only relevant when fontFamily is set. Defaults to 'bold'.
+      * Set to 'normal' to use the font face as-is without adding bold.
++     * Set to '600' to use a semibold font face.
+      */
+-    fontWeight?: 'bold' | 'normal';
++    fontWeight?: 'bold' | 'normal' | '600';
+     color?: string;
+ }
+ interface EmphasisStyle {
 @@ -179,6 +179,8 @@
  interface CodeStyle {
      fontFamily?: string;
@@ -3535,7 +3576,7 @@ diff --git a/node_modules/react-native-enriched-markdown/src/web/styles.ts b/nod
      verticalAlign: 'middle',
      display: 'inline',
    };
-@@ -290,7 +293,7 @@ function codeStyle(style: MarkdownStyleInternal): CSSProperties {
+@@ -290,11 +293,11 @@ function codeStyle(style: MarkdownStyleInternal): CSSProperties {
    const code = style.code;
    return {
      fontFamily: normalizeFontFamily(code.fontFamily),
@@ -3544,6 +3585,12 @@ diff --git a/node_modules/react-native-enriched-markdown/src/web/styles.ts b/nod
      color: code.color,
      backgroundColor: code.backgroundColor,
      border: `1px solid ${code.borderColor}`,
+-    borderRadius: 3,
+-    padding: '1px 4px',
++    borderRadius: 6,
++    padding: '1px 6px',
+     direction: 'ltr',
+     unicodeBidi: 'embed',
 diff --git a/node_modules/react-native-enriched-markdown/lib/module/web/styles.js b/node_modules/react-native-enriched-markdown/lib/module/web/styles.js
 --- a/node_modules/react-native-enriched-markdown/lib/module/web/styles.js
 +++ b/node_modules/react-native-enriched-markdown/lib/module/web/styles.js
@@ -3561,7 +3608,7 @@ diff --git a/node_modules/react-native-enriched-markdown/lib/module/web/styles.j
      verticalAlign: 'middle',
      display: 'inline'
    };
-@@ -271,7 +274,7 @@ function codeStyle(style) {
+@@ -271,11 +274,11 @@ function codeStyle(style) {
    const code = style.code;
    return {
      fontFamily: normalizeFontFamily(code.fontFamily),
@@ -3570,6 +3617,26 @@ diff --git a/node_modules/react-native-enriched-markdown/lib/module/web/styles.j
      color: code.color,
      backgroundColor: code.backgroundColor,
      border: `1px solid ${code.borderColor}`,
+-    borderRadius: 3,
+-    padding: '1px 4px',
++    borderRadius: 6,
++    padding: '1px 6px',
+     direction: 'ltr',
+     unicodeBidi: 'embed'
+diff --git a/node_modules/react-native-enriched-markdown/ios/utils/CodeBackground.m b/node_modules/react-native-enriched-markdown/ios/utils/CodeBackground.m
+--- a/node_modules/react-native-enriched-markdown/ios/utils/CodeBackground.m
++++ b/node_modules/react-native-enriched-markdown/ios/utils/CodeBackground.m
+@@ -4,8 +4,8 @@
+ #import "RenderContext.h"
+ 
+ NSString *const CodeAttributeName = @"Code";
+ 
+-static const CGFloat kCodeBackgroundCornerRadius = 2.0;
+-static const CGFloat kCodeBackgroundBorderWidth = 0.5;
++static const CGFloat kCodeBackgroundCornerRadius = 6.0;
++static const CGFloat kCodeBackgroundBorderWidth = 1.0;
+ 
+ @implementation CodeBackground {
 diff --git a/node_modules/react-native-enriched-markdown/ios/styles/StyleConfig.h b/node_modules/react-native-enriched-markdown/ios/styles/StyleConfig.h
 --- a/node_modules/react-native-enriched-markdown/ios/styles/StyleConfig.h
 +++ b/node_modules/react-native-enriched-markdown/ios/styles/StyleConfig.h
@@ -3996,3 +4063,62 @@ diff --git a/node_modules/react-native-enriched-markdown/lib/module/web/utils.js
 +}
  //# sourceMappingURL=utils.js.map
 \ No newline at end of file
+diff --git a/node_modules/react-native-enriched-markdown/ios/renderer/StrongRenderer.m b/node_modules/react-native-enriched-markdown/ios/renderer/StrongRenderer.m
+--- a/node_modules/react-native-enriched-markdown/ios/renderer/StrongRenderer.m
++++ b/node_modules/react-native-enriched-markdown/ios/renderer/StrongRenderer.m
+@@ -51,6 +51,10 @@
+                               resolvedFont = [self ensureFontIsBold:currentFont];
+                             }
+ 
++                            if ([strongFontWeight isEqualToString:@"600"]) {
++                              resolvedFont = [self ensureFontIsSemibold:resolvedFont];
++                            }
++
+                             if (resolvedFont && ![resolvedFont isEqual:currentFont]) {
+                               [output addAttribute:NSFontAttributeName value:resolvedFont range:subrange];
+                             }
+@@ -70,6 +74,21 @@
+ 
+ #pragma mark - Helper Methods
+ 
++- (UIFont *)ensureFontIsSemibold:(UIFont *)font
++{
++  if (!font)
++    return nil;
++
++  UIFontDescriptor *descriptor = font.fontDescriptor;
++  NSMutableDictionary *traits = [[descriptor objectForKey:UIFontDescriptorTraitsAttribute] mutableCopy];
++  if (!traits)
++    traits = [NSMutableDictionary new];
++  traits[UIFontWeightTrait] = @(UIFontWeightSemibold);
++  UIFontDescriptor *semiboldDescriptor =
++      [descriptor fontDescriptorByAddingAttributes:@{UIFontDescriptorTraitsAttribute : traits}];
++  return semiboldDescriptor ? [UIFont fontWithDescriptor:semiboldDescriptor size:0] : font;
++}
++
+ - (UIFont *)ensureFontIsBold:(UIFont *)font
+ {
+   if (!font)
+diff --git a/node_modules/react-native-enriched-markdown/android/src/main/java/com/swmansion/enriched/markdown/spans/StrongSpan.kt b/node_modules/react-native-enriched-markdown/android/src/main/java/com/swmansion/enriched/markdown/spans/StrongSpan.kt
+--- a/node_modules/react-native-enriched-markdown/android/src/main/java/com/swmansion/enriched/markdown/spans/StrongSpan.kt
++++ b/node_modules/react-native-enriched-markdown/android/src/main/java/com/swmansion/enriched/markdown/spans/StrongSpan.kt
+@@ -27,12 +27,18 @@ class StrongSpan(
+     val currentTypeface = tp.typeface ?: Typeface.DEFAULT
+     val isItalic = (currentTypeface.style) and Typeface.ITALIC != 0
+     val style = if (isItalic) Typeface.BOLD_ITALIC else Typeface.BOLD
+-    tp.typeface =
++    val resolvedTypeface =
+       if (styleCache.strongFontFamily.isNotEmpty()) {
+         val resolvedStyle = if (styleCache.strongFontWeight == "normal") Typeface.NORMAL else style
+         styleCache.getTypeface(styleCache.strongFontFamily, resolvedStyle)
+       } else {
+         Typeface.create(currentTypeface, style)
+       }
++    tp.typeface =
++      if (styleCache.strongFontWeight == "600") {
++        Typeface.create(resolvedTypeface, 600, isItalic)
++      } else {
++        resolvedTypeface
++      }
+   }
+ }

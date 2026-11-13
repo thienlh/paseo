@@ -417,6 +417,10 @@ export const ru: TranslationResources = {
         completed: "Завершена",
       },
     },
+    usageLimit: {
+      title: "Достигнут лимит использования",
+      retryNewChat: "Повторить в новом чате",
+    },
     turnFooter: {
       workedFor: "Время работы: {{duration}}",
     },
@@ -713,6 +717,14 @@ export const ru: TranslationResources = {
         editTerminalProfiles: "Изменить профили",
       },
       explorerSidebar: {
+        execution: {
+          expand: "Развернуть выполнение",
+          collapse: "Свернуть выполнение",
+          chooseScript: "Выбрать скрипт",
+          idle: "Запустите скрипт, чтобы увидеть вывод",
+          noScripts: "Скрипты не настроены",
+          noTerminal: "Откройте терминал в этом рабочем пространстве",
+        },
         open: "Открыть боковую панель",
         close: "Закрыть боковую панель",
         toggle: "Переключить боковую панель",
@@ -830,8 +842,26 @@ export const ru: TranslationResources = {
       actions: {
         moreOptions: "Дополнительные параметры",
         moreActions: "Дополнительные действия",
+        continue: "Продолжить",
+        fixPr: "Исправить PR",
+        fixPr_mr: "Исправить MR",
+        chat: {
+          selectChat: "Выберите чат в этой рабочей области и повторите попытку.",
+          queued: "Добавлено в очередь текущего чата. Выполнится, когда агент будет готов.",
+          sending: "Отправка в чат…",
+        },
+        workflow: {
+          local: "Локальные изменения",
+          open: "На проверке",
+          waiting: "Ожидание проверок",
+          attention: "Требует внимания",
+          ready: "Готово к слиянию",
+          merged: "Слито",
+          closed: "Закрыто",
+        },
         commit: {
           label: "Создать коммит",
+          pushLabel: "Коммит и push",
           pending: "Создание коммита...",
           success: "Коммит создан",
         },
@@ -870,27 +900,21 @@ export const ru: TranslationResources = {
           success: "Обновлено",
         },
         archive: {
-          label: "Архивировать рабочее пространство",
+          label: "Архивировать",
           pending: "Архивирование...",
           success: "В архиве",
         },
         mergePr: {
-          squash: "Выполнить слияние PR (squash)",
-          merge: "Выполнить слияние PR (merge)",
-          rebase: "Выполнить слияние PR (rebase)",
+          label: "Выполнить слияние PR",
           pending: "Слияние PR...",
           success: "Слияние PR выполнено",
-          squash_mr: "Выполнить слияние MR (squash)",
-          merge_mr: "Выполнить слияние MR (merge)",
-          rebase_mr: "Выполнить слияние MR (rebase)",
+          label_mr: "Выполнить слияние MR",
           pending_mr: "Слияние MR...",
           success_mr: "Слияние MR выполнено",
         },
         viewPr_mr: "Посмотреть MR",
         autoMerge: {
-          enableSquash: "Включить автослияние (squash)",
-          enableMerge: "Включить автослияние (merge)",
-          enableRebase: "Включить автослияние (rebase)",
+          enable: "Включить автослияние",
           enabled: "Автослияние включено",
           enabling: "Включение автослияния...",
           disabling: "Отключение автослияния...",
@@ -979,6 +1003,11 @@ export const ru: TranslationResources = {
         jumpToFile: {
           title: "Перейти к файлу",
         },
+        filesChanged: "Изменено {{count}} файлов",
+        filesChanged_one: "Изменён {{count}} файл",
+        filesChanged_few: "Изменено {{count}} файла",
+        filesChanged_many: "Изменено {{count}} файлов",
+        filesChanged_other: "Изменено {{count}} файлов",
         binaryFile: "Бинарный файл",
         tooLarge: "Дифф слишком велик для отображения",
         previewTooLargeTitle: "Этот дифф слишком велик для предварительного просмотра",
@@ -988,6 +1017,7 @@ export const ru: TranslationResources = {
         switchToUnified: "Переключиться на унифицированный дифф",
         switchToSplit: "Переключиться на параллельный дифф",
         options: "Параметры диффа",
+        treeView: "Дерево файлов",
         inlineDiff: "Встроенный дифф",
         hideWhitespace: "Скрыть пробельные изменения",
         showWhitespace: "Показать пробельные изменения",
@@ -1035,6 +1065,10 @@ export const ru: TranslationResources = {
       pr: {
         actions: {
           viewPullRequest: "Просмотреть",
+          review: "Ревью",
+          reviewing: "Ревью…",
+          reviewFailed: "Не удалось начать ревью.",
+          reviewUpdateHost: "Обновите хост, чтобы проверять локальные изменения.",
           openOn: "Открыть на {{brand}}",
           addToChat: "Добавить в чат",
           addAllToChat: "Добавить всё в чат",
@@ -2015,6 +2049,16 @@ export const ru: TranslationResources = {
       stop: "Остановить голосовой режим реального времени и прервать текущий ответ",
     },
   },
+  checks: {
+    review: {
+      title: "Ревью",
+      empty: "Проверьте пул-реквест или локальные изменения, чтобы увидеть здесь замечания.",
+      unreadable: "Не удалось прочитать замечания последнего ревью.",
+      noFindings: "Последнее ревью ничего не нашло.",
+      fromLatest_one: "Замечаний из последнего ревью: {{count}}",
+      fromLatest_other: "Замечаний из последнего ревью: {{count}}",
+    },
+  },
   rewind: {
     tooltip: "Вернуться к этому сообщению",
     warning: "Это действие нельзя отменить.",
@@ -2029,6 +2073,7 @@ export const ru: TranslationResources = {
   },
   diffViewer: {
     empty: "Нет изменений для отображения",
+    unmodifiedLines: "{{count}} строк без изменений",
   },
   serviceUrl: {
     title: "Открыть URL сервиса",
@@ -2131,8 +2176,8 @@ export const ru: TranslationResources = {
       chooseFile: "Выберите файл",
     },
     pullRequest: {
-      label: "PR",
-      subtitle: "Сведения о PR",
+      label: "Проверки",
+      subtitle: "Пул-реквест, проверки и замечания ревью",
       emptyTitle: "PR пока нет",
       emptyDescription: "Создайте PR для этой рабочей копии, чтобы увидеть здесь сведения о нём.",
     },
@@ -2157,6 +2202,14 @@ export const ru: TranslationResources = {
   },
   turnSummary: {
     details: "Показать подробности хода",
+    toolCalls: {
+      one: "{{count}} вызов инструмента",
+      other: "{{count}} вызовов инструментов",
+    },
+    messages: {
+      one: "{{count}} сообщение",
+      other: "{{count}} сообщений",
+    },
     sentBy: "Отправлено агентом {{name}}",
     showMore: "Показать больше",
     showLess: "Свернуть",
@@ -2611,6 +2664,9 @@ export const ru: TranslationResources = {
       theme: {
         title: "Тема",
         accessibilityLabel: "Тема: {{value}}",
+        preferredDarkTitle: "Предпочитаемая тёмная тема",
+        preferredDarkHint: "Используется при тёмном режиме системы",
+        preferredDarkAccessibility: "Предпочитаемая тёмная тема: {{value}}",
         options: {
           light: "Светлая",
           dark: "Тёмная",

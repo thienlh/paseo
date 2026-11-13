@@ -3,7 +3,13 @@ import {
   buildAgentMessageDisplay,
   buildPaseoToolDisplay,
 } from "./paseo-tool-presentation/index.js";
+import { projectSettledAskUserQuestion } from "./question-tool-display.js";
 import { stripCwdPrefix } from "./path-utils.js";
+import {
+  formatMcpMethodName,
+  formatMcpServerName,
+  parseMcpToolName,
+} from "./tool-name-normalization.js";
 
 export type ToolCallDisplayInput = Pick<
   ToolCallTimelineItem,
@@ -38,6 +44,8 @@ function humanizeToolName(name: string): string {
   if (!trimmed) {
     return name;
   }
+  const mcp = parseMcpToolName(trimmed);
+  if (mcp) return formatMcpMethodName(mcp.method);
   if (/[:./]/.test(trimmed) || trimmed.includes("__")) {
     return trimmed;
   }
@@ -79,19 +87,52 @@ function buildFilePathDisplay(
   };
 }
 
+function readDisplayName(
+  detail: Extract<ToolCallDisplayInput["detail"], { type: "read" }>,
+): string {
+  const count = detail.content === undefined ? detail.limit : contentLineCount(detail.content);
+  if (count === undefined) return "Read";
+  return `Read ${count} ${count === 1 ? "line" : "lines"}`;
+}
+
+function contentLineCount(content: string): number {
+  if (content.length === 0) return 0;
+  const lines = content.split(/\r\n|\r|\n/);
+  return /\r\n$|\r$|\n$/.test(content) ? lines.length - 1 : lines.length;
+}
+
+function writeDisplayName(
+  detail: Extract<ToolCallDisplayInput["detail"], { type: "write" }>,
+): string {
+  if (detail.content === undefined) return "Write";
+  const count = contentLineCount(detail.content);
+  return `Write ${count} ${count === 1 ? "line" : "lines"}`;
+}
+
+function firstNonEmptyLine(text: string): string | undefined {
+  for (const line of text.split(/\r\n|\r|\n/)) {
+    const trimmed = line.trim();
+    if (trimmed) return trimmed;
+  }
+  return undefined;
+}
+
 function buildCanonicalDetailDisplay(input: ToolCallDisplayInput): DetailDisplay {
   switch (input.detail.type) {
     case "shell":
       return {
-        displayName: "Shell",
-        summary: input.detail.command,
+        displayName: nonEmpty(input.detail.description) ?? "Shell",
+        summary:
+          input.status === "failed" && typeof input.detail.exitCode === "number"
+            ? `${input.detail.command} · exit ${input.detail.exitCode}`
+            : input.detail.command,
       };
     case "read":
-      return buildFilePathDisplay("Read", input.detail.filePath, input.cwd);
+      return buildFilePathDisplay(readDisplayName(input.detail), input.detail.filePath, input.cwd);
     case "edit":
       return buildFilePathDisplay("Edit", input.detail.filePath, input.cwd);
     case "write":
-      return buildFilePathDisplay("Write", input.detail.filePath, input.cwd);
+      return buildFilePathDisplay(writeDisplayName(input.detail), input.detail.filePath, input.cwd);
     case "search":
       return {
         displayName: "Search",
@@ -127,8 +168,45 @@ function buildCanonicalDetailDisplay(input: ToolCallDisplayInput): DetailDisplay
   }
 }
 
+function firstCodeStatement(code: string): string | undefined {
+  for (const line of code.split(/\r\n|\r|\n/)) {
+    const trimmed = line.trim();
+    if (
+      !trimmed ||
+      trimmed.startsWith("//") ||
+      trimmed.startsWith("/*") ||
+      trimmed.startsWith("*")
+    ) {
+      continue;
+    }
+    return trimmed;
+  }
+  return undefined;
+}
+
+function codeModeSummary(detail: ToolCallDisplayInput["detail"]): string | undefined {
+  if (detail.type !== "unknown") return undefined;
+  const input = detail.input;
+  if (typeof input === "string") return firstCodeStatement(input);
+  if (!isRecord(input)) return undefined;
+
+  const invokedFunction =
+    readString(input.toolName) ?? readString(input.function) ?? readString(input.method);
+  if (invokedFunction) return invokedFunction;
+
+  const code = readString(input.code) ?? readString(input.script) ?? readString(input.source);
+  if (!code) return undefined;
+  return firstCodeStatement(code) ?? `JavaScript · ${contentLineCount(code)} lines`;
+}
+
 function buildUnknownDetailOverride(input: ToolCallDisplayInput): DetailDisplay {
   const lowerName = input.name.trim().toLowerCase();
+  if (lowerName === "codemode") {
+    return {
+      displayName: "Codemode",
+      summary: codeModeSummary(input.detail),
+    };
+  }
   if (input.detail.type === "unknown" && lowerName === "task") {
     return {
       displayName: "Task",
@@ -138,6 +216,8 @@ function buildUnknownDetailOverride(input: ToolCallDisplayInput): DetailDisplay 
   if (input.detail.type === "unknown" && lowerName === "thinking") {
     return {
       displayName: "Thinking",
+      summary:
+        typeof input.detail.input === "string" ? firstNonEmptyLine(input.detail.input) : undefined,
     };
   }
   if (lowerName === "terminal") {
@@ -150,6 +230,13 @@ function buildUnknownDetailOverride(input: ToolCallDisplayInput): DetailDisplay 
 }
 
 export function buildToolCallDisplayModel(input: ToolCallDisplayInput): ToolCallDisplayModel {
+  const settledQuestion = projectSettledAskUserQuestion(input);
+  if (settledQuestion) {
+    return {
+      displayName: settledQuestion.displayName,
+      ...(settledQuestion.summary ? { summary: settledQuestion.summary } : {}),
+    };
+  }
   const errorText = input.status === "failed" ? formatErrorText(input.error) : undefined;
   const paseoDisplay = input.agentMessage
     ? buildAgentMessageDisplay(input.agentMessage)
@@ -171,11 +258,20 @@ export function buildToolCallDisplayModel(input: ToolCallDisplayInput): ToolCall
     unknownDetailOverride.displayName ??
     canonicalDisplay.displayName ??
     humanizeToolName(input.name);
-  const summary = unknownDetailOverride.summary ?? canonicalDisplay.summary;
+  const mcp = parseMcpToolName(input.name);
+  const summary =
+    unknownDetailOverride.summary ??
+    canonicalDisplay.summary ??
+    (mcp ? formatMcpServerName(mcp.server) : undefined);
 
   return {
     displayName,
     ...(summary ? { summary } : {}),
     ...(errorText ? { errorText } : {}),
   };
+}
+
+function nonEmpty(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
 }

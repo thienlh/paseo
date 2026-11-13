@@ -20,6 +20,9 @@ Files and Changes are the Explorer defaults. Their panel manifests mark them as 
 so a pane’s + menu omits each while that pane already contains it. Closing one makes its menu
 item available again. Other compatible tabs, including agents, terminals, files, and diffs,
 can move between Explorer and main panes.
+Changes defaults to a file list with filenames above their paths. Its **Tree view** option retains
+folder navigation and remembers collapsed folders independently of the list. Compact Changes keeps
+its inline diffs and uses the tree in Jump to file.
 Keep panel implementations independent of either shell. `WorkspacePanelHost` owns mounting and
 retention. The shared Explorer owns its tab rail; its shared frame owns visibility, activity and
 close-gesture lifetime. Platform adapters own resizing and inset geometry.
@@ -104,7 +107,7 @@ pointer layouts shrink tabs toward the clickable minimum first. A rail that scro
 The + menu opens compatible panels in the dock, including Agent and terminal profiles. Compact
 layouts omit Diff from it because compact Changes shows each file's diff inline.
 Web also supports dragging agents and terminals into Explorer.
-Bulk-close actions apply only to the dock's tabs. Explorer tabs can be reordered and dragged
+Bulk-close actions apply only to the selected region's tabs. Explorer tabs can be reordered and dragged
 between compatible panes, but the dock cannot be split or maximized. Selecting an Explorer tab
 does not change workspace focus. Web dragging shares the workspace drag scope; compact layouts
 accept only reordering inside the source pane.
@@ -133,6 +136,24 @@ PR discovery belongs to the active workspace: split layouts discover while activ
 layouts discover while Explorer is active. The rail requests summary status; selected visible PR
 content also requests timeline data. Inactive consumers read cached data without request demand.
 Discovery uses ordinary PR tabs and their existing once-per-workspace close opt-out.
+
+## Execution area
+
+Explorer keeps terminal tabs in a collapsible execution area below its supporting views. Run selects
+a workspace script; Terminal exposes the same ordinary terminal tabs and their context menus. Starting
+or viewing a script opens its output here. Moving a terminal into Explorer also places it here. There
+is one renderer per tab, and both regions use the shared panel host; do not mount a second terminal
+view to mirror a tab in another pane.
+
+Collapsing the area or hiding Explorer does not stop a process. Its selected script, tabs, expansion
+and preferred height belong to device-local workspace presentation state. A smaller viewport clamps
+the rendered height without overwriting the preference. Execution resizing is independent of
+Explorer's width and main-pane splits.
+
+Compact layouts show the selected supporting view or execution content at full height. The top tab
+rail returns to supporting content; Run and Terminal reveal execution. The same hosts stay mounted
+through folding, with retained-panel activity gating hidden consumers. Workspace-owned script actions
+keep starts, stops and pending restarts independent of either region's visibility.
 
 ## Side pane
 

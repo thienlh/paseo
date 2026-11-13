@@ -1,15 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { darkHighlightColors, resolveSyntaxColors } from "@getpaseo/highlight";
 import { DEFAULT_UI_FONT_STACK, REGISTERED_THEMES } from "@/styles/theme";
-import { applyAppearance, type AppearanceInput } from "./apply";
+import { applyAppearance, applyTheme, type AppearanceInput } from "./apply";
 
 // Override the global react-native-unistyles mock (vitest.setup.ts) so that
 // UnistylesRuntime.updateTheme is a spy that records (themeName, updater) calls.
-const { runtime, updateTheme } = vi.hoisted(() => {
+const { runtime, updateTheme, setTheme, setAdaptiveThemes } = vi.hoisted(() => {
   const updateThemeSpy = vi.fn();
+  const setThemeSpy = vi.fn();
+  const setAdaptiveThemesSpy = vi.fn();
   return {
-    runtime: { themeName: undefined as string | undefined, updateTheme: updateThemeSpy },
+    runtime: {
+      themeName: undefined as string | undefined,
+      updateTheme: updateThemeSpy,
+      setTheme: setThemeSpy,
+      setAdaptiveThemes: setAdaptiveThemesSpy,
+    },
     updateTheme: updateThemeSpy,
+    setTheme: setThemeSpy,
+    setAdaptiveThemes: setAdaptiveThemesSpy,
   };
 });
 vi.mock("react-native-unistyles", () => ({ UnistylesRuntime: runtime }));
@@ -38,7 +47,12 @@ interface FakeTheme {
   };
   lineHeight: { diff: number };
   contentMaxWidth: number;
-  colors: { foreground: string; syntax: Record<string, string> };
+  colors: {
+    foreground: string;
+    syntax: Record<string, string>;
+    accent?: string;
+    success?: string;
+  };
 }
 
 function makeFakeTheme(): FakeTheme {
@@ -84,6 +98,8 @@ function runCapturedUpdater(call = 0): FakeTheme {
 describe("applyAppearance", () => {
   beforeEach(() => {
     updateTheme.mockClear();
+    setTheme.mockClear();
+    setAdaptiveThemes.mockClear();
     runtime.themeName = undefined;
   });
 
@@ -189,6 +205,20 @@ describe("applyAppearance", () => {
     expect(runCapturedUpdater().lineHeight.diff).toBe(Math.round(18 * 1.5)); // 27
   });
 
+  it("replaces the theme accent with the macOS system accent", () => {
+    applyAppearance(makeInput({ systemAccent: "#007AFFFF" }));
+
+    const { colors } = runCapturedUpdater();
+    expect(colors.accent).toBe("#007aff");
+    expect(colors.success).toBe("#007aff");
+  });
+
+  it("keeps the theme accent when no system accent is available", () => {
+    applyAppearance(makeInput());
+
+    expect(runCapturedUpdater().colors.accent).toBeUndefined();
+  });
+
   it("swaps colors.syntax to the resolved palette for the named theme", () => {
     applyAppearance(makeInput({ syntaxTheme: "dracula" }));
 
@@ -202,5 +232,72 @@ describe("applyAppearance", () => {
     // makeFakeTheme().colorScheme === "dark" -> github resolves to the dark palette.
     expect(runCapturedUpdater().colors.syntax).toEqual(darkHighlightColors);
     expect(runCapturedUpdater().colors.syntax).toEqual(resolveSyntaxColors("github", "dark"));
+  });
+});
+
+describe("applyTheme", () => {
+  beforeEach(() => {
+    setTheme.mockClear();
+    setAdaptiveThemes.mockClear();
+  });
+
+  it("uses the preferred dark variant when System mode follows a dark OS", () => {
+    applyTheme({
+      preference: "auto",
+      preferredDarkTheme: "pureBlack",
+      contributedTheme: null,
+      systemColorScheme: "dark",
+    });
+
+    expect(setAdaptiveThemes).toHaveBeenCalledWith(false);
+    expect(setTheme).toHaveBeenCalledWith("darkPureBlack");
+  });
+
+  it("uses Light when System mode follows a light OS", () => {
+    applyTheme({
+      preference: "auto",
+      preferredDarkTheme: "midnight",
+      contributedTheme: null,
+      systemColorScheme: "light",
+    });
+
+    expect(setAdaptiveThemes).toHaveBeenCalledWith(false);
+    expect(setTheme).toHaveBeenCalledWith("light");
+  });
+
+  it("uses Light when the OS color scheme is unspecified", () => {
+    applyTheme({
+      preference: "auto",
+      preferredDarkTheme: "midnight",
+      contributedTheme: null,
+      systemColorScheme: "unspecified",
+    });
+
+    expect(setAdaptiveThemes).toHaveBeenCalledWith(false);
+    expect(setTheme).toHaveBeenCalledWith("light");
+  });
+
+  it("keeps an explicit theme independent of the preferred dark variant and OS", () => {
+    applyTheme({
+      preference: "ghostty",
+      preferredDarkTheme: "pureBlack",
+      contributedTheme: null,
+      systemColorScheme: "light",
+    });
+
+    expect(setAdaptiveThemes).toHaveBeenCalledWith(false);
+    expect(setTheme).toHaveBeenCalledWith("darkGhostty");
+  });
+
+  it("uses System mode with the preferred variant when a plugin theme is missing", () => {
+    applyTheme({
+      preference: "plugin",
+      preferredDarkTheme: "pureBlack",
+      contributedTheme: null,
+      systemColorScheme: "dark",
+    });
+
+    expect(setAdaptiveThemes).toHaveBeenCalledWith(false);
+    expect(setTheme).toHaveBeenCalledWith("darkPureBlack");
   });
 });

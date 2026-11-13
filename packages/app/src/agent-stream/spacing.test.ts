@@ -27,6 +27,7 @@ const summary: StreamItem = {
   hostId: "p",
   expanded: false,
   timestamp: new Date(0),
+  messageCount: 1,
   tools: summarizeToolCalls([]),
 };
 describe("whole-message spacing", () => {

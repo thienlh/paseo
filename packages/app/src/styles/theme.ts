@@ -107,21 +107,36 @@ export const baseColors = {
   },
 } as const;
 
-// Diff colors — the +/- inside a diff view, where the color *is* the signal and has to
-// survive being scanned line by line, so it stays saturated. Light uses muted tones, dark
+// Diff colors — addition/deletion markers inside diff views, where the color *is* the signal
+// and has to survive being scanned line by line, so it stays saturated. Light uses muted tones, dark
 // uses the brighter palette values.
 //
 // A diff *stat* — the "+12 −3" footnote next to a title — is not this. It is a status
 // signal, so it uses statusSuccess/statusDanger below rather than a tier of its own.
-const lightDiffColors = {
+interface DiffColorAccents {
+  diffAddition: string;
+  diffDeletion: string;
+}
+
+function diffColors(colors: DiffColorAccents) {
+  return {
+    ...colors,
+    diffAdditionBackground: `${colors.diffAddition}26`, // 15%
+    diffDeletionBackground: `${colors.diffDeletion}1a`, // 10%
+    diffAdditionHighlight: `${colors.diffAddition}47`, // 28%
+    diffDeletionHighlight: `${colors.diffDeletion}3d`, // 24%
+  };
+}
+
+const lightDiffColors = diffColors({
   diffAddition: "#15803d", // green-700 — readable on white without screaming
   diffDeletion: "#b91c1c", // red-700
-};
+});
 
-const darkDiffColors = {
+const darkDiffColors = diffColors({
   diffAddition: "#4ade80", // green-400
   diffDeletion: "#ef4444", // red-500
-};
+});
 
 // Status colors — semantic signals for success/danger/warning/merged. There is exactly one
 // token per signal, and every status surface uses it: PR state icons, CI check icons and
@@ -164,6 +179,7 @@ const darkStatusColors = {
 // Dark surfaces swallow more of the tint, so the dark band runs a little stronger.
 function statusTints(colors: typeof lightStatusColors, alphaHex: string) {
   return {
+    statusMergedTint: `${colors.statusMerged}${alphaHex}`,
     statusSuccessTint: `${colors.statusSuccess}${alphaHex}`,
     statusDangerTint: `${colors.statusDanger}${alphaHex}`,
     statusWarningTint: `${colors.statusWarning}${alphaHex}`,
@@ -844,7 +860,14 @@ export type ThemePreference =
   | typeof PLUGIN_THEME_PREFERENCE;
 export type ThemeName = Exclude<ThemePreference, "auto" | typeof PLUGIN_THEME_PREFERENCE>;
 type ConcreteThemeOption = Exclude<(typeof THEME_OPTIONS)[number], { name: "auto" }>;
+type DarkConcreteThemeOption = Exclude<ConcreteThemeOption, { name: "light" }>;
 export type Theme = ConcreteThemeOption["theme"];
+export type DarkThemePreference = DarkConcreteThemeOption["name"];
+
+export const DARK_THEME_OPTIONS = THEME_OPTIONS.filter(
+  (option): option is DarkConcreteThemeOption =>
+    option.name !== "auto" && option.theme.colorScheme === "dark",
+);
 
 const CONCRETE_THEME_OPTIONS = THEME_OPTIONS.filter(
   (option): option is ConcreteThemeOption => option.name !== "auto",

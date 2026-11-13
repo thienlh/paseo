@@ -41,6 +41,11 @@ import {
   type InlinePathTarget,
 } from "@/components/message";
 import { PlanCard } from "@/components/plan-card";
+import { UsageLimitMessage } from "@/components/usage-limit-message";
+import {
+  findUsageLimitRetryMessage,
+  parseUsageLimitMessage,
+} from "@/components/usage-limit-message-model";
 import { getStreamItemMessageId, type StreamItem } from "@/types/stream";
 import type { PendingMessageSubmission } from "@/composer/submission/model";
 import type { TurnPresentation } from "@/timeline/turn-liveness";
@@ -66,8 +71,13 @@ import {
   useAgentToolCallExpansion,
   useExpandedToolCallGroups,
 } from "@/tool-calls/expansion-context";
+import {
+  UserMessageExpansionContext,
+  useAgentUserMessageExpansion,
+} from "@/components/user-message/expansion-context";
 import { ToolCallSheetProvider } from "@/components/tool-call-sheet";
 import { createStreamPresentation } from "./presentation";
+import { isTurnBoundary } from "./turn-membership";
 import { OverviewToolCallGroupView } from "@/tool-calls/detail-level/overview/view";
 import { IndentRail } from "@/components/indent-rail";
 import { TurnSummaryLine } from "./turn-collapse/summary-line";
@@ -97,6 +107,8 @@ import {
 import { createAssistantImageOccurrenceKey } from "@/assistant-image/acquisition-cache";
 import { AssistantSelectionCopySurface } from "@/assistant-selection-copy/surface";
 import { AssistantFileLinkResolverProvider, createInlinePathOpener } from "@/assistant-file-links";
+import { TurnCallsResolverContext } from "./turn-file-changes-row";
+import { createTurnCallsResolver } from "./turn-file-changes";
 import { useOpenOutsideWorkspaceFolder } from "@/workspace/open-in-file-manager/outside-folder";
 import {
   createWorkspaceFileTabTarget,
@@ -171,6 +183,7 @@ function renderStreamItemWithTurnFooter(input: {
   strategy: TurnContentStrategy;
   supportsTimelineCursor: boolean;
   onForkAssistantTurn?: AssistantTurnForkHandler;
+  workspaceRoot?: string;
 }): ReactNode {
   if (!input.content) {
     return null;
@@ -185,6 +198,7 @@ function renderStreamItemWithTurnFooter(input: {
       startIndex={footerHost.startIndex}
       supportsTimelineCursor={input.supportsTimelineCursor}
       onForkAssistantTurn={input.onForkAssistantTurn}
+      workspaceRoot={input.workspaceRoot}
     />
   ) : null;
   const content = (
@@ -382,6 +396,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
       new Set(),
     );
     const toolCallExpansion = useAgentToolCallExpansion(agentId);
+    const userMessageExpansion = useAgentUserMessageExpansion(agentId);
     const expandedToolCallGroups = useExpandedToolCallGroups(toolCallExpansion);
     const [expandedTurnHostIds, setExpandedTurnHostIds] = useState<ReadonlySet<string>>(new Set());
 
@@ -545,6 +560,9 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
         effectiveTurnPresentation.turnId,
       ],
     );
+    const latestStreamItem = presentation.head.at(-1) ?? presentation.tail.at(-1) ?? null;
+    // The footer's changed files read through grouped rows and closed turns to their calls.
+    const resolveTurnCalls = useMemo(() => createTurnCallsResolver(presentation), [presentation]);
     const {
       start: historyWindowStart,
       hasLocalHistory,
@@ -711,6 +729,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
       (layoutItem: StreamLayoutItem, item: Extract<StreamItem, { kind: "user_message" }>) => {
         return (
           <UserMessage
+            itemId={item.id}
             serverId={resolvedServerId}
             agentId={agentId}
             messageId={item.messageId}
@@ -723,6 +742,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
             client={client}
             isFirstInGroup={layoutItem.isFirstInUserGroup}
             isLastInGroup={layoutItem.isLastInUserGroup}
+            onOpenAttachmentPath={handleToolCallOpenFile}
             isPending={
               item.clientMessageId !== undefined &&
               pendingClientMessageIds.has(item.clientMessageId)
@@ -730,11 +750,37 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
           />
         );
       },
-      [context.capabilities, agentId, client, pendingClientMessageIds, resolvedServerId],
+      [
+        context.capabilities,
+        agentId,
+        client,
+        handleToolCallOpenFile,
+        pendingClientMessageIds,
+        resolvedServerId,
+      ],
     );
 
     const renderAssistantMessageItem = useCallback(
       (layoutItem: StreamLayoutItem, item: Extract<StreamItem, { kind: "assistant_message" }>) => {
+        const usageLimit = parseUsageLimitMessage(item.text, item.timestamp.getTime());
+        if (usageLimit) {
+          return (
+            <UsageLimitMessage
+              serverId={resolvedServerId}
+              agentId={agentId}
+              agent={context}
+              details={usageLimit}
+              retryMessage={findUsageLimitRetryMessage({
+                tail: presentation.tail,
+                head: presentation.head,
+                errorItemId: item.id,
+              })}
+              toast={toast}
+              readOnly={readOnly}
+              spacing={layoutItem.assistantSpacing}
+            />
+          );
+        }
         return (
           <AssistantFileLinkResolverProvider
             client={client}
@@ -761,7 +807,17 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
           </AssistantFileLinkResolverProvider>
         );
       },
-      [agentId, client, handleInlinePathPress, resolvedServerId, toast, workspaceRoot],
+      [
+        agentId,
+        client,
+        context,
+        handleInlinePathPress,
+        presentation,
+        readOnly,
+        resolvedServerId,
+        toast,
+        workspaceRoot,
+      ],
     );
 
     const renderThoughtItem = useCallback(
@@ -830,6 +886,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
             toolName={data.toolName}
             args={data.arguments}
             result={data.result}
+            error={data.error}
             status={data.status}
             isLastInSequence={isLastInSequence}
             onOpenFilePath={handleToolCallOpenFile}
@@ -857,7 +914,10 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
             ? renderThoughtItem(layoutItem, item)
             : renderSingleToolCallItem(item, layoutItem.isLastInToolSequence);
         }
-        const expanded = expandedToolCallGroups.has(group.run.id);
+        // Every group in the latest turn opens by default on desktop; the reader's toggle still wins.
+        const isLatestTurnGroup =
+          latestStreamItem !== null && !isTurnBoundary(group.run.latest, latestStreamItem);
+        const expanded = expandedToolCallGroups.has(group.run.id, !isMobile && isLatestTurnGroup);
         return (
           <OverviewToolCallGroupView
             group={group}
@@ -894,6 +954,8 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
       },
       [
         expandedToolCallGroups,
+        isMobile,
+        latestStreamItem,
         renderThoughtItem,
         setInlineDetailsExpanded,
         getToolCallGroup,
@@ -966,6 +1028,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
           strategy: streamRenderStrategy,
           supportsTimelineCursor: supportsAgentForkContextCursor,
           onForkAssistantTurn: readOnly ? undefined : handleForkAssistantTurn,
+          workspaceRoot,
         });
       },
       [
@@ -975,6 +1038,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
         renderStreamItemContent,
         streamRenderStrategy,
         supportsAgentForkContextCursor,
+        workspaceRoot,
       ],
     );
 
@@ -1001,6 +1065,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
             strategy={streamRenderStrategy}
             supportsTimelineCursor={supportsAgentForkContextCursor}
             onForkAssistantTurn={readOnly ? undefined : handleForkAssistantTurn}
+            workspaceRoot={workspaceRoot}
             onForkInFlightTurn={readOnly ? undefined : handleForkInFlightTurn}
           />
         ) : null,
@@ -1013,6 +1078,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
         bottomTurnFooterHost,
         streamRenderStrategy,
         supportsAgentForkContextCursor,
+        workspaceRoot,
       ],
     );
     const renderModel = useMemo<AgentStreamRenderModel>(() => {
@@ -1166,49 +1232,53 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
         visibleMessageIds={mountedMessageIds}
       >
         <ToolCallSheetProvider>
-          <AssistantSelectionCopySurface style={stylesheet.container}>
-            <MessageOuterSpacingProvider disableOuterSpacing>
-              <ToolCallExpansionContext.Provider value={toolCallExpansion}>
-                {streamRenderStrategy.render({
-                  readingRowReplacements: presentation.readingRowReplacements,
-                  agentId,
-                  segments: renderModel.segments,
-                  historyRowRevision,
-                  liveHeadRowRevision: expandedToolCallGroups,
-                  boundary,
-                  renderers,
-                  listEmptyComponent,
-                  viewportRef,
-                  routeBottomAnchorRequest,
-                  isAuthoritativeHistoryReady,
-                  isInitialHistoryLoading,
-                  revealInitialHistory,
-                  onNearBottomChange: nearBottom.set,
-                  onReadingPositionChange: handleReadingPositionChange,
-                  onNearHistoryStart: loadOlder,
-                  isLoadingOlderHistory: isLoadingOlder,
-                  hasOlderHistory: hasOlder,
-                  olderHistoryProgressKey: progressKey,
-                  scrollEnabled: streamScrollEnabled,
-                  listStyle: stylesheet.list,
-                  baseListContentContainerStyle: stylesheet.listContentContainer,
-                  forwardListContentContainerStyle: stylesheet.forwardListContentContainer,
-                  contentMaxWidth,
-                })}
-              </ToolCallExpansionContext.Provider>
-            </MessageOuterSpacingProvider>
-            <ChatOutlineRail
-              prompts={chatOutline.prompts}
-              activePrompt={chatOutline.activePrompt}
-              onJumpToPrompt={chatOutline.jumpToPrompt}
-            />
-            <ScrollToBottomButton
-              nearBottom={nearBottom}
-              isTimelineDetached={isTimelineDetached}
-              bottomOffset={scrollToBottomOffset}
-              onPress={scrollToBottom}
-            />
-          </AssistantSelectionCopySurface>
+          <TurnCallsResolverContext.Provider value={resolveTurnCalls}>
+            <AssistantSelectionCopySurface style={stylesheet.container}>
+              <MessageOuterSpacingProvider disableOuterSpacing>
+                <ToolCallExpansionContext.Provider value={toolCallExpansion}>
+                  <UserMessageExpansionContext.Provider value={userMessageExpansion}>
+                    {streamRenderStrategy.render({
+                      readingRowReplacements: presentation.readingRowReplacements,
+                      agentId,
+                      segments: renderModel.segments,
+                      historyRowRevision,
+                      liveHeadRowRevision: expandedToolCallGroups,
+                      boundary,
+                      renderers,
+                      listEmptyComponent,
+                      viewportRef,
+                      routeBottomAnchorRequest,
+                      isAuthoritativeHistoryReady,
+                      isInitialHistoryLoading,
+                      revealInitialHistory,
+                      onNearBottomChange: nearBottom.set,
+                      onReadingPositionChange: handleReadingPositionChange,
+                      onNearHistoryStart: loadOlder,
+                      isLoadingOlderHistory: isLoadingOlder,
+                      hasOlderHistory: hasOlder,
+                      olderHistoryProgressKey: progressKey,
+                      scrollEnabled: streamScrollEnabled,
+                      listStyle: stylesheet.list,
+                      baseListContentContainerStyle: stylesheet.listContentContainer,
+                      forwardListContentContainerStyle: stylesheet.forwardListContentContainer,
+                      contentMaxWidth,
+                    })}
+                  </UserMessageExpansionContext.Provider>
+                </ToolCallExpansionContext.Provider>
+              </MessageOuterSpacingProvider>
+              <ChatOutlineRail
+                prompts={chatOutline.prompts}
+                activePrompt={chatOutline.activePrompt}
+                onJumpToPrompt={chatOutline.jumpToPrompt}
+              />
+              <ScrollToBottomButton
+                nearBottom={nearBottom}
+                isTimelineDetached={isTimelineDetached}
+                bottomOffset={scrollToBottomOffset}
+                onPress={scrollToBottom}
+              />
+            </AssistantSelectionCopySurface>
+          </TurnCallsResolverContext.Provider>
         </ToolCallSheetProvider>
       </ChatFind>
     );

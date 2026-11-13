@@ -27,6 +27,8 @@ import {
 } from "@/utils/status-indicator-geometry";
 import { shouldRenderSyncedStatusLoader } from "@/utils/status-loader";
 import { StatusRing } from "@/components/status-ring";
+import { RunningScriptMark } from "@/components/sidebar/running-script-mark";
+import { selectSidebarRunningScriptNames } from "@/components/sidebar/running-script";
 import { resolveSidebarWorkspacePrimaryLabel } from "@/components/sidebar/sidebar-workspace-title";
 import { DensityIcon } from "@/components/ui/density-icon";
 import { SCRIM_WIDTH, TrailingActionScrim } from "@/components/ui/trailing-action-scrim";
@@ -34,6 +36,7 @@ import {
   ARCHIVE_BUTTON_FOOTPRINT,
   SidebarWorkspaceArchiveButton,
 } from "@/components/sidebar/sidebar-workspace-menu";
+import { PullRequestStateIcon } from "@/git/pull-request-state-icon";
 import { useWorkspaceLabelDefinitions } from "@/workspace-labels";
 
 const needsInputColorMapping = (theme: Theme) => ({
@@ -46,10 +49,13 @@ const ThemedCircleAlert = withUnistyles(CircleAlert);
 export function SidebarWorkspaceRowFrame({
   workspace,
   isDragging = false,
+  isEditingTitle = false,
   children,
 }: {
   workspace: SidebarWorkspaceEntry;
   isDragging?: boolean;
+  /** Hover would fade the kebab in over the title being edited and open the hover card. */
+  isEditingTitle?: boolean;
   children: (input: {
     isHovered: boolean;
     contextMenuOpen: boolean;
@@ -77,10 +83,10 @@ export function SidebarWorkspaceRowFrame({
       workspace={workspace}
       prHint={workspace.prHint}
       isDragging={isDragging}
-      disabled={contextMenuOpen}
+      disabled={contextMenuOpen || isEditingTitle}
     >
       {children({
-        isHovered: isHovered && !contextMenuOpen && !isDragging,
+        isHovered: isHovered && !contextMenuOpen && !isDragging && !isEditingTitle,
         contextMenuOpen,
         onContextMenuOpenChange: handleContextMenuOpenChange,
         hoverHandlers,
@@ -102,6 +108,7 @@ export const SidebarWorkspaceRowContent = memo(function SidebarWorkspaceRowConte
   shortcutNumber = null,
   showShortcutBadge = false,
   reserveIdleStatusIndicatorSpace = true,
+  titleEditor = null,
   children,
 }: {
   workspace: SidebarWorkspaceEntry;
@@ -119,22 +126,29 @@ export const SidebarWorkspaceRowContent = memo(function SidebarWorkspaceRowConte
   showShortcutBadge?: boolean;
   /** Keep the empty leading slot when the workspace has no active status. */
   reserveIdleStatusIndicatorSpace?: boolean;
+  /** Takes the title's place, in a box exactly one title line tall, while renaming in place. */
+  titleEditor?: ReactNode;
   children?: ReactNode;
 }) {
   const {
     settings: { workspaceTitleSource },
   } = useAppSettings();
   const workspaceLabel = resolveSidebarWorkspacePrimaryLabel({ workspace, workspaceTitleSource });
+  const runningScriptNames = useMemo(
+    () => selectSidebarRunningScriptNames(workspace.scripts),
+    [workspace.scripts],
+  );
   // The workspace carries label names; their colors live in its host's catalog, so the row is
   // where the two meet — the meta line is handed finished definitions.
   const labels = useWorkspaceLabelDefinitions(workspace.serverId, workspace.labels);
   const workspaceBranchTextStyle = useMemo(
     () => [
       styles.workspaceBranchText,
+      runningScriptNames.length > 0 && styles.workspaceBranchTextWithMark,
       isHovered && styles.workspaceBranchTextHovered,
       isCreating && styles.workspaceBranchTextCreating,
     ],
-    [isHovered, isCreating],
+    [isCreating, isHovered, runningScriptNames.length],
   );
 
   return (
@@ -154,19 +168,29 @@ export const SidebarWorkspaceRowContent = memo(function SidebarWorkspaceRowConte
           <WorkspaceStatusIndicator
             bucket={workspace.statusBucket}
             workspaceKind={workspace.workspaceKind}
+            prHint={workspace.prHint}
             loading={isLoading}
             reserveIdleSpace={reserveIdleStatusIndicatorSpace}
           />
         )}
         <View style={styles.workspaceContentColumn}>
           <View style={styles.workspaceTitleRow}>
-            <Text
-              style={workspaceBranchTextStyle}
-              numberOfLines={1}
-              testID={`sidebar-workspace-title-${workspace.workspaceKey}`}
-            >
-              {workspaceLabel}
-            </Text>
+            {titleEditor ? (
+              <View style={styles.workspaceTitleEditorSlot}>{titleEditor}</View>
+            ) : (
+              <View style={styles.workspaceTitleCluster}>
+                <Text
+                  style={workspaceBranchTextStyle}
+                  numberOfLines={1}
+                  testID={`sidebar-workspace-title-${workspace.workspaceKey}`}
+                >
+                  {workspaceLabel}
+                </Text>
+                {runningScriptNames.length > 0 ? (
+                  <RunningScriptMark names={runningScriptNames} />
+                ) : null}
+              </View>
+            )}
             <View style={sidebarWorkspaceRowStyles.rowRight}>{children}</View>
           </View>
           <WorkspaceMetaRow
@@ -191,11 +215,13 @@ export const SidebarWorkspaceRowContent = memo(function SidebarWorkspaceRowConte
 function WorkspaceStatusIndicator({
   bucket,
   workspaceKind,
+  prHint = null,
   loading = false,
   reserveIdleSpace = true,
 }: {
   bucket: SidebarWorkspaceEntry["statusBucket"];
   workspaceKind: SidebarWorkspaceEntry["workspaceKind"];
+  prHint?: SidebarWorkspaceEntry["prHint"];
   loading?: boolean;
   reserveIdleSpace?: boolean;
 }) {
@@ -223,6 +249,17 @@ function WorkspaceStatusIndicator({
     return (
       <View style={styles.workspaceStatusDot} testID="workspace-status-indicator-needs_input">
         <ThemedCircleAlert size={STATUS_INDICATOR_ALERT_SIZE} uniProps={needsInputColorMapping} />
+      </View>
+    );
+  }
+
+  if (prHint) {
+    return (
+      <View
+        style={styles.workspaceStatusDot}
+        testID={`workspace-status-indicator-pr-${prHint.state}`}
+      >
+        <PullRequestStateIcon state={prHint.state} size={14} />
       </View>
     );
   }
@@ -338,8 +375,9 @@ export const sidebarWorkspaceRowStyles = StyleSheet.create((theme) => ({
     position: "absolute",
     top: 0,
     right: 0,
+    height: 20,
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
   },
 }));
 
@@ -386,27 +424,24 @@ export function resolveTrailingActionVisibility({
   reserveSlotWidth: boolean;
 } {
   const hasTrailing = hasSidebarWorkspaceTrailing({ workspace, trailing });
-  const showKebab = Boolean(hasArchiveAction && (isHovered || isTouchPlatform)) && !showShortcut;
-  // Touch permanently replaces the stats with the menu. Only temporary shortcut hints
+  const showKebab = Boolean(hasArchiveAction && isTouchPlatform) && !showShortcut;
+  const showArchiveButton =
+    Boolean(hasArchiveAction && isHovered && !isTouchPlatform) && !showShortcut;
+  // Touch permanently replaces the stats with the menu. Temporary shortcut hints and desktop hover
   // conceal content while retaining its width, so desktop rows do not shift.
   const hasContent = hasTrailing && !(hasArchiveAction && isTouchPlatform);
   let trailingPresentation: SidebarWorkspaceTrailingPresentation = "absent";
-  if (hasContent) trailingPresentation = showShortcut ? "hidden" : "visible";
+  if (hasContent) {
+    trailingPresentation = showShortcut || showArchiveButton ? "hidden" : "visible";
+  }
   return {
     trailingPresentation,
     showKebab,
-    // One-click archive is a pointer affordance: on touch it would sit a few pixels from the
-    // kebab and turn a miss into an archive.
-    showArchiveButton: showKebab && isHovered && !isTouchPlatform,
-    // The scrim paints the row's own hover background, so it can only be drawn on a hovered
-    // row — over an unhovered one the gradient fades to the wrong color. That is also why
-    // touch, which shows the kebab without ever hovering, never gets one.
-    showScrim: showKebab && isHovered,
+    showArchiveButton,
+    // When there is no trailing content reserving width, the archive button overlays the title's
+    // tail and uses the scrim to fade the title into the row's hover background.
+    showScrim: showArchiveButton && !hasContent,
     renderSlot: hasArchiveAction || hasTrailing,
-    // The slot only holds width for something that permanently sits in it. Trailing content
-    // does; the kebab only does on touch, where there is no hover for it to appear on and so
-    // no scrim to let it overlay the title. Everywhere else the width goes back to the title
-    // and the kebab fades in over its tail.
     reserveSlotWidth: hasContent || (hasArchiveAction && isTouchPlatform),
   };
 }
@@ -462,15 +497,17 @@ export function SidebarWorkspaceTrailingActionOverlay({
    * the scrim widens to cover it rather than the slot reserving its width.
    */
   onArchiveButtonPress?: () => void;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
-  if (!visible || !children) return null;
+  if (!visible || (!onArchiveButtonPress && !children)) return null;
   return (
     <>
       {scrimBackdrop ? (
         <TrailingActionScrim
           backdrop={scrimBackdrop}
-          width={onArchiveButtonPress ? SCRIM_WIDTH + ARCHIVE_BUTTON_FOOTPRINT : SCRIM_WIDTH}
+          width={
+            onArchiveButtonPress && children ? SCRIM_WIDTH + ARCHIVE_BUTTON_FOOTPRINT : SCRIM_WIDTH
+          }
           testID="sidebar-workspace-trailing-scrim"
         />
       ) : null}
@@ -509,6 +546,13 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: theme.spacing[2],
+  },
+  workspaceTitleCluster: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[1.5],
   },
   shortcutBadgeOverlay: {
     position: "absolute",
@@ -554,6 +598,16 @@ const styles = StyleSheet.create((theme) => ({
     fontWeight: "400",
     lineHeight: TITLE_LINE_HEIGHT,
     opacity: 0.76,
+    flex: 1,
+    minWidth: 0,
+  },
+  // A running script sits immediately after the name, so the title stops growing into that slot.
+  workspaceBranchTextWithMark: {
+    flexGrow: 0,
+    flexShrink: 1,
+  },
+  workspaceTitleEditorSlot: {
+    height: TITLE_LINE_HEIGHT,
     flex: 1,
     minWidth: 0,
   },

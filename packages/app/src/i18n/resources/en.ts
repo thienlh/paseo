@@ -336,8 +336,8 @@ export const en = {
       copyTurn: "Copy turn",
       copyMessage: "Copy message",
       forkMenu: "Fork chat from here",
-      forkInNewTab: "Fork in a new tab",
-      forkInNewWorkspace: "Fork in a new workspace",
+      forkInNewTab: "Fork to new tab",
+      forkInNewWorkspace: "Fork to new workspace",
       forkUnavailable: "Update the host to use this.",
       forkMissingWorkspace: "This agent is not in a workspace.",
       forkFailed: "Failed to fork chat",
@@ -409,6 +409,10 @@ export const en = {
         started: "Started",
         completed: "Completed",
       },
+    },
+    usageLimit: {
+      title: "Usage limit reached",
+      retryNewChat: "Retry in new chat",
     },
     turnFooter: {
       workedFor: "Worked for {{duration}}",
@@ -703,6 +707,14 @@ export const en = {
         editTerminalProfiles: "Edit profiles",
       },
       explorerSidebar: {
+        execution: {
+          expand: "Expand execution",
+          collapse: "Collapse execution",
+          chooseScript: "Choose script",
+          idle: "Run a script to view its output",
+          noScripts: "No scripts configured",
+          noTerminal: "Open a terminal in this workspace",
+        },
         open: "Open Explorer sidebar",
         close: "Close Explorer sidebar",
         toggle: "Toggle Explorer sidebar",
@@ -817,8 +829,26 @@ export const en = {
       actions: {
         moreOptions: "More options",
         moreActions: "More actions",
+        continue: "Continue",
+        fixPr: "Fix PR",
+        fixPr_mr: "Fix MR",
+        chat: {
+          selectChat: "Select a chat in this workspace, then try again.",
+          queued: "Queued in the current chat. It will run when the agent is ready.",
+          sending: "Sending to chat…",
+        },
+        workflow: {
+          local: "Local changes",
+          open: "In review",
+          waiting: "Checks pending",
+          attention: "Needs attention",
+          ready: "Ready to merge",
+          merged: "Merged",
+          closed: "Closed",
+        },
         commit: {
           label: "Commit",
+          pushLabel: "Commit & push",
           pending: "Committing...",
           success: "Committed",
         },
@@ -858,26 +888,20 @@ export const en = {
           success: "Updated",
         },
         archive: {
-          label: "Archive workspace",
+          label: "Archive",
           pending: "Archiving...",
           success: "Archived",
         },
         mergePr: {
-          squash: "Merge PR (squash)",
-          merge: "Merge PR (merge)",
-          rebase: "Merge PR (rebase)",
+          label: "Merge PR",
           pending: "Merging PR...",
           success: "PR merged",
-          squash_mr: "Merge MR (squash)",
-          merge_mr: "Merge MR (merge)",
-          rebase_mr: "Merge MR (rebase)",
+          label_mr: "Merge MR",
           pending_mr: "Merging MR...",
           success_mr: "MR merged",
         },
         autoMerge: {
-          enableSquash: "Auto merge (squash)",
-          enableMerge: "Auto merge (merge)",
-          enableRebase: "Auto merge (rebase)",
+          enable: "Auto merge",
           enabled: "Auto-merge enabled",
           enabling: "Enabling auto-merge...",
           disabling: "Disabling auto-merge...",
@@ -970,6 +994,9 @@ export const en = {
         jumpToFile: {
           title: "Jump to file",
         },
+        filesChanged: "{{count}} files changed",
+        filesChanged_one: "{{count}} file changed",
+        filesChanged_other: "{{count}} files changed",
         binaryFile: "Binary file",
         tooLarge: "Diff too large to display",
         previewTooLargeTitle: "This diff is too large to preview",
@@ -979,6 +1006,7 @@ export const en = {
         switchToUnified: "Switch to unified diff",
         switchToSplit: "Switch to side-by-side diff",
         options: "Diff options",
+        treeView: "Tree view",
         inlineDiff: "Inline diff",
         hideWhitespace: "Hide whitespace",
         showWhitespace: "Show whitespace",
@@ -1026,6 +1054,10 @@ export const en = {
       pr: {
         actions: {
           viewPullRequest: "View",
+          review: "Review",
+          reviewing: "Reviewing…",
+          reviewFailed: "Could not start the review.",
+          reviewUpdateHost: "Update the host to review local changes.",
           openOn: "Open on {{brand}}",
           addToChat: "Add to chat",
           addAllToChat: "Add all to chat",
@@ -2007,6 +2039,16 @@ export const en = {
       stop: "Stop realtime voice and interrupt turn",
     },
   },
+  checks: {
+    review: {
+      title: "Review",
+      empty: "Review the pull request or your local changes to see findings here.",
+      unreadable: "The last review's findings couldn't be read.",
+      noFindings: "The last review found nothing.",
+      fromLatest_one: "{{count}} finding from the last review",
+      fromLatest_other: "{{count}} findings from the last review",
+    },
+  },
   rewind: {
     tooltip: "Rewind to this message",
     warning: "This action cannot be undone",
@@ -2021,6 +2063,7 @@ export const en = {
   },
   diffViewer: {
     empty: "No changes to display",
+    unmodifiedLines: "{{count}} unmodified lines",
   },
   serviceUrl: {
     title: "Open service URL",
@@ -2122,8 +2165,8 @@ export const en = {
       chooseFile: "Choose a file",
     },
     pullRequest: {
-      label: "Pull request",
-      subtitle: "Pull request details",
+      label: "Checks",
+      subtitle: "Pull request, checks, and review findings",
       emptyTitle: "No pull request yet",
       emptyDescription: "Create a pull request for this checkout to see its details here.",
     },
@@ -2148,6 +2191,14 @@ export const en = {
   },
   turnSummary: {
     details: "View turn details",
+    toolCalls: {
+      one: "{{count}} tool call",
+      other: "{{count}} tool calls",
+    },
+    messages: {
+      one: "{{count}} message",
+      other: "{{count}} messages",
+    },
     sentBy: "Sent by {{name}}",
     showMore: "Show more",
     showLess: "Show less",
@@ -2694,6 +2745,9 @@ export const en = {
       theme: {
         title: "Theme",
         accessibilityLabel: "Theme: {{value}}",
+        preferredDarkTitle: "Preferred dark theme",
+        preferredDarkHint: "Used when System is dark",
+        preferredDarkAccessibility: "Preferred dark theme: {{value}}",
         options: {
           light: "Light",
           dark: "Dark",
@@ -3307,6 +3361,12 @@ type AgoPluralKey = `${"daysAgo" | "hoursAgo" | "minutesAgo"}_${PluralCategory}`
 // i18next plural categories differ by locale, so locale catalogs may add the
 // explicit v4 suffixes they need while retaining the canonical fallback keys.
 export type TranslationResources = TranslationResourcesBase & {
+  workspace: TranslationResourcesBase["workspace"] & {
+    git: TranslationResourcesBase["workspace"]["git"] & {
+      diff: TranslationResourcesBase["workspace"]["git"]["diff"] &
+        Partial<Record<`filesChanged_${PluralCategory}`, string>>;
+    };
+  };
   providerUsage: TranslationResourcesBase["providerUsage"] & {
     duration: TranslationResourcesBase["providerUsage"]["duration"] &
       Partial<Record<DurationPluralKey, string>>;

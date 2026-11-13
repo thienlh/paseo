@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import { createElement, type ComponentType } from "react";
 
 export type LucideIcon = ComponentType<{
   size?: number;
@@ -7,6 +7,10 @@ export type LucideIcon = ComponentType<{
 }>;
 
 const StubIcon: LucideIcon = () => null;
+
+function svgIcon(name: string): LucideIcon {
+  return () => createElement("svg", { "data-icon": name });
+}
 
 export const Activity = StubIcon;
 export const AlertTriangle = StubIcon;
@@ -37,6 +41,7 @@ export const ClipboardPaste = StubIcon;
 export const Copy = StubIcon;
 export const CornerDownLeft = StubIcon;
 export const Download = StubIcon;
+export const Ellipsis = StubIcon;
 export const ExternalLink = StubIcon;
 export const Eye = StubIcon;
 export const EyeOff = StubIcon;
@@ -64,7 +69,7 @@ export const Layers = StubIcon;
 export const Link = StubIcon;
 export const Link2 = StubIcon;
 export const MessageSquare = StubIcon;
-export const MessageSquarePlus = StubIcon;
+export const MessageSquarePlus = svgIcon("message-square-plus");
 export const Mic = StubIcon;
 export const MicOff = StubIcon;
 export const Monitor = StubIcon;
@@ -97,7 +102,7 @@ export const ShieldCheck = StubIcon;
 export const ShieldOff = StubIcon;
 export const ShieldQuestionMark = StubIcon;
 export const Smartphone = StubIcon;
-export const Split = StubIcon;
+export const Split = svgIcon("split");
 export const Square = StubIcon;
 export const SquarePen = StubIcon;
 export const SquareTerminal = StubIcon;

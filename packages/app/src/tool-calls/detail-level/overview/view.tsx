@@ -1,10 +1,12 @@
-import React, { memo, useCallback, useRef, type ReactNode } from "react";
-import { ScrollView } from "react-native";
-import { Wrench } from "lucide-react-native";
+import React, { memo, useCallback, type ReactNode } from "react";
+import { View } from "react-native";
+import { Plug, Wrench } from "lucide-react-native";
 import { StyleSheet } from "react-native-unistyles";
+import { useTranslation } from "react-i18next";
 import { useDisclosureHold } from "@/agent-stream/disclosure";
 import { IndentRail } from "@/components/indent-rail";
 import { ExpandableBadge } from "@/components/message";
+import { describeToolCall } from "../grouping";
 import { useIsCompactFormFactor } from "@/constants/layout";
 import { useOverviewSummaryLabel } from "./label";
 import type { OverviewToolCallGroup } from "./model";
@@ -18,8 +20,6 @@ interface OverviewGroupProps {
   children: ReactNode;
 }
 
-const TOOL_CALL_GROUP_MAX_HEIGHT = 400;
-
 export const OverviewToolCallGroupView = memo(function OverviewToolCallGroupView({
   group,
   expanded,
@@ -27,13 +27,19 @@ export const OverviewToolCallGroupView = memo(function OverviewToolCallGroupView
   onExpandedChange,
   children,
 }: OverviewGroupProps) {
-  const scrollRef = useRef<ScrollView>(null);
   const isCompact = useIsCompactFormFactor();
+  const { t } = useTranslation();
   const aggregateSummary = useOverviewSummaryLabel(group.summary);
-  const scrollToLatest = useCallback(() => {
-    scrollRef.current?.scrollToEnd({ animated: false });
-  }, []);
   const hold = useDisclosureHold();
+  const label = group.mcpServer ?? aggregateSummary;
+  const callCount = group.run.calls.length;
+  const secondaryLabel = group.mcpServer
+    ? t(`toolCallGroup.otherTools.${callCount === 1 ? "one" : "other"}`, { count: callCount })
+    : undefined;
+  const icon = group.mcpServer ? Plug : Wrench;
+  const isError = group.run.calls.some(
+    (call) => call.kind === "tool_call" && describeToolCall(call).status === "failed",
+  );
   const toggle = useCallback(() => {
     const apply = () => onExpandedChange(group.run.id, !expanded);
     // Compact opens a sheet; nothing in the timeline moves.
@@ -45,18 +51,11 @@ export const OverviewToolCallGroupView = memo(function OverviewToolCallGroupView
   }, [group.run.id, onExpandedChange]);
   const renderDetails = useCallback(
     () => (
-      <ScrollView
-        ref={scrollRef}
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        nestedScrollEnabled
-        showsVerticalScrollIndicator
-        onContentSizeChange={scrollToLatest}
-      >
+      <View style={styles.content}>
         <IndentRail>{children}</IndentRail>
-      </ScrollView>
+      </View>
     ),
-    [children, scrollToLatest],
+    [children],
   );
 
   if (isCompact) {
@@ -64,14 +63,20 @@ export const OverviewToolCallGroupView = memo(function OverviewToolCallGroupView
       <>
         <ExpandableBadge
           testID="tool-call-group"
-          label={aggregateSummary}
-          icon={Wrench}
-          isLoading={group.isLoading}
+          label={label}
+          secondaryLabel={secondaryLabel}
+          icon={icon}
           isExpanded={false}
+          isError={isError}
           isLastInSequence={isLastInSequence}
           onToggle={toggle}
         />
-        <OverviewToolCallGroupSheet visible={expanded} summary={aggregateSummary} onClose={close}>
+        <OverviewToolCallGroupSheet
+          visible={expanded}
+          summary={label}
+          mcp={group.mcpServer !== undefined}
+          onClose={close}
+        >
           {children}
         </OverviewToolCallGroupSheet>
       </>
@@ -81,10 +86,11 @@ export const OverviewToolCallGroupView = memo(function OverviewToolCallGroupView
   return (
     <ExpandableBadge
       testID="tool-call-group"
-      label={aggregateSummary}
-      icon={Wrench}
-      isLoading={group.isLoading}
+      label={label}
+      secondaryLabel={secondaryLabel}
+      icon={icon}
       isExpanded={expanded}
+      isError={isError}
       isLastInSequence={isLastInSequence}
       onToggle={toggle}
       renderDetails={renderDetails}
@@ -94,9 +100,6 @@ export const OverviewToolCallGroupView = memo(function OverviewToolCallGroupView
 });
 
 const styles = StyleSheet.create((theme) => ({
-  scroll: {
-    maxHeight: TOOL_CALL_GROUP_MAX_HEIGHT,
-  },
   content: {
     paddingTop: theme.spacing[1],
     paddingHorizontal: 13,

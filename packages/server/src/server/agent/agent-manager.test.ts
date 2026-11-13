@@ -20,6 +20,7 @@ import {
   type ManagedAgent,
 } from "./agent-manager.js";
 import { AgentStorage, parseStoredAgentRecord } from "./agent-storage.js";
+import { workspaceContextInstructions } from "./workspace-context.js";
 import { InMemoryAgentTimelineStore } from "./agent-timeline-store.js";
 import { limitAgentTimelineItemContent } from "./agent-timeline-content.js";
 import { buildStoredAgentPayload, toAgentPayload } from "./agent-projections.js";
@@ -2679,6 +2680,56 @@ test("createAgent injects daemon append system prompt at runtime only", async ()
   expect(snapshot.config).not.toHaveProperty("daemonAppendSystemPrompt");
   expect(record?.config?.systemPrompt).toBe("Agent instructions.");
   expect(record?.config).not.toHaveProperty("daemonAppendSystemPrompt");
+});
+
+test("createAgent tells the agent about the workspace .context directory", async () => {
+  const workdir = mkdtempSync(join(tmpdir(), "agent-manager-test-"));
+  const storage = new AgentStorage(join(workdir, "agents"), logger);
+  const client = new TestAgentClient();
+  const preparedCwds: string[] = [];
+  const manager = new AgentManager({
+    clients: { codex: client },
+    registry: storage,
+    logger,
+    appendSystemPrompt: "Daemon instructions.",
+    ensureWorkspaceContext: async (cwd) => {
+      preparedCwds.push(cwd);
+      return "/repo/.context";
+    },
+    idFactory: () => "00000000-0000-4000-8000-000000000105",
+  });
+
+  const snapshot = await manager.createAgent({ provider: "codex", cwd: workdir }, undefined, {
+    workspaceId: undefined,
+  });
+  const record = await storage.get(snapshot.id);
+
+  expect(preparedCwds).toEqual([workdir]);
+  expect(client.createdConfigs[0]?.daemonAppendSystemPrompt).toBe(
+    `Daemon instructions.\n\n${workspaceContextInstructions("/repo/.context")}`,
+  );
+  expect(record?.config).not.toHaveProperty("daemonAppendSystemPrompt");
+});
+
+test("createAgent launches without .context when preparing it fails", async () => {
+  const workdir = mkdtempSync(join(tmpdir(), "agent-manager-test-"));
+  const client = new TestAgentClient();
+  const manager = new AgentManager({
+    clients: { codex: client },
+    registry: new AgentStorage(join(workdir, "agents"), logger),
+    logger,
+    ensureWorkspaceContext: async () => {
+      throw new Error("read-only file system");
+    },
+    idFactory: () => "00000000-0000-4000-8000-000000000106",
+  });
+
+  await manager.createAgent({ provider: "codex", cwd: workdir }, undefined, {
+    workspaceId: undefined,
+  });
+
+  expect(client.createdConfigs).toHaveLength(1);
+  expect(client.createdConfigs[0]).not.toHaveProperty("daemonAppendSystemPrompt");
 });
 
 test("daemon append system prompt is injected into Pi configs", async () => {
@@ -13225,6 +13276,7 @@ test.each([
               provider: "codex",
               cwd: workdir,
               title: null,
+              background: false,
               metadata: {},
             },
             turnId: "hook-turn",
@@ -14281,6 +14333,36 @@ test("turns keep distinct identities across an idle runtime collection and resum
     expect(new Set(userTurnIds).size).toBe(2);
   } finally {
     await manager.closeAgent(manager.listAgents()[0]?.id ?? "missing").catch(() => undefined);
+    await storage.flush();
+    rmSync(workdir, { recursive: true, force: true });
+  }
+});
+
+test("workspace archive preserves a loaded history agent stamp and stamps cascaded children", async () => {
+  const workdir = mkdtempSync(join(tmpdir(), "workspace-stamp-"));
+  const storage = new AgentStorage(join(workdir, "agents"), logger);
+  const manager = new AgentManager({
+    clients: { codex: new TestAgentClient() },
+    registry: storage,
+    logger,
+  });
+  try {
+    const parent = await manager.createAgent({ provider: "codex", cwd: workdir }, undefined, {
+      workspaceId: undefined,
+    });
+    const child = await manager.createAgent({ provider: "codex", cwd: workdir }, undefined, {
+      labels: { [PARENT_AGENT_ID_LABEL]: parent.id },
+      workspaceId: undefined,
+    });
+    const stamp = "2026-11-09T00:00:00.000Z";
+    await manager.archiveAgent(parent.id, stamp);
+    expect((await storage.get(parent.id))?.archivedAt).toBe(stamp);
+    expect((await storage.get(child.id))?.archivedAt).toBe(stamp);
+    await ensureAgentLoaded(parent.id, { agentManager: manager, agentStorage: storage, logger });
+    await manager.archiveAgent(parent.id, "2026-11-09T01:00:00.000Z");
+    expect((await storage.get(parent.id))?.archivedAt).toBe(stamp);
+    expect((await storage.get(parent.id))?.updatedAt).toBe("2026-11-09T01:00:00.000Z");
+  } finally {
     await storage.flush();
     rmSync(workdir, { recursive: true, force: true });
   }

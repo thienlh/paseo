@@ -24,17 +24,14 @@ interface WorkspaceExplorerToggleProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export type WorkspaceExplorerToggleOwner = "mobile" | "header" | "window";
+export type WorkspaceExplorerToggleOwner = "mobile" | "header";
 
 export function resolveWorkspaceExplorerToggleOwner({
   isMobile,
-  hasMacTrafficLights,
 }: {
   isMobile: boolean;
-  hasMacTrafficLights: boolean;
 }): WorkspaceExplorerToggleOwner {
-  if (isMobile) return "mobile";
-  return hasMacTrafficLights ? "window" : "header";
+  return isMobile ? "mobile" : "header";
 }
 
 export function WorkspaceExplorerToggle({
@@ -78,7 +75,7 @@ export function WorkspaceHeaderExplorerToggle({
   style,
   ...toggleProps
 }: DesktopWorkspaceExplorerToggleProps) {
-  if (owner === "mobile" || (owner === "window" && accessibilityState.expanded)) return null;
+  if (owner === "mobile") return null;
   return (
     <WorkspaceExplorerToggle
       {...toggleProps}
@@ -93,17 +90,14 @@ export function WorkspaceExplorerSidebarToggle({
   owner,
   ...toggleProps
 }: DesktopWorkspaceExplorerToggleProps) {
-  if (owner === "header") return null;
-  if (owner === "mobile") {
-    // The compact Explorer is an overlay like the compact agent list, so it closes with the same X.
-    return (
-      <SidebarCloseButton
-        label={toggleProps.label}
-        onPress={toggleProps.onPress}
-        testID="workspace-explorer-toggle"
-        accessibilityState={toggleProps.accessibilityState}
-      />
-    );
-  }
-  return <WorkspaceExplorerToggle {...toggleProps} mobile={false} />;
+  if (owner !== "mobile") return null;
+  // The compact Explorer is an overlay like the compact agent list, so it closes with the same X.
+  return (
+    <SidebarCloseButton
+      label={toggleProps.label}
+      onPress={toggleProps.onPress}
+      testID="workspace-explorer-toggle"
+      accessibilityState={toggleProps.accessibilityState}
+    />
+  );
 }

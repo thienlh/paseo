@@ -413,6 +413,10 @@ export const zhCN: TranslationResources = {
         completed: "已完成",
       },
     },
+    usageLimit: {
+      title: "已达到使用限额",
+      retryNewChat: "在新聊天中重试",
+    },
     turnFooter: {
       workedFor: "工作了 {{duration}}",
     },
@@ -706,6 +710,14 @@ export const zhCN: TranslationResources = {
         editTerminalProfiles: "Edit profiles",
       },
       explorerSidebar: {
+        execution: {
+          expand: "展开运行区域",
+          collapse: "收起运行区域",
+          chooseScript: "选择脚本",
+          idle: "运行脚本以查看输出",
+          noScripts: "尚未配置脚本",
+          noTerminal: "在此工作区打开终端",
+        },
         open: "打开侧边面板",
         close: "关闭侧边面板",
         toggle: "切换侧边面板",
@@ -818,8 +830,26 @@ export const zhCN: TranslationResources = {
       actions: {
         moreOptions: "更多选项",
         moreActions: "更多操作",
+        continue: "继续",
+        fixPr: "修复 PR",
+        fixPr_mr: "修复 MR",
+        chat: {
+          selectChat: "请在此工作区选择一个聊天，然后重试。",
+          queued: "已加入当前聊天队列，将在代理就绪后执行。",
+          sending: "正在发送到聊天…",
+        },
+        workflow: {
+          local: "本地更改",
+          open: "审核中",
+          waiting: "检查待完成",
+          attention: "需要处理",
+          ready: "可以合并",
+          merged: "已合并",
+          closed: "已关闭",
+        },
         commit: {
           label: "Commit",
+          pushLabel: "提交并推送",
           pending: "正在 commit...",
           success: "已 commit",
         },
@@ -858,27 +888,21 @@ export const zhCN: TranslationResources = {
           success: "已更新",
         },
         archive: {
-          label: "归档工作区",
+          label: "归档",
           pending: "正在归档...",
           success: "已归档",
         },
         mergePr: {
-          squash: "Merge PR (squash)",
-          merge: "Merge PR (merge)",
-          rebase: "Merge PR (rebase)",
+          label: "Merge PR",
           pending: "正在 merge PR...",
           success: "PR 已 merge",
-          squash_mr: "Merge MR (squash)",
-          merge_mr: "Merge MR (merge)",
-          rebase_mr: "Merge MR (rebase)",
+          label_mr: "Merge MR",
           pending_mr: "正在 merge MR...",
           success_mr: "MR 已 merge",
         },
         viewPr_mr: "查看 MR",
         autoMerge: {
-          enableSquash: "Auto merge (squash)",
-          enableMerge: "Auto merge (merge)",
-          enableRebase: "Auto merge (rebase)",
+          enable: "Auto merge",
           enabled: "Auto-merge 已启用",
           enabling: "正在启用 auto-merge...",
           disabling: "正在禁用 auto-merge...",
@@ -954,6 +978,9 @@ export const zhCN: TranslationResources = {
         jumpToFile: {
           title: "跳转到文件",
         },
+        filesChanged: "{{count}} 个文件已更改",
+        filesChanged_one: "{{count}} 个文件已更改",
+        filesChanged_other: "{{count}} 个文件已更改",
         binaryFile: "二进制文件",
         tooLarge: "Diff 过大，无法显示",
         previewTooLargeTitle: "此 diff 过大，无法预览",
@@ -963,6 +990,7 @@ export const zhCN: TranslationResources = {
         switchToUnified: "切换到统一差异视图",
         switchToSplit: "切换到并排差异视图",
         options: "Diff 选项",
+        treeView: "树状视图",
         inlineDiff: "内联 Diff",
         hideWhitespace: "隐藏空白差异",
         showWhitespace: "显示空白差异",
@@ -1010,6 +1038,10 @@ export const zhCN: TranslationResources = {
       pr: {
         actions: {
           viewPullRequest: "查看",
+          review: "审查",
+          reviewing: "正在审查…",
+          reviewFailed: "无法开始审查。",
+          reviewUpdateHost: "请更新主机以评审本地更改。",
           openOn: "在 {{brand}} 上打开",
           addToChat: "添加到聊天",
           addAllToChat: "全部添加到聊天",
@@ -1958,6 +1990,16 @@ export const zhCN: TranslationResources = {
       stop: "停止 realtime voice 并中断 turn",
     },
   },
+  checks: {
+    review: {
+      title: "评审",
+      empty: "评审拉取请求或本地更改后，意见会显示在这里。",
+      unreadable: "无法读取上次评审的意见。",
+      noFindings: "上次评审没有发现问题。",
+      fromLatest_one: "上次评审的 {{count}} 条意见",
+      fromLatest_other: "上次评审的 {{count}} 条意见",
+    },
+  },
   rewind: {
     tooltip: "回退到此消息",
     warning: "此操作无法撤销",
@@ -1972,6 +2014,7 @@ export const zhCN: TranslationResources = {
   },
   diffViewer: {
     empty: "没有可显示的变更",
+    unmodifiedLines: "{{count}} 行未修改",
   },
   serviceUrl: {
     title: "打开服务 URL",
@@ -2073,8 +2116,8 @@ export const zhCN: TranslationResources = {
       chooseFile: "选择文件",
     },
     pullRequest: {
-      label: "拉取请求",
-      subtitle: "拉取请求详情",
+      label: "检查",
+      subtitle: "拉取请求、检查和评审意见",
       emptyTitle: "尚无拉取请求",
       emptyDescription: "为此检出创建拉取请求后，可在此处查看其详情。",
     },
@@ -2099,6 +2142,14 @@ export const zhCN: TranslationResources = {
   },
   turnSummary: {
     details: "查看轮次详情",
+    toolCalls: {
+      one: "{{count}} 次工具调用",
+      other: "{{count}} 次工具调用",
+    },
+    messages: {
+      one: "{{count}} 条消息",
+      other: "{{count}} 条消息",
+    },
     sentBy: "由 {{name}} 发送",
     showMore: "展开",
     showLess: "收起",
@@ -2540,6 +2591,9 @@ export const zhCN: TranslationResources = {
       theme: {
         title: "主题",
         accessibilityLabel: "主题：{{value}}",
+        preferredDarkTitle: "首选深色主题",
+        preferredDarkHint: "系统使用深色模式时启用",
+        preferredDarkAccessibility: "首选深色主题：{{value}}",
         options: {
           light: "Light",
           dark: "Dark",

@@ -257,7 +257,7 @@ Workspace archive is a separate lifecycle. Archiving or removing a worktree can 
 agent record without setting the agent's `archivedAt`, while its `workspaceId` still points at the
 archived workspace. History navigation must not infer workspace lifecycle from `agent.archivedAt`
 or mutate either lifecycle. The workspace route asks the daemon for authoritative recovery state;
-only the route's explicit Unarchive or Restore action changes the archived workspace.
+the route exposes explicit Unarchive and Restore actions.
 
 Workspace archive is undoable from the archived toast, or with Cmd/Ctrl+Z, while the toast is up.
 The daemon runs one archive lane per workspace, shared by every connection
@@ -274,16 +274,20 @@ A request takes its place in the lane before its first `await`. Arrival order de
 sent right behind its archive still cancels it.
 
 An aborted archive stops at its next checkpoint and reports `canceled`; the undo unarchives only
-the agents that archive itself archived. Deleting the worktree directory is the point of no
+the agents that archive itself archived. Deleting the clean worktree directory is the point of no
 return: an undo after it recreates the worktree through workspace recovery. The client shows or
 hides the row by the latest local intent, so a late remove or upsert from a superseded request
 does not flip it back. Tabs and layout are purged only once the undo window closes with the
-archive committed.
+archive committed. Dirty worktrees stay on disk when Git refuses removal, preserving modified
+and untracked files for Unarchive. Archive must never fall back to forced removal in that case.
 
 History navigation opens the selected agent without changing either archive state. Workspace
-**Restore** recovers only the workspace; the selected archived agent stays open with its callout.
-The agent's **Unarchive** runs the provider's native unarchive hook before interactive resume and
-history hydration. Other archived agents stay archived.
+**Unarchive**, **Restore**, Undo, and reopening the directory recover the agents closed by that
+workspace archive, including
+after a daemon restart or after the toast expires. Agents archived individually beforehand stay
+archived. A failed worktree recreation leaves the workspace and its agents archived for retry.
+Each recovered agent runs the provider's native unarchive hook before interactive resume and
+history hydration.
 
 Opening an agent is a navigation choice, independent of whether its details are cached. The
 layout retains that choice across reload while the panel fetches the agent from the daemon.

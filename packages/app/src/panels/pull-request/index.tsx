@@ -1,5 +1,5 @@
-import { useCallback } from "react";
-import { Text, View } from "react-native";
+import { useCallback, useMemo } from "react";
+import { ScrollView, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StyleSheet } from "react-native-unistyles";
 import { buildWorkspaceAttachmentScopeKey } from "@/attachments/workspace-attachments-store";
@@ -11,6 +11,7 @@ import {
   PullRequestPaneSkeleton,
 } from "@/git/pull-request-panel";
 import type { UsePrPaneDataResult } from "@/git/pull-request-panel/use-data";
+import { ChecksReviewSection } from "@/git/pull-request-review/checks-review-section";
 
 import { resolvePullRequestContentState } from "./state";
 export {
@@ -34,19 +35,32 @@ export function PullRequestContent(input: {
       toast.error(error instanceof Error ? error.message : t("workspace.git.diff.failedRefresh"));
     });
   }, [input.cwd, input.serverId, refresh, t, toast]);
+  const workspaceAttachmentScopeKey = buildWorkspaceAttachmentScopeKey({
+    serverId: input.serverId,
+    workspaceId: input.workspaceId,
+    cwd: input.cwd,
+  });
+  const data = input.prPane.data;
+  const reviewSection = useMemo(
+    () => (
+      <ChecksReviewSection
+        serverId={input.serverId}
+        cwd={input.cwd}
+        workspaceAttachmentScopeKey={workspaceAttachmentScopeKey}
+      />
+    ),
+    [input.cwd, input.serverId, workspaceAttachmentScopeKey],
+  );
 
-  if (input.prPane.data) {
+  if (data) {
     return (
       <PullRequestPane
         serverId={input.serverId}
         cwd={input.cwd}
-        data={input.prPane.data}
+        data={data}
         activityLoading={input.prPane.activityLoading}
-        workspaceAttachmentScopeKey={buildWorkspaceAttachmentScopeKey({
-          serverId: input.serverId,
-          workspaceId: input.workspaceId,
-          cwd: input.cwd,
-        })}
+        workspaceAttachmentScopeKey={workspaceAttachmentScopeKey}
+        reviewSection={reviewSection}
       />
     );
   }
@@ -58,18 +72,22 @@ export function PullRequestContent(input: {
     return <PullRequestPaneSkeleton />;
   }
   return (
-    <View style={styles.empty} testID="pull-request-empty-state">
-      <Text style={styles.emptyTitle}>{t("panels.pullRequest.emptyTitle")}</Text>
-      <Text style={styles.emptyDescription}>{t("panels.pullRequest.emptyDescription")}</Text>
-    </View>
+    <ScrollView style={styles.scroll} testID="pull-request-empty-state">
+      {reviewSection}
+      <View style={styles.empty}>
+        <Text style={styles.emptyTitle}>{t("panels.pullRequest.emptyTitle")}</Text>
+        <Text style={styles.emptyDescription}>{t("panels.pullRequest.emptyDescription")}</Text>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
-  empty: {
+  scroll: {
     flex: 1,
+  },
+  empty: {
     alignItems: "center",
-    justifyContent: "center",
     gap: 8,
     padding: 24,
   },

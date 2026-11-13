@@ -21,9 +21,11 @@ import {
 import { isNative } from "@/constants/platform";
 import {
   DEFAULT_CONTENT_MAX_WIDTH,
+  DARK_THEME_OPTIONS,
   FONT_SIZE,
   PLUGIN_THEME_PREFERENCE,
   THEME_OPTIONS,
+  type DarkThemePreference,
   type ThemePreference,
 } from "@/styles/theme";
 import { z } from "zod";
@@ -51,6 +53,7 @@ const ThemePreferenceSchema = z.enum([
 ]);
 /** Where the theme picker lands when the persisted preference cannot be honoured. */
 export const DEFAULT_THEME_PREFERENCE = "auto" satisfies ThemePreference;
+export const DEFAULT_DARK_THEME_PREFERENCE = "dark" satisfies DarkThemePreference;
 export const DEFAULT_TERMINAL_SCROLLBACK_LINES = 10_000;
 export const MIN_TERMINAL_SCROLLBACK_LINES = 0;
 export const MAX_TERMINAL_SCROLLBACK_LINES = 1_000_000;
@@ -78,6 +81,8 @@ export const MAX_CONTENT_MAX_WIDTH = 4000;
 
 export interface AppSettings {
   theme: ThemePreference;
+  /** Which built-in dark variant System mode uses when the OS is dark. */
+  preferredDarkTheme: DarkThemePreference;
   /** Which contributed theme `theme: "plugin"` selects. */
   pluginThemeId: string | null;
   language: AppLanguage;
@@ -140,6 +145,7 @@ export interface Settings extends AppSettings {
 
 export const DEFAULT_CLIENT_SETTINGS: AppSettings = {
   theme: DEFAULT_THEME_PREFERENCE,
+  preferredDarkTheme: DEFAULT_DARK_THEME_PREFERENCE,
   pluginThemeId: null,
   language: "system",
   sendBehavior: "steer",
@@ -153,7 +159,7 @@ export const DEFAULT_CLIENT_SETTINGS: AppSettings = {
   contentMaxWidth: null,
   syntaxTheme: "one",
   workspaceTitleSource: "title",
-  sidebarWorkspaceTrailing: "timestamp",
+  sidebarWorkspaceTrailing: "diff",
   sidebarRowItems: DEFAULT_SIDEBAR_ROW_ITEMS,
   sidebarChecksDisplay: DEFAULT_SIDEBAR_CHECKS_DISPLAY,
   sidebarNavItems: [],
@@ -218,6 +224,9 @@ const DEFAULT_STORED_APP_SETTINGS = {
 const StoredAppSettingsSchema = z
   .looseObject({
     theme: ThemePreferenceSchema.catch(DEFAULT_THEME_PREFERENCE),
+    preferredDarkTheme: z
+      .enum(DARK_THEME_OPTIONS.map((option) => option.name))
+      .catch(DEFAULT_DARK_THEME_PREFERENCE),
     pluginThemeId: z.string().nullable().catch(null),
     language: z
       .enum(["system", "ar", "en", "es", "fr", "ja", "ko", "pt-BR", "ru", "zh-CN"])
@@ -247,7 +256,7 @@ const StoredAppSettingsSchema = z
       .catch(null),
     syntaxTheme: z.string().refine(isSyntaxThemeId).catch("one"),
     workspaceTitleSource: z.enum(["title", "branch"]).catch("title"),
-    sidebarWorkspaceTrailing: z.enum(["diff", "timestamp", "none"]).catch("timestamp"),
+    sidebarWorkspaceTrailing: z.enum(["diff", "timestamp", "none"]).catch("diff"),
     sidebarRowItems: SidebarRowItemsSchema,
     sidebarChecksDisplay: z
       .enum(["iconAndText", "icon", "none"])

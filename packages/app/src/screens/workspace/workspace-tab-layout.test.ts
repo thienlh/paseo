@@ -1,5 +1,6 @@
 import { buildDesktopFrameStyle } from "@/components/ui/combobox-frame-style";
 import {
+  resolveWorkspaceExplorerToggleOwner,
   WorkspaceHeaderExplorerToggle,
   WorkspaceExplorerSidebarToggle,
 } from "./workspace-explorer-toggle";
@@ -199,23 +200,16 @@ describe("Explorer toggle ownership", () => {
     accessibilityState: { expanded: true },
   };
 
-  it("keeps only the header toggle when window controls do not obstruct it", () => {
+  it("keeps the desktop toggle inside the workspace header", () => {
+    expect(resolveWorkspaceExplorerToggleOwner({ isMobile: false })).toBe("header");
     expect(WorkspaceHeaderExplorerToggle({ ...toggleProps, owner: "header" })).not.toBeNull();
     expect(WorkspaceExplorerSidebarToggle({ ...toggleProps, owner: "header" })).toBeNull();
   });
 
-  it("keeps the dock toggle for window-owned and compact overlay chrome", () => {
-    for (const owner of ["window", "mobile"] as const) {
-      expect(WorkspaceHeaderExplorerToggle({ ...toggleProps, owner })).toBeNull();
-      expect(WorkspaceExplorerSidebarToggle({ ...toggleProps, owner })).not.toBeNull();
-    }
-  });
-
   it("closes the compact overlay with the same X as the compact agent list", () => {
+    expect(resolveWorkspaceExplorerToggleOwner({ isMobile: true })).toBe("mobile");
+    expect(WorkspaceHeaderExplorerToggle({ ...toggleProps, owner: "mobile" })).toBeNull();
     expect(WorkspaceExplorerSidebarToggle({ ...toggleProps, owner: "mobile" })?.type).toBe(
-      SidebarCloseButton,
-    );
-    expect(WorkspaceExplorerSidebarToggle({ ...toggleProps, owner: "window" })?.type).not.toBe(
       SidebarCloseButton,
     );
   });

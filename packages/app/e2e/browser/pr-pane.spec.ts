@@ -1,4 +1,6 @@
-import { test } from "../support/fixtures";
+import { writeFile } from "node:fs/promises";
+import path from "node:path";
+import { expect, test } from "../support/fixtures";
 import {
   openPrPane,
   expectPrPaneTitle,
@@ -7,6 +9,8 @@ import {
   expectPrPaneActivity,
 } from "../support/helpers/pr-pane";
 import { gotoWorkspace } from "../support/helpers/launcher";
+import { seedWorkspace } from "../support/helpers/seed-client";
+import { openFilesPanel } from "../support/helpers/workspace-tabs";
 import {
   hasGithubAuth,
   createTempGithubRepo,
@@ -19,6 +23,42 @@ import {
 } from "../support/helpers/workspace-setup";
 
 const GITHUB_AUTH = hasGithubAuth();
+
+test("reviews local changes from the Explorer header without a Checks toolbar", async ({
+  page,
+}) => {
+  const workspace = await seedWorkspace({ repoPrefix: "checks-empty-toolbar-" });
+
+  try {
+    await gotoWorkspace(page, workspace.workspaceId);
+    await openFilesPanel(page);
+    await openPrPane(page);
+    const emptyState = page.getByTestId("pull-request-empty-state");
+    const toolbar = emptyState.getByTestId("pull-request-empty-toolbar");
+    const header = page.getByTestId("git-workflow-bar").filter({ visible: true });
+    await expect(emptyState).toBeVisible();
+    await expect(emptyState.getByTestId("checks-review-start")).toHaveCount(0);
+    await expect(toolbar).toHaveCount(0);
+
+    await writeFile(path.join(workspace.repoPath, "review-me.txt"), "Review local changes\n");
+    const refreshed = await workspace.client.checkoutRefresh(workspace.repoPath);
+    if (!refreshed.success) {
+      throw new Error(`Failed to refresh checkout: ${JSON.stringify(refreshed.error)}`);
+    }
+    const review = header.getByTestId("checks-review-start");
+    await expect(review).toBeVisible();
+    await expect(emptyState.getByTestId("checks-review-start")).toHaveCount(0);
+    await expect(toolbar).toHaveCount(0);
+    await page.getByTestId("workspace-tab-changes_tree").filter({ visible: true }).click();
+    await expect(review).toBeVisible();
+    await review.click();
+    await expect(
+      page.getByTestId("user-message").filter({ hasText: "Review the local changes" }),
+    ).toBeVisible({ timeout: 30_000 });
+  } finally {
+    await workspace.cleanup();
+  }
+});
 
 test.describe("PR pane", () => {
   test.describe.configure({ retries: 1 });

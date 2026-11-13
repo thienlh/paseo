@@ -29,6 +29,44 @@ const BLOCK_TAGS = new Set([
   "pre",
 ]);
 const EMPHASIS: Readonly<Record<string, string>> = { b: "**", strong: "**", i: "*", em: "*" };
+const BARE_TAG = /^<(\/?)([A-Za-z][A-Za-z0-9-]*)>$/;
+const ANY_TAG = new RegExp(String.raw`<(\/?)([A-Za-z][A-Za-z0-9-]*)(?:${ATTRIBUTE})*\s*\/?>`, "gi");
+const OPTIONAL_CLOSING_TAGS = new Set([
+  "html",
+  "head",
+  "body",
+  "li",
+  "dt",
+  "dd",
+  "p",
+  "rt",
+  "rp",
+  "optgroup",
+  "option",
+  "colgroup",
+  "thead",
+  "tbody",
+  "tfoot",
+  "tr",
+  "td",
+  "th",
+]);
+const VOID_TAGS = new Set([
+  "area",
+  "base",
+  "br",
+  "col",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "link",
+  "meta",
+  "param",
+  "source",
+  "track",
+  "wbr",
+]);
 
 /** Convert comment HTML to Markdown while preserving the original spelling of code. */
 export function normalizeMarkdownHtml(source: string): string {
@@ -40,6 +78,7 @@ export function normalizeMarkdownHtml(source: string): string {
     } else if ("children" in node) node.children.forEach(findHtml);
   }
   findHtml(fromMarkdown(source));
+  const bareTags = collectBareTags(source, htmlRanges);
   const codeRanges: { start: number; end: number }[] = [];
   // Disable HTML parsing so code inside <details> remains visible to the Markdown parser.
   const tree = fromMarkdown(source, {
@@ -77,6 +116,10 @@ export function normalizeMarkdownHtml(source: string): string {
       );
     const closing = raw.startsWith("</");
     const name = /^<\/?([\w-]+)/.exec(raw)?.[1].toLowerCase() ?? "";
+    // Unmatched bare tags are usually placeholders in prose, not HTML to discard.
+    if (isUnmatchedBareTag(raw, name, closing, bareTags)) {
+      return raw.replace(/[<>]/g, "\\$&");
+    }
     // Each gap is inspected once, rather than searching the complete prefix
     // for a preceding tag on every table row or nested block.
     const startsAfterBoundary = previousTag
@@ -108,6 +151,27 @@ export function normalizeMarkdownHtml(source: string): string {
     cursor = end;
   }
   return result + source.slice(cursor);
+}
+
+interface BareTags {
+  opening: Set<string>;
+  closing: Set<string>;
+}
+
+function collectBareTags(source: string, htmlRanges: { start: number; end: number }[]): BareTags {
+  const tags: BareTags = { opening: new Set(), closing: new Set() };
+  for (const { start, end } of htmlRanges) {
+    const raw = source.slice(start, end);
+    for (const match of raw.matchAll(ANY_TAG)) {
+      tags[match[1] ? "closing" : "opening"].add(match[2].toLowerCase());
+    }
+  }
+  return tags;
+}
+
+function isUnmatchedBareTag(raw: string, name: string, closing: boolean, tags: BareTags): boolean {
+  if (VOID_TAGS.has(name) || OPTIONAL_CLOSING_TAGS.has(name) || !BARE_TAG.test(raw)) return false;
+  return closing ? !tags.opening.has(name) : !tags.closing.has(name);
 }
 
 function attributes(tag: string): Record<string, string> {

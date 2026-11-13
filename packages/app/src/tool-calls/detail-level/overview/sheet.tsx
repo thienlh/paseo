@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { BottomSheetScrollView, type BottomSheetScrollViewMethods } from "@gorhom/bottom-sheet";
-import { Wrench, X } from "lucide-react-native";
+import { Plug, Wrench, X } from "lucide-react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
 import {
@@ -15,11 +15,13 @@ import type { Theme } from "@/styles/theme";
 interface OverviewToolCallGroupSheetProps {
   visible: boolean;
   summary: string;
+  mcp?: boolean;
   children: ReactNode;
   onClose: () => void;
 }
 
 const SNAP_POINTS = ["60%", "95%"];
+const ThemedPlug = withUnistyles(Plug);
 const ThemedWrench = withUnistyles(Wrench);
 const ThemedX = withUnistyles(X);
 const foregroundMapping = (theme: Theme) => ({ color: theme.colors.foreground });
@@ -28,6 +30,7 @@ const foregroundMutedMapping = (theme: Theme) => ({ color: theme.colors.foregrou
 export function OverviewToolCallGroupSheet({
   visible,
   summary,
+  mcp = false,
   children,
   onClose,
 }: OverviewToolCallGroupSheetProps) {
@@ -70,7 +73,11 @@ export function OverviewToolCallGroupSheet({
       <View style={styles.container} testID="tool-call-group-sheet">
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <ThemedWrench size={20} uniProps={foregroundMapping} />
+            {mcp ? (
+              <ThemedPlug size={20} uniProps={foregroundMapping} />
+            ) : (
+              <ThemedWrench size={20} uniProps={foregroundMapping} />
+            )}
             <Text
               style={styles.headerTitle}
               numberOfLines={2}

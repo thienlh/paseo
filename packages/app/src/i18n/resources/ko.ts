@@ -414,6 +414,10 @@ export const ko: TranslationResources = {
         completed: "완료됨",
       },
     },
+    usageLimit: {
+      title: "사용량 제한에 도달했습니다",
+      retryNewChat: "새 채팅에서 다시 시도",
+    },
     turnFooter: {
       workedFor: "작업 시간 {{duration}}",
     },
@@ -708,6 +712,14 @@ export const ko: TranslationResources = {
         editTerminalProfiles: "프로필 편집",
       },
       explorerSidebar: {
+        execution: {
+          expand: "실행 영역 펼치기",
+          collapse: "실행 영역 접기",
+          chooseScript: "스크립트 선택",
+          idle: "스크립트를 실행하여 출력 보기",
+          noScripts: "설정된 스크립트 없음",
+          noTerminal: "이 작업 공간에서 터미널 열기",
+        },
         open: "사이드 패널 열기",
         close: "사이드 패널 닫기",
         toggle: "사이드 패널 토글",
@@ -822,8 +834,26 @@ export const ko: TranslationResources = {
       actions: {
         moreOptions: "옵션 더 보기",
         moreActions: "작업 더 보기",
+        continue: "계속",
+        fixPr: "PR 수정",
+        fixPr_mr: "MR 수정",
+        chat: {
+          selectChat: "이 워크스페이스에서 채팅을 선택한 후 다시 시도하세요.",
+          queued: "현재 채팅 대기열에 추가했습니다. 에이전트가 준비되면 실행됩니다.",
+          sending: "채팅에 보내는 중…",
+        },
+        workflow: {
+          local: "로컬 변경 사항",
+          open: "검토 중",
+          waiting: "검사 대기 중",
+          attention: "확인 필요",
+          ready: "병합 준비 완료",
+          merged: "병합됨",
+          closed: "닫힘",
+        },
         commit: {
           label: "커밋",
+          pushLabel: "커밋 및 푸시",
           pending: "커밋하는 중...",
           success: "커밋됨",
         },
@@ -863,26 +893,20 @@ export const ko: TranslationResources = {
           success: "업데이트됨",
         },
         archive: {
-          label: "워크스페이스 보관",
+          label: "보관",
           pending: "보관하는 중...",
           success: "보관됨",
         },
         mergePr: {
-          squash: "PR 병합(스쿼시)",
-          merge: "PR 병합(병합)",
-          rebase: "PR 병합(리베이스)",
+          label: "PR 병합",
           pending: "PR 병합 중...",
           success: "PR 병합됨",
-          squash_mr: "MR 병합(스쿼시)",
-          merge_mr: "MR 병합(병합)",
-          rebase_mr: "MR 병합(리베이스)",
+          label_mr: "MR 병합",
           pending_mr: "MR 병합 중...",
           success_mr: "MR 병합됨",
         },
         autoMerge: {
-          enableSquash: "자동 병합(스쿼시)",
-          enableMerge: "자동 병합(병합)",
-          enableRebase: "자동 병합(리베이스)",
+          enable: "자동 병합",
           enabled: "자동 병합 사용 설정됨",
           enabling: "자동 병합 사용 설정 중...",
           disabling: "자동 병합 해제 중...",
@@ -969,6 +993,9 @@ export const ko: TranslationResources = {
         jumpToFile: {
           title: "파일로 이동",
         },
+        filesChanged: "파일 {{count}}개 변경",
+        filesChanged_one: "파일 {{count}}개 변경",
+        filesChanged_other: "파일 {{count}}개 변경",
         binaryFile: "바이너리 파일",
         tooLarge: "표시하기에 diff가 너무 큽니다",
         previewTooLargeTitle: "Diff가 너무 커서 미리 볼 수 없습니다",
@@ -978,6 +1005,7 @@ export const ko: TranslationResources = {
         switchToUnified: "통합 diff로 전환",
         switchToSplit: "나란히 보기 diff로 전환",
         options: "Diff 옵션",
+        treeView: "트리 보기",
         inlineDiff: "인라인 Diff",
         hideWhitespace: "공백 숨기기",
         showWhitespace: "공백 표시",
@@ -1025,6 +1053,10 @@ export const ko: TranslationResources = {
       pr: {
         actions: {
           viewPullRequest: "보기",
+          review: "리뷰",
+          reviewing: "리뷰 중…",
+          reviewFailed: "리뷰를 시작하지 못했습니다.",
+          reviewUpdateHost: "로컬 변경 사항을 리뷰하려면 호스트를 업데이트하세요.",
           openOn: "{{brand}}에서 열기",
           addToChat: "채팅에 추가",
           addAllToChat: "모두 채팅에 추가",
@@ -1992,6 +2024,16 @@ export const ko: TranslationResources = {
       stop: "실시간 음성 중지 및 턴 중단",
     },
   },
+  checks: {
+    review: {
+      title: "리뷰",
+      empty: "풀 리퀘스트나 로컬 변경 사항을 리뷰하면 여기에 결과가 표시됩니다.",
+      unreadable: "지난 리뷰 결과를 읽을 수 없습니다.",
+      noFindings: "지난 리뷰에서 찾은 것이 없습니다.",
+      fromLatest_one: "지난 리뷰 결과 {{count}}개",
+      fromLatest_other: "지난 리뷰 결과 {{count}}개",
+    },
+  },
   rewind: {
     tooltip: "이 메시지로 되감기",
     warning: "이 작업은 되돌릴 수 없습니다",
@@ -2006,6 +2048,7 @@ export const ko: TranslationResources = {
   },
   diffViewer: {
     empty: "표시할 변경 사항이 없습니다",
+    unmodifiedLines: "{{count}}개의 수정되지 않은 줄",
   },
   serviceUrl: {
     title: "서비스 URL 열기",
@@ -2107,8 +2150,8 @@ export const ko: TranslationResources = {
       chooseFile: "파일 선택",
     },
     pullRequest: {
-      label: "풀 리퀘스트",
-      subtitle: "풀 리퀘스트 세부 정보",
+      label: "검사",
+      subtitle: "풀 리퀘스트, 검사, 리뷰 결과",
       emptyTitle: "아직 풀 리퀘스트가 없습니다",
       emptyDescription: "이 체크아웃에 풀 리퀘스트를 만들면 세부 정보가 여기에 표시됩니다.",
     },
@@ -2133,6 +2176,14 @@ export const ko: TranslationResources = {
   },
   turnSummary: {
     details: "턴 세부 정보 보기",
+    toolCalls: {
+      one: "도구 호출 {{count}}개",
+      other: "도구 호출 {{count}}개",
+    },
+    messages: {
+      one: "메시지 {{count}}개",
+      other: "메시지 {{count}}개",
+    },
     sentBy: "{{name}}이(가) 보냄",
     showMore: "더 보기",
     showLess: "접기",
@@ -2581,6 +2632,9 @@ export const ko: TranslationResources = {
       theme: {
         title: "테마",
         accessibilityLabel: "테마: {{value}}",
+        preferredDarkTitle: "선호하는 다크 테마",
+        preferredDarkHint: "시스템이 다크 모드일 때 사용",
+        preferredDarkAccessibility: "선호하는 다크 테마: {{value}}",
         options: {
           light: "라이트",
           dark: "다크",

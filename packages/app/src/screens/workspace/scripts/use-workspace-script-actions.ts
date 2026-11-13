@@ -38,7 +38,7 @@ export interface UseWorkspaceScriptActionsInput {
   serverId: string;
   workspaceId: string;
   scripts: WorkspaceDescriptor["scripts"];
-  onScriptTerminalStarted?: (terminalId: string) => void;
+  onScriptTerminalStarted?: (terminalId: string, scriptName: string) => void;
 }
 
 /**
@@ -88,9 +88,9 @@ export function useWorkspaceScriptActions({
         },
       );
     },
-    onSuccess: (result) => {
+    onSuccess: (result, scriptName) => {
       if (result.terminalId) {
-        onScriptTerminalStarted?.(result.terminalId);
+        onScriptTerminalStarted?.(result.terminalId, scriptName);
       }
     },
   });

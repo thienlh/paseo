@@ -1120,6 +1120,8 @@ export async function listPaseoWorktrees({
 }
 
 export interface DeletePaseoWorktreeOptions {
+  /** Archive retains a dirty checkout so unarchive can recover local files. */
+  preserveChanges?: boolean;
   cwd: string | null;
   worktreePath?: string;
   teardownCwds?: string[];
@@ -1162,6 +1164,7 @@ export async function deletePaseoWorktree({
   paseoHome,
   worktreesBaseRoot,
   registryProven,
+  preserveChanges = false,
 }: DeletePaseoWorktreeOptions): Promise<void> {
   if (!worktreePath && !worktreeSlug) {
     throw new Error("worktreePath or worktreeSlug is required");
@@ -1208,6 +1211,14 @@ export async function deletePaseoWorktree({
         teardownCwd,
       });
     }
+  }
+
+  if (preserveChanges) {
+    // Do not fall through to recursive removal on failure: Git's refusal protects
+    // tracked modifications and untracked files, including writes during Undo.
+    if (!cwd) throw new Error("Cannot safely remove worktree without its repository");
+    await runGitCommand(["worktree", "remove", resolvedWorktree], { cwd, timeout: 120_000 });
+    return;
   }
 
   if (cwd) {

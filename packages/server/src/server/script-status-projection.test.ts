@@ -8,6 +8,7 @@ import {
   buildWorkspaceScriptPayloads,
   createScriptStatusEmitter,
   readPaseoConfigForProjection,
+  readWorkspaceScriptConfig,
 } from "./script-status-projection.js";
 import { WorkspaceScriptPayloadSchema } from "@getpaseo/protocol/messages";
 import type { ScriptHealthState } from "./script-health-monitor.js";
@@ -622,6 +623,41 @@ describe("script-status-projection", () => {
       });
     } finally {
       workspace.cleanup();
+    }
+  });
+});
+
+describe("readWorkspaceScriptConfig", () => {
+  it("uses the project root when the worktree has no paseo.json", async () => {
+    const project = createWorkspaceRepo({
+      paseoConfig: { scripts: { test: { command: "npm run test" } } },
+    });
+    const worktree = path.join(project.tempDir, "worktree");
+    mkdirSync(worktree);
+    try {
+      const config = await readWorkspaceScriptConfig(worktree, createTestLogger(), project.repoDir);
+      expect(config?.scripts?.test).toMatchObject({ command: "npm run test" });
+    } finally {
+      project.cleanup();
+    }
+  });
+
+  it("keeps a worktree's own paseo.json ahead of the project root", async () => {
+    const project = createWorkspaceRepo({
+      paseoConfig: { scripts: { test: { command: "npm run test" } } },
+    });
+    const worktree = path.join(project.tempDir, "worktree");
+    mkdirSync(worktree);
+    writeFileSync(
+      path.join(worktree, "paseo.json"),
+      JSON.stringify({ scripts: { lint: { command: "npm run lint" } } }),
+    );
+    try {
+      const config = await readWorkspaceScriptConfig(worktree, createTestLogger(), project.repoDir);
+      expect(config?.scripts?.lint).toMatchObject({ command: "npm run lint" });
+      expect(config?.scripts?.test).toBeUndefined();
+    } finally {
+      project.cleanup();
     }
   });
 });

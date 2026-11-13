@@ -418,6 +418,10 @@ export const ja: TranslationResources = {
         completed: "完了",
       },
     },
+    usageLimit: {
+      title: "利用制限に達しました",
+      retryNewChat: "新しいチャットで再試行",
+    },
     turnFooter: {
       workedFor: "作業時間 {{duration}}",
     },
@@ -713,6 +717,14 @@ export const ja: TranslationResources = {
         editTerminalProfiles: "プロファイルを編集",
       },
       explorerSidebar: {
+        execution: {
+          expand: "実行パネルを展開",
+          collapse: "実行パネルを折りたたむ",
+          chooseScript: "スクリプトを選択",
+          idle: "スクリプトを実行して出力を表示",
+          noScripts: "スクリプトが設定されていません",
+          noTerminal: "このワークスペースでターミナルを開く",
+        },
         open: "サイドパネルを開く",
         close: "サイドパネルを閉じる",
         toggle: "サイドパネルを切り替え",
@@ -826,8 +838,26 @@ export const ja: TranslationResources = {
       actions: {
         moreOptions: "その他のオプション",
         moreActions: "その他のアクション",
+        continue: "続ける",
+        fixPr: "PRを修正",
+        fixPr_mr: "MRを修正",
+        chat: {
+          selectChat: "このワークスペースでチャットを選択して、もう一度お試しください。",
+          queued: "現在のチャットのキューに追加しました。エージェントの準備ができ次第実行します。",
+          sending: "チャットに送信中…",
+        },
+        workflow: {
+          local: "ローカルの変更",
+          open: "レビュー中",
+          waiting: "チェック待ち",
+          attention: "対応が必要",
+          ready: "マージ可能",
+          merged: "マージ済み",
+          closed: "クローズ済み",
+        },
         commit: {
           label: "コミット",
+          pushLabel: "コミットしてプッシュ",
           pending: "コミット中...",
           success: "コミットしました",
         },
@@ -866,27 +896,21 @@ export const ja: TranslationResources = {
           success: "更新しました",
         },
         archive: {
-          label: "ワークスペースをアーカイブ",
+          label: "アーカイブ",
           pending: "アーカイブ中...",
           success: "アーカイブしました",
         },
         mergePr: {
-          squash: "PRをマージ（スカッシュ）",
-          merge: "PRをマージ（マージ）",
-          rebase: "PRをマージ（リベース）",
+          label: "PRをマージ",
           pending: "PRをマージ中...",
           success: "PRがマージされました",
-          squash_mr: "MRをマージ（スカッシュ）",
-          merge_mr: "MRをマージ（マージ）",
-          rebase_mr: "MRをマージ（リベース）",
+          label_mr: "MRをマージ",
           pending_mr: "MRをマージ中...",
           success_mr: "MRがマージされました",
         },
         viewPr_mr: "MRを表示",
         autoMerge: {
-          enableSquash: "自動マージ（スカッシュ）",
-          enableMerge: "自動マージ（マージ）",
-          enableRebase: "自動マージ（リベース）",
+          enable: "自動マージ",
           enabled: "自動マージが有効になりました",
           enabling: "自動マージを有効にしています...",
           disabling: "自動マージを無効にしています...",
@@ -975,6 +999,9 @@ export const ja: TranslationResources = {
         jumpToFile: {
           title: "ファイルへ移動",
         },
+        filesChanged: "{{count}} 個のファイルを変更",
+        filesChanged_one: "{{count}} 個のファイルを変更",
+        filesChanged_other: "{{count}} 個のファイルを変更",
         binaryFile: "バイナリファイル",
         tooLarge: "差分が大きすぎて表示できません",
         previewTooLargeTitle: "この差分は大きすぎるためプレビューできません",
@@ -984,6 +1011,7 @@ export const ja: TranslationResources = {
         switchToUnified: "ユニファイド差分に切り替え",
         switchToSplit: "左右比較差分に切り替え",
         options: "差分オプション",
+        treeView: "ツリー表示",
         inlineDiff: "インライン差分",
         hideWhitespace: "空白を非表示",
         showWhitespace: "空白を表示",
@@ -1031,6 +1059,10 @@ export const ja: TranslationResources = {
       pr: {
         actions: {
           viewPullRequest: "表示",
+          review: "レビュー",
+          reviewing: "レビュー中…",
+          reviewFailed: "レビューを開始できませんでした。",
+          reviewUpdateHost: "ローカルの変更をレビューするにはホストを更新してください。",
           openOn: "{{brand}}で開く",
           addToChat: "チャットに追加",
           addAllToChat: "すべてチャットに追加",
@@ -2002,6 +2034,16 @@ export const ja: TranslationResources = {
       stop: "リアルタイム音声を停止してターンを中断",
     },
   },
+  checks: {
+    review: {
+      title: "レビュー",
+      empty: "プルリクエストかローカルの変更をレビューすると、ここに結果が表示されます。",
+      unreadable: "前回のレビュー結果を読み取れませんでした。",
+      noFindings: "前回のレビューでは何も見つかりませんでした。",
+      fromLatest_one: "前回のレビュー結果 {{count}} 件",
+      fromLatest_other: "前回のレビュー結果 {{count}} 件",
+    },
+  },
   rewind: {
     tooltip: "このメッセージに巻き戻す",
     warning: "この操作は元に戻せません",
@@ -2016,6 +2058,7 @@ export const ja: TranslationResources = {
   },
   diffViewer: {
     empty: "表示する変更がありません",
+    unmodifiedLines: "{{count}} 行の未変更",
   },
   serviceUrl: {
     title: "サービスURLを開く",
@@ -2117,8 +2160,8 @@ export const ja: TranslationResources = {
       chooseFile: "ファイルを選択",
     },
     pullRequest: {
-      label: "プルリクエスト",
-      subtitle: "プルリクエストの詳細",
+      label: "チェック",
+      subtitle: "プルリクエスト、チェック、レビュー結果",
       emptyTitle: "プルリクエストはまだありません",
       emptyDescription:
         "このチェックアウトのプルリクエストを作成すると、ここに詳細が表示されます。",
@@ -2144,6 +2187,14 @@ export const ja: TranslationResources = {
   },
   turnSummary: {
     details: "ターンの詳細を表示",
+    toolCalls: {
+      one: "{{count}} 件のツール呼び出し",
+      other: "{{count}} 件のツール呼び出し",
+    },
+    messages: {
+      one: "{{count}} 件のメッセージ",
+      other: "{{count}} 件のメッセージ",
+    },
     sentBy: "{{name}} から送信",
     showMore: "もっと見る",
     showLess: "折りたたむ",
@@ -2590,6 +2641,9 @@ export const ja: TranslationResources = {
       theme: {
         title: "テーマ",
         accessibilityLabel: "テーマ: {{value}}",
+        preferredDarkTitle: "優先するダークテーマ",
+        preferredDarkHint: "システムがダークモードのときに使用",
+        preferredDarkAccessibility: "優先するダークテーマ：{{value}}",
         options: {
           light: "ライト",
           dark: "ダーク",

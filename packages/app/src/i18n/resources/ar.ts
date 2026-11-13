@@ -413,6 +413,10 @@ export const ar: TranslationResources = {
         completed: "اكتملت",
       },
     },
+    usageLimit: {
+      title: "تم بلوغ حد الاستخدام",
+      retryNewChat: "إعادة المحاولة في محادثة جديدة",
+    },
     turnFooter: {
       workedFor: "عمل لمدة {{duration}}",
     },
@@ -706,6 +710,14 @@ export const ar: TranslationResources = {
         editTerminalProfiles: "Edit profiles",
       },
       explorerSidebar: {
+        execution: {
+          expand: "توسيع التنفيذ",
+          collapse: "طي التنفيذ",
+          chooseScript: "اختر برنامجًا نصيًا",
+          idle: "شغّل برنامجًا نصيًا لعرض مخرجاته",
+          noScripts: "لا توجد برامج نصية مُعدّة",
+          noTerminal: "افتح طرفية في مساحة العمل هذه",
+        },
         open: "افتح اللوحة الجانبية",
         close: "إغلاق اللوحة الجانبية",
         toggle: "تبديل اللوحة الجانبية",
@@ -822,8 +834,26 @@ export const ar: TranslationResources = {
       actions: {
         moreOptions: "المزيد من الخيارات",
         moreActions: "المزيد من الإجراءات",
+        continue: "متابعة",
+        fixPr: "إصلاح PR",
+        fixPr_mr: "إصلاح MR",
+        chat: {
+          selectChat: "اختر محادثة في مساحة العمل هذه، ثم حاول مجددًا.",
+          queued: "أُضيف إلى قائمة انتظار المحادثة الحالية. سيبدأ عندما يصبح الوكيل جاهزًا.",
+          sending: "إرسال إلى المحادثة…",
+        },
+        workflow: {
+          local: "تغييرات محلية",
+          open: "قيد المراجعة",
+          waiting: "الفحوصات قيد الانتظار",
+          attention: "يحتاج إلى انتباه",
+          ready: "جاهز للدمج",
+          merged: "تم الدمج",
+          closed: "مغلق",
+        },
         commit: {
           label: "يقترف",
+          pushLabel: "التزام ودفع",
           pending: "ارتكاب...",
           success: "ملتزم",
         },
@@ -862,27 +892,21 @@ export const ar: TranslationResources = {
           success: "تم التحديث",
         },
         archive: {
-          label: "أرشفة مساحة العمل",
+          label: "أرشفة",
           pending: "أرشفة...",
           success: "مؤرشف",
         },
         mergePr: {
-          squash: "دمج PR (squash)",
-          merge: "دمج PR (merge)",
-          rebase: "دمج PR (rebase)",
+          label: "دمج PR",
           pending: "دمج PR...",
           success: "تم دمج PR",
-          squash_mr: "دمج MR (squash)",
-          merge_mr: "دمج MR (merge)",
-          rebase_mr: "دمج MR (rebase)",
+          label_mr: "دمج MR",
           pending_mr: "دمج MR...",
           success_mr: "تم دمج MR",
         },
         viewPr_mr: "عرض MR",
         autoMerge: {
-          enableSquash: "دمج تلقائي (squash)",
-          enableMerge: "دمج تلقائي (merge)",
-          enableRebase: "دمج تلقائي (rebase)",
+          enable: "دمج تلقائي",
           enabled: "تم تمكين الدمج التلقائي",
           enabling: "تمكين الدمج التلقائي...",
           disabling: "تعطيل الدمج التلقائي...",
@@ -962,6 +986,13 @@ export const ar: TranslationResources = {
         jumpToFile: {
           title: "الانتقال إلى ملف",
         },
+        filesChanged: "تم تغيير {{count}} ملفات",
+        filesChanged_one: "تم تغيير {{count}} ملف",
+        filesChanged_zero: "لم يتغير أي ملف ({{count}})",
+        filesChanged_two: "تم تغيير ملفين ({{count}})",
+        filesChanged_few: "تم تغيير {{count}} ملفات",
+        filesChanged_many: "تم تغيير {{count}} ملفًا",
+        filesChanged_other: "تم تغيير {{count}} ملفات",
         binaryFile: "ملف ثنائي",
         tooLarge: "الفرق كبير جدًا بحيث لا يمكن عرضه",
         previewTooLargeTitle: "هذا الفرق كبير جدًا بحيث لا يمكن معاينته",
@@ -971,6 +1002,7 @@ export const ar: TranslationResources = {
         switchToUnified: "التبديل إلى الفرق الموحد",
         switchToSplit: "التبديل إلى الفرق جنبًا إلى جنب",
         options: "خيارات الفرق",
+        treeView: "عرض شجري",
         inlineDiff: "فرق مضمّن",
         hideWhitespace: "إخفاء المسافة البيضاء",
         showWhitespace: "إظهار المسافة البيضاء",
@@ -1018,6 +1050,10 @@ export const ar: TranslationResources = {
       pr: {
         actions: {
           viewPullRequest: "عرض",
+          review: "مراجعة",
+          reviewing: "جارٍ المراجعة…",
+          reviewFailed: "تعذر بدء المراجعة.",
+          reviewUpdateHost: "حدّث المضيف لمراجعة التغييرات المحلية.",
           openOn: "فتح على {{brand}}",
           addToChat: "إضافة إلى الدردشة",
           addAllToChat: "إضافة الكل إلى الدردشة",
@@ -1981,6 +2017,16 @@ export const ar: TranslationResources = {
       stop: "إيقاف الصوت في الوقت الحقيقي ومقاطعة الدوران",
     },
   },
+  checks: {
+    review: {
+      title: "المراجعة",
+      empty: "راجع طلب السحب أو تغييراتك المحلية لترى الملاحظات هنا.",
+      unreadable: "تعذرت قراءة ملاحظات آخر مراجعة.",
+      noFindings: "لم تجد آخر مراجعة شيئًا.",
+      fromLatest_one: "ملاحظة واحدة ({{count}}) من آخر مراجعة",
+      fromLatest_other: "{{count}} ملاحظات من آخر مراجعة",
+    },
+  },
   rewind: {
     tooltip: "الترجيع إلى هذه الرسالة",
     warning: "لا يمكن التراجع عن هذا الإجراء",
@@ -1995,6 +2041,7 @@ export const ar: TranslationResources = {
   },
   diffViewer: {
     empty: "لا توجد تغييرات للعرض",
+    unmodifiedLines: "{{count}} خطوط غير معدلة",
   },
   serviceUrl: {
     title: "افتح الخدمة URL",
@@ -2096,8 +2143,8 @@ export const ar: TranslationResources = {
       chooseFile: "اختر ملفًا",
     },
     pullRequest: {
-      label: "طلب السحب",
-      subtitle: "تفاصيل طلب السحب",
+      label: "الفحوصات",
+      subtitle: "طلب السحب والفحوصات وملاحظات المراجعة",
       emptyTitle: "لا يوجد طلب سحب بعد",
       emptyDescription: "أنشئ طلب سحب لنسخة العمل هذه لعرض تفاصيله هنا.",
     },
@@ -2122,6 +2169,14 @@ export const ar: TranslationResources = {
   },
   turnSummary: {
     details: "عرض تفاصيل الجولة",
+    toolCalls: {
+      one: "{{count}} استدعاء أداة",
+      other: "{{count}} استدعاءات أدوات",
+    },
+    messages: {
+      one: "{{count}} رسالة",
+      other: "{{count}} رسائل",
+    },
     sentBy: "أرسلها {{name}}",
     showMore: "عرض المزيد",
     showLess: "عرض أقل",
@@ -2603,6 +2658,9 @@ export const ar: TranslationResources = {
       theme: {
         title: "سمة",
         accessibilityLabel: "الموضوع:{{value}}",
+        preferredDarkTitle: "المظهر الداكن المفضل",
+        preferredDarkHint: "يُستخدم عندما يكون النظام في المظهر الداكن",
+        preferredDarkAccessibility: "المظهر الداكن المفضل: {{value}}",
         options: {
           light: "ضوء",
           dark: "مظلم",

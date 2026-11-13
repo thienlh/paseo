@@ -418,6 +418,10 @@ export const fr: TranslationResources = {
         completed: "Terminée",
       },
     },
+    usageLimit: {
+      title: "Limite d’utilisation atteinte",
+      retryNewChat: "Réessayer dans une nouvelle conversation",
+    },
     turnFooter: {
       workedFor: "A travaillé pendant {{duration}}",
     },
@@ -713,6 +717,14 @@ export const fr: TranslationResources = {
         editTerminalProfiles: "Modifier les profils",
       },
       explorerSidebar: {
+        execution: {
+          expand: "Développer l’exécution",
+          collapse: "Réduire l’exécution",
+          chooseScript: "Choisir un script",
+          idle: "Exécutez un script pour voir sa sortie",
+          noScripts: "Aucun script configuré",
+          noTerminal: "Ouvrez un terminal dans cet espace de travail",
+        },
         open: "Ouvrir la barre latérale de l’explorateur",
         close: "Fermer la barre latérale de l’explorateur",
         toggle: "Afficher/masquer la barre latérale de l’explorateur",
@@ -831,8 +843,26 @@ export const fr: TranslationResources = {
       actions: {
         moreOptions: "Plus d’options",
         moreActions: "Plus d’actions",
+        continue: "Continuer",
+        fixPr: "Corriger la PR",
+        fixPr_mr: "Corriger la MR",
+        chat: {
+          selectChat: "Sélectionnez un chat dans cet espace de travail, puis réessayez.",
+          queued: "Ajouté à la file du chat actuel. Démarrera quand l’agent sera prêt.",
+          sending: "Envoi au chat…",
+        },
+        workflow: {
+          local: "Modifications locales",
+          open: "En revue",
+          waiting: "Vérifications en cours",
+          attention: "Intervention requise",
+          ready: "Prêt à fusionner",
+          merged: "Fusionné",
+          closed: "Fermé",
+        },
         commit: {
           label: "Commiter",
+          pushLabel: "Commit et push",
           pending: "Commit en cours…",
           success: "Commité",
         },
@@ -871,27 +901,21 @@ export const fr: TranslationResources = {
           success: "Mis à jour",
         },
         archive: {
-          label: "Archiver l’espace de travail",
+          label: "Archiver",
           pending: "Archivage…",
           success: "Archivé",
         },
         mergePr: {
-          squash: "Fusionner la PR (squash)",
-          merge: "Fusionner la PR (merge)",
-          rebase: "Fusionner la PR (rebase)",
+          label: "Fusionner la PR",
           pending: "Fusion de la PR…",
           success: "PR fusionnée",
-          squash_mr: "Fusionner la MR (squash)",
-          merge_mr: "Fusionner la MR (merge)",
-          rebase_mr: "Fusionner la MR (rebase)",
+          label_mr: "Fusionner la MR",
           pending_mr: "Fusion de la MR…",
           success_mr: "MR fusionnée",
         },
         viewPr_mr: "Voir la MR",
         autoMerge: {
-          enableSquash: "Fusion automatique (squash)",
-          enableMerge: "Fusion automatique (merge)",
-          enableRebase: "Fusion automatique (rebase)",
+          enable: "Fusion automatique",
           enabled: "Fusion automatique activée",
           enabling: "Activation de la fusion automatique…",
           disabling: "Désactivation de la fusion automatique…",
@@ -988,6 +1012,9 @@ export const fr: TranslationResources = {
         jumpToFile: {
           title: "Aller au fichier",
         },
+        filesChanged: "{{count}} fichiers modifiés",
+        filesChanged_one: "{{count}} fichier modifié",
+        filesChanged_other: "{{count}} fichiers modifiés",
         binaryFile: "Fichier binaire",
         tooLarge: "Diff trop volumineux pour être affiché",
         previewTooLargeTitle: "Ce diff est trop volumineux pour être prévisualisé",
@@ -997,6 +1024,7 @@ export const fr: TranslationResources = {
         switchToUnified: "Passer au diff unifié",
         switchToSplit: "Passer au diff côte à côte",
         options: "Options du diff",
+        treeView: "Vue en arborescence",
         inlineDiff: "Diff en ligne",
         hideWhitespace: "Masquer les espaces",
         showWhitespace: "Afficher les espaces",
@@ -1044,6 +1072,10 @@ export const fr: TranslationResources = {
       pr: {
         actions: {
           viewPullRequest: "Voir",
+          review: "Relire",
+          reviewing: "Relecture…",
+          reviewFailed: "Impossible de lancer la relecture.",
+          reviewUpdateHost: "Mettez à jour l’hôte pour relire les modifications locales.",
           openOn: "Ouvrir sur {{brand}}",
           addToChat: "Ajouter à la conversation",
           addAllToChat: "Tout ajouter à la conversation",
@@ -2029,6 +2061,16 @@ export const fr: TranslationResources = {
       stop: "Arrêter la voix en temps réel et interrompre le tour",
     },
   },
+  checks: {
+    review: {
+      title: "Revue",
+      empty: "Relisez la pull request ou vos modifications locales pour voir les remarques ici.",
+      unreadable: "Impossible de lire les remarques de la dernière revue.",
+      noFindings: "La dernière revue n’a rien trouvé.",
+      fromLatest_one: "{{count}} remarque de la dernière revue",
+      fromLatest_other: "{{count}} remarques de la dernière revue",
+    },
+  },
   rewind: {
     tooltip: "Revenir à ce message",
     warning: "Cette action est irréversible",
@@ -2043,6 +2085,7 @@ export const fr: TranslationResources = {
   },
   diffViewer: {
     empty: "Aucune modification à afficher",
+    unmodifiedLines: "{{count}} lignes non modifiées",
   },
   serviceUrl: {
     title: "Ouvrir l’URL du service",
@@ -2144,8 +2187,8 @@ export const fr: TranslationResources = {
       chooseFile: "Choisissez un fichier",
     },
     pullRequest: {
-      label: "Pull request",
-      subtitle: "Détails de la pull request",
+      label: "Vérifications",
+      subtitle: "Pull request, vérifications et remarques de revue",
       emptyTitle: "Aucune pull request pour l’instant",
       emptyDescription:
         "Créez une pull request pour cette copie de travail afin d’en voir les détails ici.",
@@ -2171,6 +2214,14 @@ export const fr: TranslationResources = {
   },
   turnSummary: {
     details: "Voir les détails du tour",
+    toolCalls: {
+      one: "{{count}} appel d’outil",
+      other: "{{count}} appels d’outils",
+    },
+    messages: {
+      one: "{{count}} message",
+      other: "{{count}} messages",
+    },
     sentBy: "Envoyé par {{name}}",
     showMore: "Afficher plus",
     showLess: "Afficher moins",
@@ -2624,6 +2675,9 @@ export const fr: TranslationResources = {
       theme: {
         title: "Thème",
         accessibilityLabel: "Thème : {{value}}",
+        preferredDarkTitle: "Thème sombre préféré",
+        preferredDarkHint: "Utilisé lorsque le système est en mode sombre",
+        preferredDarkAccessibility: "Thème sombre préféré : {{value}}",
         options: {
           light: "Clair",
           dark: "Sombre",

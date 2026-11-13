@@ -13,7 +13,14 @@ import {
   type RefObject,
 } from "react";
 import { Dimensions, View, type Role, type StyleProp, type ViewStyle } from "react-native";
-import { FadeIn, FadeOut } from "react-native-reanimated";
+import {
+  FadeIn,
+  FadeOut,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { StyleSheet } from "react-native-unistyles";
 import { Portal } from "@gorhom/portal";
 import { OverlayLayerProvider, useOverlayLayer } from "@/lib/overlay-root";
@@ -391,7 +398,20 @@ function HoverCardSurface({
     () => ({ position: "absolute" as const, ...(position ?? { top: -9999, left: -9999 }) }),
     [position],
   );
-  const surfaceStyle = useMemo(() => [styles.surface, style], [style]);
+  const reduceMotion = useReducedMotion();
+  const translateY = useSharedValue(placement === "top" ? 4 : -4);
+  useEffect(() => {
+    if (reduceMotion) {
+      translateY.value = 0;
+      return;
+    }
+    translateY.value = placement === "top" ? 4 : -4;
+    translateY.value = withTiming(0, { duration: 120 });
+  }, [placement, reduceMotion, translateY]);
+  const motionStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+  const surfaceStyle = useMemo(() => [styles.surface, motionStyle, style], [motionStyle, style]);
 
   return (
     <View
@@ -401,8 +421,8 @@ function HoverCardSurface({
     >
       <FloatingSurface
         ref={contentRef}
-        entering={FadeIn.duration(80)}
-        exiting={FadeOut.duration(80)}
+        entering={reduceMotion ? undefined : FadeIn.duration(80)}
+        exiting={reduceMotion ? undefined : FadeOut.duration(80)}
         collapsable={false}
         onLayout={place}
         role={role}

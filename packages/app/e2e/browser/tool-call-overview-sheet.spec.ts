@@ -4,6 +4,7 @@ import { scrollChatAwayFromBottom } from "../support/helpers/agent-bottom-anchor
 import { gateSecondToolCall } from "../support/helpers/tool-call-gate";
 import { expectComposerVisible } from "../support/helpers/composer";
 import { daemonWsRoutePattern } from "../support/helpers/daemon-port";
+import { expectFileTabOpen } from "../support/helpers/file-explorer";
 import { openAgentRoute, seedMockAgentWorkspace } from "../support/helpers/mock-agent";
 import {
   readReactRenders,
@@ -223,6 +224,7 @@ function readScrollMetrics(root: HTMLElement) {
 }
 
 const FIRST_CALL_DETAILS = "export function ConversationList()";
+const FIRST_CALL_FILE_PATH = "packages/app/src/components/conversation-list.tsx";
 
 function firstToolCall(page: Page): Locator {
   return page.getByTestId("tool-call-badge").filter({ hasText: "conversation-list.tsx" }).first();
@@ -231,6 +233,45 @@ function firstToolCall(page: Page): Locator {
 async function openToolDetails(badge: Locator): Promise<void> {
   await badge.getByRole("button").first().click();
 }
+
+test("keeps open-file and expand as separate tool-call actions", async ({ page }) => {
+  test.setTimeout(120_000);
+  await configureOverviewToolCalls(page, "collapseToolCalls");
+  const agent = await seedMockAgentWorkspace({
+    repoPrefix: "tool-call-open-file-",
+    title: "Tool-call open-file action",
+    model: "ten-second-stream",
+    repo: {
+      files: [{ path: FIRST_CALL_FILE_PATH, content: "// Seeded tool-call file\n" }],
+    },
+  });
+
+  try {
+    await openOverviewAgent(page, agent);
+    await agent.client.sendAgentMessage(agent.agentId, "Open a tool call's file, then expand it.");
+
+    const group = page.getByTestId("tool-call-group").first();
+    await expect(group).toBeVisible();
+    await group.click();
+    const badge = firstToolCall(page);
+    await expect(badge).toBeVisible();
+    await badge.hover();
+    const openFileButton = badge.getByTestId("tool-call-open-file");
+    await expect(openFileButton).toBeVisible();
+    await expect(badge.locator("button button")).toHaveCount(0);
+
+    await openFileButton.click();
+    await expectFileTabOpen(page, FIRST_CALL_FILE_PATH);
+    await expect(page.getByText(FIRST_CALL_DETAILS)).toHaveCount(0);
+
+    await page.getByTestId(`workspace-tab-agent_${agent.agentId}`).click();
+    await expect(badge).toBeVisible();
+    await openToolDetails(badge);
+    await expect(page.getByText(FIRST_CALL_DETAILS)).toBeVisible();
+  } finally {
+    await agent.cleanup();
+  }
+});
 
 async function timelineRowOf(locator: Locator) {
   const row = await locator.locator("xpath=ancestor::*[@data-history-row-id][1]").elementHandle();
@@ -378,9 +419,31 @@ for (const display of ["collapseToolCalls", "collapseTurns"] as const) {
   });
 }
 
-test("forms a closed group when the lone tool call was left closed", async ({ page }) => {
+test("expands every group in the latest turn and closes them when a newer turn starts", async ({
+  page,
+}) => {
   test.setTimeout(120_000);
-  const agent = await createOverviewAgent(page, "Closed desktop overview tool calls");
+  const agent = await createOverviewAgent(page, "Latest-turn tool groups");
+  try {
+    await openOverviewAgent(page, agent);
+    await agent.client.sendAgentMessage(agent.agentId, "Work on both sides of a reply.");
+    const groups = page.getByTestId("tool-call-group");
+    await expect(groups).toHaveCount(2);
+    await expect(groups.nth(0).getByTestId("tool-call-badge")).not.toHaveCount(0);
+    await expect(groups.nth(1).getByTestId("tool-call-badge")).not.toHaveCount(0);
+
+    await agent.client.waitForFinish(agent.agentId, 30_000);
+    await agent.client.sendAgentMessage(agent.agentId, "Start the next turn.");
+    await expect(groups.nth(0).getByTestId("tool-call-badge")).toHaveCount(0);
+    await expect(groups.nth(1).getByTestId("tool-call-badge")).toHaveCount(0);
+  } finally {
+    await agent.cleanup();
+  }
+});
+
+test("opens a live group by default when the lone tool call was left closed", async ({ page }) => {
+  test.setTimeout(120_000);
+  const agent = await createOverviewAgent(page, "Live desktop overview tool calls");
   try {
     const gate = await gateSecondToolCall(page, agent.agentId);
     await openOverviewAgent(page, agent);
@@ -392,11 +455,10 @@ test("forms a closed group when the lone tool call was left closed", async ({ pa
     await expect(group).toHaveCount(0);
 
     await gate.waitForSecondRunning();
-    const loneTop = await topOf(lone);
     gate.releaseSecondRunning();
     await expect(group).toBeVisible();
-    await expect(group.getByTestId("tool-call-badge")).toHaveCount(0);
-    expect(Math.abs((await topOf(group)) - loneTop)).toBeLessThanOrEqual(2);
+    await expect(group.getByTestId("tool-call-badge")).toHaveCount(2);
+    await expect(group.getByTestId("tool-call-badge").last()).toBeVisible();
   } finally {
     await agent.cleanup();
   }

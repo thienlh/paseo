@@ -418,6 +418,10 @@ export const es: TranslationResources = {
         completed: "Completada",
       },
     },
+    usageLimit: {
+      title: "Límite de uso alcanzado",
+      retryNewChat: "Reintentar en un chat nuevo",
+    },
     turnFooter: {
       workedFor: "Trabajó durante {{duration}}",
     },
@@ -713,6 +717,14 @@ export const es: TranslationResources = {
         editTerminalProfiles: "Edit profiles",
       },
       explorerSidebar: {
+        execution: {
+          expand: "Expandir ejecución",
+          collapse: "Contraer ejecución",
+          chooseScript: "Elegir script",
+          idle: "Ejecuta un script para ver su salida",
+          noScripts: "No hay scripts configurados",
+          noTerminal: "Abre una terminal en este espacio de trabajo",
+        },
         open: "Abrir panel lateral",
         close: "Cerrar panel lateral",
         toggle: "Alternar panel lateral",
@@ -830,8 +842,26 @@ export const es: TranslationResources = {
       actions: {
         moreOptions: "Más opciones",
         moreActions: "Más acciones",
+        continue: "Continuar",
+        fixPr: "Corregir PR",
+        fixPr_mr: "Corregir MR",
+        chat: {
+          selectChat: "Selecciona un chat en este espacio de trabajo e inténtalo de nuevo.",
+          queued: "En cola en el chat actual. Se ejecutará cuando el agente esté listo.",
+          sending: "Enviando al chat…",
+        },
+        workflow: {
+          local: "Cambios locales",
+          open: "En revisión",
+          waiting: "Comprobaciones pendientes",
+          attention: "Requiere atención",
+          ready: "Listo para fusionar",
+          merged: "Fusionado",
+          closed: "Cerrado",
+        },
         commit: {
           label: "Comprometerse",
+          pushLabel: "Commit y push",
           pending: "Comprometiéndose...",
           success: "Comprometido",
         },
@@ -870,27 +900,21 @@ export const es: TranslationResources = {
           success: "Actualizado",
         },
         archive: {
-          label: "Archivar espacio de trabajo",
+          label: "Archivar",
           pending: "Archivando...",
           success: "Archivado",
         },
         mergePr: {
-          squash: "Fusionar PR (squash)",
-          merge: "Fusionar PR (merge)",
-          rebase: "Fusionar PR (rebase)",
+          label: "Fusionar PR",
           pending: "Fusionando PR...",
           success: "PR fusionado",
-          squash_mr: "Fusionar MR (squash)",
-          merge_mr: "Fusionar MR (merge)",
-          rebase_mr: "Fusionar MR (rebase)",
+          label_mr: "Fusionar MR",
           pending_mr: "Fusionando MR...",
           success_mr: "MR fusionado",
         },
         viewPr_mr: "Ver MR",
         autoMerge: {
-          enableSquash: "Fusión automática (squash)",
-          enableMerge: "Fusión automática (merge)",
-          enableRebase: "Fusión automática (rebase)",
+          enable: "Fusión automática",
           enabled: "Combinación automática habilitada",
           enabling: "Habilitando la fusión automática...",
           disabling: "Desactivando la fusión automática...",
@@ -995,6 +1019,9 @@ export const es: TranslationResources = {
         jumpToFile: {
           title: "Ir al archivo",
         },
+        filesChanged: "{{count}} archivos modificados",
+        filesChanged_one: "{{count}} archivo modificado",
+        filesChanged_other: "{{count}} archivos modificados",
         binaryFile: "archivo binario",
         tooLarge: "La diferencia es demasiado grande para mostrarse",
         previewTooLargeTitle: "Este diff es demasiado grande para previsualizarlo",
@@ -1004,6 +1031,7 @@ export const es: TranslationResources = {
         switchToUnified: "Cambiar a diferencia unificada",
         switchToSplit: "Cambiar a diferencia lado a lado",
         options: "Opciones de diferencia",
+        treeView: "Vista de árbol",
         inlineDiff: "Diferencia integrada",
         hideWhitespace: "Ocultar espacios en blanco",
         showWhitespace: "Mostrar espacios en blanco",
@@ -1051,6 +1079,10 @@ export const es: TranslationResources = {
       pr: {
         actions: {
           viewPullRequest: "Ver",
+          review: "Revisar",
+          reviewing: "Revisando…",
+          reviewFailed: "No se pudo iniciar la revisión.",
+          reviewUpdateHost: "Actualiza el host para revisar los cambios locales.",
           openOn: "Abrir en {{brand}}",
           addToChat: "Añadir al chat",
           addAllToChat: "Añadir todo al chat",
@@ -2030,6 +2062,16 @@ export const es: TranslationResources = {
       stop: "Detener la voz en tiempo real e interrumpir el turno.",
     },
   },
+  checks: {
+    review: {
+      title: "Revisión",
+      empty: "Revisa la pull request o tus cambios locales para ver hallazgos aquí.",
+      unreadable: "No se pudieron leer los hallazgos de la última revisión.",
+      noFindings: "La última revisión no encontró nada.",
+      fromLatest_one: "{{count}} hallazgo de la última revisión",
+      fromLatest_other: "{{count}} hallazgos de la última revisión",
+    },
+  },
   rewind: {
     tooltip: "Rebobinar a este mensaje",
     warning: "Esta acción no se puede deshacer.",
@@ -2044,6 +2086,7 @@ export const es: TranslationResources = {
   },
   diffViewer: {
     empty: "No hay cambios para mostrar",
+    unmodifiedLines: "{{count}} líneas sin cambios",
   },
   serviceUrl: {
     title: "Servicio abiertoURL",
@@ -2145,8 +2188,8 @@ export const es: TranslationResources = {
       chooseFile: "Elige un archivo",
     },
     pullRequest: {
-      label: "Solicitud de extracción",
-      subtitle: "Detalles de la solicitud de extracción",
+      label: "Comprobaciones",
+      subtitle: "Pull request, comprobaciones y hallazgos de revisión",
       emptyTitle: "Aún no hay ninguna solicitud de extracción",
       emptyDescription: "Crea una solicitud para este checkout y consulta aquí sus detalles.",
     },
@@ -2171,6 +2214,14 @@ export const es: TranslationResources = {
   },
   turnSummary: {
     details: "Ver detalles del turno",
+    toolCalls: {
+      one: "{{count}} llamada a herramienta",
+      other: "{{count}} llamadas a herramientas",
+    },
+    messages: {
+      one: "{{count}} mensaje",
+      other: "{{count}} mensajes",
+    },
     sentBy: "Enviado por {{name}}",
     showMore: "Mostrar más",
     showLess: "Mostrar menos",
@@ -2623,6 +2674,9 @@ export const es: TranslationResources = {
       theme: {
         title: "Tema",
         accessibilityLabel: "Tema:{{value}}",
+        preferredDarkTitle: "Tema oscuro preferido",
+        preferredDarkHint: "Se usa cuando el sistema está en modo oscuro",
+        preferredDarkAccessibility: "Tema oscuro preferido: {{value}}",
         options: {
           light: "Luz",
           dark: "Oscuro",
