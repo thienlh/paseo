@@ -47,7 +47,8 @@ const testTheme = {
     },
   },
   borderWidth: { 1: 1 },
-  spacing: [0, 4, 8, 12, 16, 20, 24, 28, 32],
+  spacing: lightTheme.spacing,
+  lineHeight: lightTheme.lineHeight,
   fontSize: {
     xs: 12,
     sm: 14,

@@ -61,7 +61,7 @@ export function EditPreview({
           <DiffStat additions={diffStat.additions} deletions={diffStat.deletions} />
         ) : null}
       </View>
-      <DiffViewer diffLines={diffLines} maxHeight={PREVIEW_MAX_HEIGHT} />
+      <DiffViewer diffLines={diffLines} maxHeight={PREVIEW_MAX_HEIGHT} showHunkHeaders={false} />
     </>
   );
 }
@@ -81,6 +81,10 @@ const styles = StyleSheet.create((theme) => ({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[2],
+    paddingHorizontal: theme.spacing[1],
+    paddingVertical: theme.spacing[2],
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   previewPath: {
     flex: 1,

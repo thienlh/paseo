@@ -24,8 +24,8 @@ afterEach(async () => {
   await i18n.changeLanguage("en");
 });
 
-function render(lines: DiffLine[]) {
-  act(() => root.render(<DiffViewer diffLines={lines} />));
+function render(lines: DiffLine[], showHunkHeaders = true) {
+  act(() => root.render(<DiffViewer diffLines={lines} showHunkHeaders={showHunkHeaders} />));
 }
 
 function click(element: Element) {
@@ -57,6 +57,20 @@ it("collapses large unmodified blocks and shows hunk line numbers when expanded"
   click(toggle);
   expect(host.textContent).toContain("const value = true");
   expect(lineNumbers()).toEqual(["", "50", "51", "52", "53", "54", "55", "56", "57", "57"]);
+});
+
+it("can hide hunk headers without losing hunk line numbers", () => {
+  render(
+    [
+      { type: "header", content: "@@ -50,1 +50,1 @@" },
+      { type: "remove", content: "-const old = true;" },
+      { type: "add", content: "+const old = false;" },
+    ],
+    false,
+  );
+
+  expect(host.textContent).not.toContain("@@");
+  expect(lineNumbers()).toEqual(["50", "50"]);
 });
 
 it("uses colored rails and one relevant line number instead of diff prefixes", () => {

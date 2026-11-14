@@ -19,7 +19,7 @@ import { inlineUnistylesStyle } from "@/styles/unistyles-inline-style";
 import { getCodeInsets, lineNumberGutterWidth } from "./code-insets";
 import { CODE_SURFACE_DATASET } from "@/styles/code-surface";
 import { isWeb } from "@/constants/platform";
-import type { Theme } from "@/styles/theme";
+import { SPACING, type Theme } from "@/styles/theme";
 
 const ScrollView = isWeb ? RNScrollView : GHScrollView;
 const COLLAPSE_UNMODIFIED_AFTER = 6;
@@ -32,6 +32,7 @@ interface DiffViewerProps {
   maxHeight?: number;
   emptyLabel?: string;
   fillAvailableHeight?: boolean;
+  showHunkHeaders?: boolean;
 }
 
 interface DiffViewerLayoutEvent {
@@ -77,7 +78,10 @@ function displayDiffLineCode(line: DiffLine): string {
   return diffLineCode(line);
 }
 
-function buildDisplayRows(diffLines: readonly DiffLine[]): {
+function buildDisplayRows(
+  diffLines: readonly DiffLine[],
+  showHunkHeaders: boolean,
+): {
   rows: DisplayRow[];
   maxLineNumber: number;
 } {
@@ -110,8 +114,10 @@ function buildDisplayRows(diffLines: readonly DiffLine[]): {
   for (const [index, line] of diffLines.entries()) {
     if (line.type === "header") {
       flushUnmodified();
-      rows.push({ kind: "line", item: numbered(line, index, null, null) });
       const start = hunkStart(line);
+      if (!start || showHunkHeaders) {
+        rows.push({ kind: "line", item: numbered(line, index, null, null) });
+      }
       if (start) {
         oldLineNumber = start.old;
         newLineNumber = start.next;
@@ -380,6 +386,7 @@ export function DiffViewer({
   maxHeight,
   emptyLabel,
   fillAvailableHeight = false,
+  showHunkHeaders = true,
 }: DiffViewerProps) {
   const { t } = useTranslation();
   const [scrollViewWidth, setScrollViewWidth] = React.useState(0);
@@ -391,8 +398,11 @@ export function DiffViewer({
     (event: DiffViewerLayoutEvent) => setScrollViewWidth(event.nativeEvent.layout.width),
     [],
   );
-  const { rows, maxLineNumber } = React.useMemo(() => buildDisplayRows(diffLines), [diffLines]);
-  const gutterWidth = lineNumberGutterWidth(maxLineNumber, styles.lineNumber.fontSize);
+  const { rows, maxLineNumber } = React.useMemo(
+    () => buildDisplayRows(diffLines, showHunkHeaders),
+    [diffLines, showHunkHeaders],
+  );
+  const gutterWidth = lineNumberGutterWidth(maxLineNumber, styles.lineNumber.fontSize) + SPACING[2];
   const toggleUnmodified = React.useCallback((id: string) => {
     setExpandedUnmodifiedIds((current) => {
       const next = new Set(current);
@@ -483,7 +493,9 @@ const styles = StyleSheet.create((theme) => {
   const insets = getCodeInsets(theme);
 
   return {
-    verticalScroll: {},
+    verticalScroll: {
+      marginRight: theme.spacing[1],
+    },
     fillHeight: {
       flex: 1,
       minHeight: 0,
@@ -494,7 +506,7 @@ const styles = StyleSheet.create((theme) => {
     },
     horizontalContent: {
       flexDirection: "column" as const,
-      paddingRight: insets.extraRight,
+      paddingRight: insets.extraRight + theme.spacing[2],
     },
     linesContainer: {
       alignSelf: "stretch",
@@ -505,7 +517,7 @@ const styles = StyleSheet.create((theme) => {
       flexDirection: "row",
       alignItems: "flex-start",
       paddingLeft: theme.spacing[2],
-      paddingVertical: theme.spacing[1],
+      paddingVertical: theme.spacing[0.5],
     },
     indicator: {
       position: "absolute",
@@ -522,10 +534,11 @@ const styles = StyleSheet.create((theme) => {
     },
     lineNumber: {
       flexShrink: 0,
-      paddingRight: theme.spacing[2],
+      paddingRight: theme.spacing[4],
       color: theme.colors.foregroundMuted,
       fontFamily: theme.fontFamily.mono,
       fontSize: theme.fontSize.code,
+      lineHeight: theme.lineHeight.diff,
       textAlign: "right",
     },
     addLineNumber: {
@@ -544,6 +557,7 @@ const styles = StyleSheet.create((theme) => {
       minWidth: 0,
       fontFamily: theme.fontFamily.mono,
       fontSize: theme.fontSize.code,
+      lineHeight: theme.lineHeight.diff,
       color: theme.colors.foreground,
       ...(isWeb
         ? {
@@ -558,13 +572,20 @@ const styles = StyleSheet.create((theme) => {
     headerText: {
       color: theme.colors.foregroundMuted,
     },
+    // Change rows bleed through the code inset without moving the gutter or code.
     addLine: {
+      marginHorizontal: -insets.padding,
+      paddingLeft: theme.spacing[2] + insets.padding,
+      paddingRight: insets.padding,
       backgroundColor: theme.colors.diffAdditionBackground,
     },
     addText: {
       color: theme.colors.foreground,
     },
     removeLine: {
+      marginHorizontal: -insets.padding,
+      paddingLeft: theme.spacing[2] + insets.padding,
+      paddingRight: insets.padding,
       backgroundColor: theme.colors.diffDeletionBackground,
     },
     removeText: {
