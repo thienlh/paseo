@@ -6188,6 +6188,7 @@ export class Session {
       // resolves to "github") so the sidebar/hover-card brand mark matches the
       // status projection without a second resolve.
       forge: snapshot.forge.forge,
+      forgeWeb: snapshot.forgeWeb,
     };
   }
 
@@ -8937,8 +8938,9 @@ export class Session {
         queued = acceptAdmission;
       });
       let deliveryStatus: "queued" | undefined;
-      const send = async () => {
+      const send = async (beforeDispatch: () => Promise<void>) => {
         if (msg.sourceAgentId) {
+          await beforeDispatch();
           const receipt = this.agentMessages.enqueue({
             recipientId: agentId,
             messageId: msg.messageId,
@@ -8969,6 +8971,7 @@ export class Session {
           activeTurnBehavior: msg.activeTurnBehavior ?? "interrupt",
           sessionMode: msg.sessionMode,
           clearPendingPermissions: true,
+          beforeDispatch,
           logger: this.sessionLogger,
         });
         if (result.disposition === "turn_started") {
@@ -8991,12 +8994,12 @@ export class Session {
               activeTurnBehavior:
                 msg.activeTurnBehavior ?? (msg.sourceAgentId ? "steer" : "interrupt"),
             },
-            prepare: async () => {
+            send: async (beforeDispatch) => {
               if (!msg.sourceAgentId) await this.prepareAgentMessage(agentId, msg.text);
+              await send(beforeDispatch);
             },
-            send,
           })
-        : send();
+        : send(async () => {});
       void sent.catch((error) => {
         if (deliveryStatus === "queued") {
           this.handleAgentRunError(agentId, error, "Failed to dispatch queued agent message");
