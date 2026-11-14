@@ -1,13 +1,6 @@
 import { SidebarViewSlot } from "@/plugins/sidebar-view";
 import { useAddHost } from "@/hosts/add-host";
-import {
-  CircleGauge,
-  FolderPlus,
-  GitBranch,
-  Server,
-  Settings,
-  type LucideIcon,
-} from "lucide-react-native";
+import { CircleGauge, FolderPlus, Server, Settings, type LucideIcon } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import {
@@ -96,8 +89,6 @@ type SidebarTheme = ReturnType<typeof useUnistyles>["theme"];
 
 /** The footer icon line's inset; the overflow layout counts it as space the buttons can't use. */
 const FOOTER_ROW_PADDING = SPACING[2];
-
-const DEV_BUILD_LABEL = process.env.EXPO_PUBLIC_PASEO_DEV_BUILD_LABEL?.trim() || null;
 
 interface SidebarSharedProps {
   theme: SidebarTheme;
@@ -690,7 +681,6 @@ function MobileSidebar({
 }
 
 function DesktopSidebar({
-  theme,
   workspaceGroups,
   projectIconTargets,
   pinnedGroups,
@@ -825,22 +815,9 @@ function DesktopSidebar({
       <Animated.View style={desktopSidebarStyle}>
         <View style={desktopSidebarBorderStyle}>
           <View style={styles.sidebarDragArea}>
-            {ownsTopLeft || DEV_BUILD_LABEL ? (
+            {ownsTopLeft ? (
               <View style={styles.desktopChromeRow}>
                 <TitlebarDragRegion />
-                {DEV_BUILD_LABEL ? (
-                  <View
-                    pointerEvents="none"
-                    style={styles.devBuildBadge}
-                    testID="dev-build-label"
-                    accessibilityLabel={`Development build: ${DEV_BUILD_LABEL}`}
-                  >
-                    <GitBranch size={12} color={theme.colors.accentForeground} />
-                    <Text numberOfLines={1} ellipsizeMode="tail" style={styles.devBuildBadgeText}>
-                      {DEV_BUILD_LABEL}
-                    </Text>
-                  </View>
-                ) : null}
               </View>
             ) : (
               <TitlebarDragRegion />
@@ -981,23 +958,6 @@ const styles = StyleSheet.create((theme) => ({
     paddingHorizontal: theme.spacing[3],
     borderBottomWidth: theme.borderWidth[1],
     borderBottomColor: "transparent",
-  },
-  devBuildBadge: {
-    maxWidth: "60%",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[1],
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: 2,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.accent,
-  },
-  devBuildBadgeText: {
-    minWidth: 0,
-    flexShrink: 1,
-    color: theme.colors.accentForeground,
-    fontSize: theme.fontSize.sm,
-    fontWeight: theme.fontWeight.medium,
   },
   footerContainer: {
     borderTopWidth: 1,

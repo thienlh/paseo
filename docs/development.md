@@ -23,9 +23,9 @@ Desktop dev launches its desktop-managed daemon with `PASEO_NODE_ENV=development
 so development-only providers such as Mock Load Test are available. Packaged
 desktop launches always force the daemon to production mode.
 
-The web and desktop dev launchers pass the current Git branch to Metro as
-`EXPO_PUBLIC_PASEO_DEV_BUILD_LABEL`. The expanded desktop sidebar shows it in
-the titlebar row. Production builds leave the variable unset and show no label.
+Desktop dev passes the current Git branch to the desktop process as
+`EXPO_PUBLIC_PASEO_DEV_BUILD_LABEL`, which stamps the development app icon.
+Production builds leave the variable unset.
 
 `npm run dev` is only a shorthand for `npm run dev:server`. Keep `127.0.0.1:6767` for the packaged app and production-style `~/.paseo` state.
 
