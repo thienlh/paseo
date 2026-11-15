@@ -143,6 +143,7 @@ export function useMarkdownSource(
     markdown: prepared.render(resolved, unavailableImages, pendingImages),
     linkRecognition: prepared.linkRecognition,
     linkSource: prepared.linkSource,
+    fileLinkUrls: prepared.fileLinkUrls,
     imageSources: Object.fromEntries([...resolved].map(([source, url]) => [url, source])),
     images,
   };

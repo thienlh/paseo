@@ -12,7 +12,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { decodeMarkdownImage, getMarkdownImageStatus } from "./image-decoding";
 import { describe, expect, it } from "vitest";
 import { darkTheme, lightTheme } from "@/styles/theme";
-import { isNative } from "@/constants/platform";
+import { isNative, isWeb } from "@/constants/platform";
 import { createMarkdownStyles } from "./styles";
 import { prepareMarkdownSource, PENDING_MARKDOWN_IMAGE } from "./source";
 import { normalizeMarkdownHtml } from "./html";
@@ -411,6 +411,28 @@ it("preserves stable inline-code file classification through the library parser"
   ).toMatchObject({ target: { path: "/repo/src/index.ts", lineStart: 10, lineEnd: 20 } });
 });
 
+it("collects only file URLs for link highlighting", () => {
+  const source = [
+    "`src/code.ts`",
+    "src/prose.ts",
+    "`README.md`",
+    "[relative](src/explicit.ts)",
+    "[absolute](/repo/absolute.ts)",
+    "[external](https://example.com)",
+    "https://example.com",
+    "#12",
+    "`/review`",
+  ].join(" and ");
+  const prepared = prepareMarkdownSource(source, "/repo", { commandNames: new Set(["review"]) });
+  expect([...prepared.fileLinkUrls].sort()).toEqual([
+    "/repo/absolute.ts",
+    "README.md",
+    "src/code.ts",
+    "src/explicit.ts",
+    "src/prose.ts",
+  ]);
+});
+
 it("lets the engine own code boundaries while classifying candidate values", async () => {
   const source = [
     "```ts\n`src/fenced.ts`\n```",
@@ -712,12 +734,10 @@ it.each([
       backgroundColor: theme.colors.surface1,
       borderColor: theme.colors.surface3,
     });
-    expect(style.strong).toMatchObject({ fontWeight: theme.fontWeight.semibold });
+    expect(style.strong).toMatchObject({ fontWeight: theme.fontWeight.medium });
     // Native links keep a persistent cue; web links underline on hover.
     expect(style.link).toMatchObject({ color: theme.colors.foreground, underline: isNative });
-    expect(style.linkVariants?.["^(?!https?://).+"]).toEqual({
-      color: theme.colors.foreground,
-    });
+    expect(style.linkVariants).toEqual({});
     expect(style.thematicBreak?.color).toBe(theme.colors.border);
   },
 );
@@ -727,6 +747,41 @@ it.each([darkTheme, lightTheme])("supplies the theme selection colour to the ren
     "selectionColor",
     theme.colors.terminal.selectionBackground,
   );
+});
+
+it("highlights exact file links without turning them into atomic pills", () => {
+  const { markdownStyle: style } = createMarkdownStyles(darkTheme, {
+    blockGap: 16,
+    fileLinkUrls: new Set(["README.md", "src/a+b.ts"]),
+  });
+  expect(style.linkVariants).toEqual({
+    "^(?:README\\.md)$": {
+      color: darkTheme.colors.foreground,
+      backgroundColor: darkTheme.colors.surface1,
+      fontFamily: darkTheme.fontFamily.mono,
+    },
+    "^(?:src/a\\+b\\.ts)$": {
+      color: darkTheme.colors.foreground,
+      backgroundColor: darkTheme.colors.surface1,
+      fontFamily: darkTheme.fontFamily.mono,
+    },
+  });
+});
+
+it("keeps prose and emphasis at quiet reading weights", () => {
+  const { markdownStyle: style } = createMarkdownStyles(darkTheme, { blockGap: 16 });
+  expect(style.paragraph?.fontWeight).toBe(isWeb ? "450" : "normal");
+  expect(style.strong?.fontWeight).toBe("500");
+  expect([style.h1, style.h2, style.h3].map((heading) => heading?.fontWeight)).toEqual([
+    "600",
+    "600",
+    "600",
+  ]);
+  expect([style.h4, style.h5, style.h6].map((heading) => heading?.fontWeight)).toEqual([
+    "500",
+    "500",
+    "500",
+  ]);
 });
 
 describe("GitHub comment HTML normalization", () => {

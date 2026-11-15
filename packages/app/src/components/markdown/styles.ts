@@ -5,13 +5,29 @@ import { isNative, isWeb } from "@/constants/platform";
 // iOS Safari needs the prefix to override the gesture host's selection suppression.
 const WEB_CONTAINER = { userSelect: "text", WebkitUserSelect: "text" } as const;
 
+function fileLinkVariants(theme: Theme, urls: ReadonlySet<string> | undefined) {
+  const fontFamily =
+    theme.fontFamily.mono === "ui-monospace" && !isWeb ? "" : theme.fontFamily.mono;
+  return Object.fromEntries(
+    [...(urls ?? [])].map((url) => [
+      `^(?:${url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})$`,
+      {
+        color: theme.colors.foreground,
+        backgroundColor: theme.colors.surface1,
+        fontFamily,
+      },
+    ]),
+  );
+}
+
 export function createMarkdownStyles(
   theme: Theme,
   {
     compact = false,
     muted = false,
     blockGap,
-  }: { compact?: boolean; muted?: boolean; blockGap: number },
+    fileLinkUrls,
+  }: { compact?: boolean; muted?: boolean; blockGap: number; fileLinkUrls?: ReadonlySet<string> },
 ): { markdownStyle: MarkdownStyle; selectionColor: string; containerStyle?: typeof WEB_CONTAINER } {
   const fontSize = compact ? theme.fontSize.base : theme.fontSize.content;
   // Every block is followed by the same gap; the library drops it after the last block.
@@ -19,27 +35,29 @@ export function createMarkdownStyles(
   const paragraph = {
     fontSize,
     fontFamily: theme.fontFamily.ui,
+    // Native uses the regular face; web can render the intermediate content weight.
+    fontWeight: isWeb ? theme.fontWeight.content : theme.fontWeight.normal,
     lineHeight: Math.round(fontSize * 1.4),
     color: muted ? theme.colors.foregroundMuted : theme.colors.foreground,
     ...block,
   };
-  const heading = (scale: number) => ({
+  const heading = (scale: number, fontWeight: string) => ({
     ...paragraph,
     fontSize: Math.round(fontSize * scale),
     lineHeight: Math.round(fontSize * scale * 1.3),
-    fontWeight: "bold",
+    fontWeight,
   });
   return {
     containerStyle: isWeb ? WEB_CONTAINER : undefined,
     selectionColor: theme.colors.terminal.selectionBackground,
     markdownStyle: {
       paragraph,
-      h1: heading(1.6),
-      h2: heading(1.4),
-      h3: heading(1.2),
-      h4: heading(1.1),
-      h5: heading(1),
-      h6: { ...heading(1), color: theme.colors.foregroundMuted },
+      h1: heading(1.6, theme.fontWeight.semibold),
+      h2: heading(1.4, theme.fontWeight.semibold),
+      h3: heading(1.2, theme.fontWeight.semibold),
+      h4: heading(1.1, theme.fontWeight.medium),
+      h5: heading(1, theme.fontWeight.medium),
+      h6: { ...heading(1, theme.fontWeight.medium), color: theme.colors.foregroundMuted },
       list: {
         ...paragraph,
         bulletColor: theme.colors.foregroundMuted,
@@ -66,12 +84,8 @@ export function createMarkdownStyles(
       },
       // Native has no hover cue; web keeps prose quiet until the pointer is over a link.
       link: { color: theme.colors.foreground, underline: isNative },
-      strong: { fontWeight: theme.fontWeight.semibold },
-      linkVariants: {
-        "^(?!https?://).+": {
-          color: theme.colors.foreground,
-        },
-      },
+      strong: { fontWeight: theme.fontWeight.medium },
+      linkVariants: fileLinkVariants(theme, fileLinkUrls),
       code: {
         fontFamily: theme.fontFamily.mono === "ui-monospace" && !isWeb ? "" : theme.fontFamily.mono,
         fontScale: theme.fontSize.code / fontSize,

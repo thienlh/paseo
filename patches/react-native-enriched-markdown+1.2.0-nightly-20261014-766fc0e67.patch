@@ -3357,7 +3357,7 @@ diff --git a/node_modules/react-native-enriched-markdown/android/src/test/java/c
 new file mode 100644
 --- /dev/null
 +++ b/node_modules/react-native-enriched-markdown/android/src/test/java/com/swmansion/enriched/markdown/InlineCodeFormattingTest.kt
-@@ -0,0 +1,89 @@
+@@ -0,0 +1,99 @@
 +package com.swmansion.enriched.markdown
 +
 +import android.text.TextPaint
@@ -3379,10 +3379,10 @@ new file mode 100644
 +@org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
 +@Config(manifest = Config.NONE, sdk = [34])
 +class InlineCodeFormattingTest {
-+  private fun cache(): SpanStyleCache {
++  private fun cache(strongFontWeight: String = "bold"): SpanStyleCache {
 +    com.facebook.react.uimanager.DisplayMetricsHolder.initDisplayMetricsIfNotInitialized(RuntimeEnvironment.getApplication())
 +    val common = JavaOnlyMap.of(
-+      "fontFamily", "", "fontWeight", "bold", "fontStyle", "italic",
++      "fontFamily", "", "fontWeight", strongFontWeight, "fontStyle", "italic",
 +      "fontSize", 12.0, "color", -16777216.0, "backgroundColor", 0.0,
 +      "borderColor", 0.0, "underline", false,
 +      "marginTop", 0.0, "marginBottom", 0.0, "lineHeight", 20.0, "textAlign", "left",
@@ -3428,6 +3428,16 @@ new file mode 100644
 +    assertTrue(paint.typeface.isItalic)
 +  }
 +
++  @Test fun mediumStrongUsesMediumWeightAndPreservesItalic() {
++    val cache = cache("500")
++    val block = BlockStyle(28f, "", "normal", -16777216)
++    val paint = TextPaint()
++    EmphasisSpan(cache, block).updateMeasureState(paint)
++    StrongSpan(cache, block).updateMeasureState(paint)
++    assertFalse(paint.typeface.isBold)
++    assertTrue(paint.typeface.isItalic)
++  }
++
 +  @Test fun linksPreserveCodeAndEmphasizedProseFonts() {
 +    val cache = cache()
 +    val block = BlockStyle(28f, "", "normal", -16777216)
@@ -3454,10 +3464,10 @@ diff --git a/node_modules/react-native-enriched-markdown/src/types/MarkdownStyle
     * Controls whether bold is applied on top of the custom fontFamily.
     * Only relevant when fontFamily is set. Defaults to 'bold'.
     * Set to 'normal' to use the font face as-is without adding bold.
-+   * Set to '600' to use a semibold font face.
++   * Set to '500' or '600' to use a medium or semibold font face.
     */
 -  fontWeight?: 'bold' | 'normal';
-+  fontWeight?: 'bold' | 'normal' | '600';
++  fontWeight?: 'bold' | 'normal' | '500' | '600';
    color?: string;
  }
  
@@ -3477,10 +3487,10 @@ diff --git a/node_modules/react-native-enriched-markdown/lib/typescript/src/type
       * Controls whether bold is applied on top of the custom fontFamily.
       * Only relevant when fontFamily is set. Defaults to 'bold'.
       * Set to 'normal' to use the font face as-is without adding bold.
-+     * Set to '600' to use a semibold font face.
++     * Set to '500' or '600' to use a medium or semibold font face.
       */
 -    fontWeight?: 'bold' | 'normal';
-+    fontWeight?: 'bold' | 'normal' | '600';
++    fontWeight?: 'bold' | 'normal' | '500' | '600';
      color?: string;
  }
  interface EmphasisStyle {
@@ -3562,7 +3572,15 @@ diff --git a/node_modules/react-native-enriched-markdown/lib/module/normalizeMar
 diff --git a/node_modules/react-native-enriched-markdown/src/web/styles.ts b/node_modules/react-native-enriched-markdown/src/web/styles.ts
 --- a/node_modules/react-native-enriched-markdown/src/web/styles.ts
 +++ b/node_modules/react-native-enriched-markdown/src/web/styles.ts
-@@ -260,9 +260,12 @@ function videoStyle(style: MarkdownStyleInternal): CSSProperties {
+@@ -15,6 +15,7 @@ const VALID_FONT_WEIGHTS = new Set([
+   '100',
+   '200',
+   '300',
+   '400',
++  '450',
+   '500',
+   '600',
+@@ -260,9 +261,12 @@ function videoStyle(style: MarkdownStyleInternal): CSSProperties {
  
  function inlineImageStyle(style: MarkdownStyleInternal): CSSProperties {
    const size = style.inlineImage.size;
@@ -3576,7 +3594,7 @@ diff --git a/node_modules/react-native-enriched-markdown/src/web/styles.ts b/nod
      verticalAlign: 'middle',
      display: 'inline',
    };
-@@ -290,11 +293,11 @@ function codeStyle(style: MarkdownStyleInternal): CSSProperties {
+@@ -290,11 +294,11 @@ function codeStyle(style: MarkdownStyleInternal): CSSProperties {
    const code = style.code;
    return {
      fontFamily: normalizeFontFamily(code.fontFamily),
@@ -3594,6 +3612,11 @@ diff --git a/node_modules/react-native-enriched-markdown/src/web/styles.ts b/nod
 diff --git a/node_modules/react-native-enriched-markdown/lib/module/web/styles.js b/node_modules/react-native-enriched-markdown/lib/module/web/styles.js
 --- a/node_modules/react-native-enriched-markdown/lib/module/web/styles.js
 +++ b/node_modules/react-native-enriched-markdown/lib/module/web/styles.js
+@@ -3,3 +3,3 @@
+ const normalizeFontFamily = value => value || undefined;
+-const VALID_FONT_WEIGHTS = new Set(['normal', 'bold', 'bolder', 'lighter', '100', '200', '300', '400', '500', '600', '700', '800', '900']);
++const VALID_FONT_WEIGHTS = new Set(['normal', 'bold', 'bolder', 'lighter', '100', '200', '300', '400', '450', '500', '600', '700', '800', '900']);
+ const normalizeFontWeight = value => {
 @@ -243,9 +243,12 @@ function videoStyle(style) {
  }
  function inlineImageStyle(style) {
@@ -4066,22 +4089,24 @@ diff --git a/node_modules/react-native-enriched-markdown/lib/module/web/utils.js
 diff --git a/node_modules/react-native-enriched-markdown/ios/renderer/StrongRenderer.m b/node_modules/react-native-enriched-markdown/ios/renderer/StrongRenderer.m
 --- a/node_modules/react-native-enriched-markdown/ios/renderer/StrongRenderer.m
 +++ b/node_modules/react-native-enriched-markdown/ios/renderer/StrongRenderer.m
-@@ -51,6 +51,10 @@
+@@ -51,6 +51,12 @@
                                resolvedFont = [self ensureFontIsBold:currentFont];
                              }
  
-+                            if ([strongFontWeight isEqualToString:@"600"]) {
-+                              resolvedFont = [self ensureFontIsSemibold:resolvedFont];
++                            if ([strongFontWeight isEqualToString:@"500"] ||
++                                [strongFontWeight isEqualToString:@"600"]) {
++                              resolvedFont = [self ensureFont:resolvedFont
++                                                   hasWeight:ENRMFontWeightFromString(strongFontWeight)];
 +                            }
 +
                              if (resolvedFont && ![resolvedFont isEqual:currentFont]) {
                                [output addAttribute:NSFontAttributeName value:resolvedFont range:subrange];
                              }
-@@ -70,6 +74,21 @@
- 
+@@ -70,6 +76,21 @@
+
  #pragma mark - Helper Methods
- 
-+- (UIFont *)ensureFontIsSemibold:(UIFont *)font
+
++- (UIFont *)ensureFont:(UIFont *)font hasWeight:(UIFontWeight)weight
 +{
 +  if (!font)
 +    return nil;
@@ -4090,10 +4115,10 @@ diff --git a/node_modules/react-native-enriched-markdown/ios/renderer/StrongRend
 +  NSMutableDictionary *traits = [[descriptor objectForKey:UIFontDescriptorTraitsAttribute] mutableCopy];
 +  if (!traits)
 +    traits = [NSMutableDictionary new];
-+  traits[UIFontWeightTrait] = @(UIFontWeightSemibold);
-+  UIFontDescriptor *semiboldDescriptor =
++  traits[UIFontWeightTrait] = @(weight);
++  UIFontDescriptor *weightedDescriptor =
 +      [descriptor fontDescriptorByAddingAttributes:@{UIFontDescriptorTraitsAttribute : traits}];
-+  return semiboldDescriptor ? [UIFont fontWithDescriptor:semiboldDescriptor size:0] : font;
++  return weightedDescriptor ? [UIFont fontWithDescriptor:weightedDescriptor size:0] : font;
 +}
 +
  - (UIFont *)ensureFontIsBold:(UIFont *)font
@@ -4102,7 +4127,7 @@ diff --git a/node_modules/react-native-enriched-markdown/ios/renderer/StrongRend
 diff --git a/node_modules/react-native-enriched-markdown/android/src/main/java/com/swmansion/enriched/markdown/spans/StrongSpan.kt b/node_modules/react-native-enriched-markdown/android/src/main/java/com/swmansion/enriched/markdown/spans/StrongSpan.kt
 --- a/node_modules/react-native-enriched-markdown/android/src/main/java/com/swmansion/enriched/markdown/spans/StrongSpan.kt
 +++ b/node_modules/react-native-enriched-markdown/android/src/main/java/com/swmansion/enriched/markdown/spans/StrongSpan.kt
-@@ -27,12 +27,18 @@ class StrongSpan(
+@@ -27,12 +27,19 @@ class StrongSpan(
      val currentTypeface = tp.typeface ?: Typeface.DEFAULT
      val isItalic = (currentTypeface.style) and Typeface.ITALIC != 0
      val style = if (isItalic) Typeface.BOLD_ITALIC else Typeface.BOLD
@@ -4114,9 +4139,10 @@ diff --git a/node_modules/react-native-enriched-markdown/android/src/main/java/c
        } else {
          Typeface.create(currentTypeface, style)
        }
++    val fontWeight = styleCache.strongFontWeight.toIntOrNull()
 +    tp.typeface =
-+      if (styleCache.strongFontWeight == "600") {
-+        Typeface.create(resolvedTypeface, 600, isItalic)
++      if (fontWeight != null) {
++        Typeface.create(resolvedTypeface, fontWeight, isItalic)
 +      } else {
 +        resolvedTypeface
 +      }

@@ -1,12 +1,19 @@
 import { Text } from "react-native";
-import { forwardRef, useCallback, useMemo, useState, type ComponentProps } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useMemo,
+  useState,
+  type ComponentProps,
+  type CSSProperties,
+} from "react";
 import type {
   CodeBlockRendererProps,
   LinkRendererProps,
   MarkdownRenderers,
 } from "react-native-enriched-markdown";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
-import { useFileLink } from "@/assistant-file-links";
+import { useAssistantFileLinkActions, useFileLink } from "@/assistant-file-links";
 import { useForgeShorthand } from "@/git/forge-shorthand";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { HighlightedCodeBlock } from "@/components/highlighted-code-block";
@@ -30,14 +37,21 @@ function WebCodeBlock({ code, language }: CodeBlockRendererProps) {
 
 // The library styles links inline, so a stylesheet :hover rule cannot underline them.
 const LINK_HOVER_STYLE = { textDecoration: "underline" } as const;
+const FILE_LINK_CSS = {
+  borderRadius: 6,
+  padding: "1px 6px",
+} satisfies CSSProperties;
 
 function WebLink({ link, anchorProps, children }: LinkRendererProps) {
   const forgeShorthand = useForgeShorthand();
   // A forge reference like `#12` carries its web URL so hover, copy and new-tab opens work.
   const forgeUrl = link.sourceType === "text" ? forgeShorthand?.resolve(link.url) : null;
-  const { tooltipPath, onHoverIn } = useFileLink(
-    forgeUrl ? markdownLinkSource(forgeUrl) : markdownLinkSource(link.url, link.sourceType),
-  );
+  const source = forgeUrl
+    ? markdownLinkSource(forgeUrl)
+    : markdownLinkSource(link.url, link.sourceType);
+  const { tooltipPath, onHoverIn } = useFileLink(source);
+  const { canResolveFile } = useAssistantFileLinkActions();
+  const isFileLink = canResolveFile(source);
   const tooltip = forgeUrl ?? tooltipPath;
   const [hovered, setHovered] = useState(false);
   const handleMouseEnter = useCallback(() => setHovered(true), []);
@@ -45,10 +59,11 @@ function WebLink({ link, anchorProps, children }: LinkRendererProps) {
   const anchorStyle = useMemo(
     () => ({
       ...anchorProps.style,
+      ...(isFileLink ? FILE_LINK_CSS : null),
       overflowWrap: "anywhere" as const,
       ...(hovered ? LINK_HOVER_STYLE : null),
     }),
-    [anchorProps.style, hovered],
+    [anchorProps.style, hovered, isFileLink],
   );
   const anchor = (
     <a

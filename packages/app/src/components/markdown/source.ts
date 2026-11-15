@@ -53,21 +53,61 @@ function textPattern(forgeReferencePattern?: string): RegExp {
   return pattern;
 }
 
-function linkMetadata(inlineCodePaths: ReadonlySet<string>, forgeReferencePattern?: string) {
+function linkMetadata(
+  inlineCodePaths: ReadonlySet<string>,
+  forgeReferencePattern?: string,
+  workspaceRoot?: string,
+  commandNames?: ReadonlySet<string>,
+) {
   // The engine accepts regexes on both platforms. Classify complete code spans
   // first, then pass literal matches rather than maintaining a second path grammar.
   const alternatives = [...inlineCodePaths].map((path) =>
     path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
   );
+  const text = textPattern(forgeReferencePattern);
+  const fileLinkUrls = new Set(
+    [...inlineCodePaths].filter((path) => {
+      if (path.startsWith("/") && commandNames?.has(path.slice(1))) return false;
+      const classification = classifyAssistantFileLink(path, { workspaceRoot });
+      return classification && classification.kind !== "external";
+    }),
+  );
   return {
     linkRecognition: {
-      text: textPattern(forgeReferencePattern),
+      text,
       inlineCode: new RegExp(
         String.raw`^(?:https?://[^\s<>]+${alternatives.length ? `|${alternatives.join("|")}` : ""})$`,
       ),
     },
     linkSource: markdownLinkSource,
+    fileLinkUrls,
   };
+}
+
+function collectExplicitFileLinkUrl(
+  url: string,
+  fileLinkUrls: Set<string>,
+  workspaceRoot?: string,
+) {
+  const classification = classifyAssistantFileLink(url, {
+    workspaceRoot,
+    decodeHref: true,
+    explicitLink: true,
+  });
+  if (classification && classification.kind !== "external") fileLinkUrls.add(url);
+}
+
+function collectTextFileLinkUrls(
+  source: string,
+  fileLinkUrls: Set<string>,
+  recognition: RegExp,
+  workspaceRoot?: string,
+) {
+  for (const match of source.matchAll(recognition)) {
+    const url = match[0];
+    const classification = classifyAssistantFileLink(url, { workspaceRoot });
+    if (classification && classification.kind !== "external") fileLinkUrls.add(url);
+  }
 }
 
 function collectInlineCodePaths(
@@ -152,6 +192,14 @@ export function prepareMarkdownSource(
   const metadata = linkMetadata(
     collectInlineCodePaths(source, workspaceRoot, options.commandNames),
     options.forgeReferencePattern,
+    workspaceRoot,
+    options.commandNames,
+  );
+  collectTextFileLinkUrls(
+    source,
+    metadata.fileLinkUrls,
+    metadata.linkRecognition.text,
+    workspaceRoot,
   );
   const edits: { start: number; end: number; text: string }[] = [];
   if (
@@ -256,6 +304,7 @@ export function prepareMarkdownSource(
         edits.push({ start: boundary, end: lineStart, text: `${newline}${blank}${newline}` });
       }
       if (node.type === "link") {
+        collectExplicitFileLinkUrl(node.url, metadata.fileLinkUrls, workspaceRoot);
         const title = workspaceHoverTitle(node, source.slice(start, end), workspaceRoot);
         if (title !== null)
           edits.push({ start: end - 1, end: end - 1, text: ` ${JSON.stringify(title)}` });
