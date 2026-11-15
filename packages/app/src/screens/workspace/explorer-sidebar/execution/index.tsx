@@ -67,8 +67,8 @@ export function ExplorerExecution({
           onTouchStart={onFocus}
           {...(isWeb ? { onPointerDown: onFocus } : {})}
         >
-          {state.view === "terminal" ? tabRail : null}
-          <View style={styles.content}>
+          {state.view === "terminal" && hasTerminal ? tabRail : null}
+          <View style={[styles.content, hasTerminal && !compact && styles.terminalInset]}>
             {children}
             {!hasTerminal ? (
               <ExecutionEmpty
@@ -98,4 +98,11 @@ const styles = StyleSheet.create((theme) => ({
   },
   fill: { flex: 1, minHeight: 0 },
   content: { flex: 1, minHeight: 0 },
+  // Terminals draw flush to their host. A docked terminal starts at the dock's border and
+  // divider, so the shell gives its first column and row room to read.
+  terminalInset: {
+    paddingTop: theme.spacing[2],
+    paddingLeft: theme.spacing[2],
+    backgroundColor: theme.colors.terminal.background,
+  },
 }));

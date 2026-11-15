@@ -141,7 +141,8 @@ test("Explorer execution retries a failed script start and retains its session t
     const headerBounds = await header.boundingBox();
     const outputBounds = await body.getByTestId("terminal-surface").boundingBox();
     if (!headerBounds || !outputBounds) throw new Error("Execution output has no bounds");
-    expect(outputBounds.y - (headerBounds.y + headerBounds.height)).toBeLessThanOrEqual(2);
+    // Run output follows the header with no tab rail between them; the gap is the dock's inset.
+    expect(outputBounds.y - (headerBounds.y + headerBounds.height)).toBeLessThanOrEqual(10);
     await expect(activityBar).toBeVisible();
     expect(new Set(await sampleRunActivity(activityBar)).size).toBeGreaterThan(1);
     await expect(explorer.getByTestId("file-explorer-tree-scroll")).toBeVisible();

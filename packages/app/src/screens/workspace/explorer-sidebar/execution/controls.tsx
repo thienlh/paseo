@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Text, View, type PressableStateCallbackType } from "react-native";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { PressHighlight } from "@/components/ui/press-highlight";
@@ -12,6 +12,8 @@ import { HEADER_CONTROL_HEIGHT } from "@/components/ui/control-geometry";
 import { WORKSPACE_SECONDARY_HEADER_HEIGHT } from "@/constants/layout";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { extraMutedIconColorMapping } from "@/components/ui/icon-color";
+import { smallIconButtonChromeFrameSize } from "@/components/ui/icon-button-chrome";
+import { SPACING } from "@/styles/theme";
 import type { WorkspaceDescriptor } from "@/stores/session-store";
 import type { WorkspaceScriptActions } from "@/screens/workspace/scripts/use-workspace-script-actions";
 import { ExitCodeBadge, ScriptIcon } from "@/screens/workspace/scripts/script-marks";
@@ -36,6 +38,8 @@ export interface ExecutionControlsProps {
   onConfigureScripts?: () => void;
 }
 
+const TOGGLE_GLYPH_SIZE = 16;
+
 const ThemedChevronDown = withUnistyles(ChevronDown);
 const ThemedChevronUp = withUnistyles(ChevronUp);
 const ThemedPlus = withUnistyles(Plus);
@@ -51,30 +55,39 @@ interface ExecutionTabProps {
   children?: ReactNode;
 }
 
+/** A view chip in the workspace tab language: the sidebar rail's hover and selected fills. */
 function ExecutionTab({ label, selected, onPress, testID, children }: ExecutionTabProps) {
+  const [hovered, setHovered] = useState(false);
   const accessibilityState = useMemo(() => ({ selected }), [selected]);
   const tabStyle = useCallback(
-    ({ hovered, pressed }: PressableStateCallbackType & { hovered?: boolean }) => [
+    ({ pressed }: PressableStateCallbackType) => [
       styles.tab,
-      (hovered || pressed) && styles.interaction,
+      (hovered || pressed) && styles.tabHover,
+      selected && styles.tabSelected,
     ],
-    [],
+    [hovered, selected],
   );
+  const handleHoverIn = useCallback(() => setHovered(true), []);
+  const handleHoverOut = useCallback(() => setHovered(false), []);
   return (
     <PressHighlight
       style={tabStyle}
-      highlightStyle={styles.interaction}
+      highlightStyle={styles.tabHover}
       onPress={onPress}
+      onHoverIn={handleHoverIn}
+      onHoverOut={handleHoverOut}
       accessibilityRole="tab"
       accessibilityState={accessibilityState}
       aria-selected={selected}
       testID={testID}
     >
       {children}
-      <Text style={[styles.tabText, selected && styles.selectedText]} numberOfLines={1}>
+      <Text
+        style={[styles.tabText, (selected || hovered) && styles.tabTextActive]}
+        numberOfLines={1}
+      >
         {label}
       </Text>
-      {selected ? <View pointerEvents="none" style={styles.tabIndicator} /> : null}
     </PressHighlight>
   );
 }
@@ -114,6 +127,15 @@ export function ExecutionControls(props: ExecutionControlsProps) {
   const selectTerminal = useCallback(() => selectView("terminal"), [selectView]);
   const terminalDisabled = !connected || creatingTerminal;
   const accessibilityState = useMemo(() => ({ expanded: state.expanded }), [state.expanded]);
+  // The glyph sits on the dock's icon rail and the first tab label on its text rail; the hit
+  // area overhangs into the header padding.
+  const toggleStyle = useMemo(
+    () => ({
+      marginLeft: -(smallIconButtonChromeFrameSize(compact) - TOGGLE_GLYPH_SIZE) / 2,
+      marginRight: SPACING[0.5],
+    }),
+    [compact],
+  );
   const toggleLabel = state.expanded
     ? t("workspace.tabs.explorerSidebar.execution.collapse")
     : t("workspace.tabs.explorerSidebar.execution.expand");
@@ -125,11 +147,12 @@ export function ExecutionControls(props: ExecutionControlsProps) {
         onPress={toggle}
         testID="explorer-execution-toggle"
         accessibilityState={accessibilityState}
+        style={toggleStyle}
       >
         {state.expanded ? (
-          <ThemedChevronDown size={16} uniProps={extraMutedIconColorMapping} />
+          <ThemedChevronDown size={TOGGLE_GLYPH_SIZE} uniProps={extraMutedIconColorMapping} />
         ) : (
-          <ThemedChevronUp size={16} uniProps={extraMutedIconColorMapping} />
+          <ThemedChevronUp size={TOGGLE_GLYPH_SIZE} uniProps={extraMutedIconColorMapping} />
         )}
       </ToolbarButton>
       <ScrollView
@@ -138,36 +161,38 @@ export function ExecutionControls(props: ExecutionControlsProps) {
         style={styles.tabs}
         contentContainerStyle={styles.tabTrack}
       >
-        <ExecutionTab
-          label={t("workspace.scripts.actions.run")}
-          selected={selectedView === "run"}
-          onPress={selectRun}
-          testID="explorer-execution-run-view"
-        >
-          <ThemedRunActivity running={running} connected={connected} size={14} />
-        </ExecutionTab>
-        <View style={styles.tabAction}>
-          <ExecutionScriptPicker {...props} />
+        <View style={styles.tabRow}>
+          <ExecutionTab
+            label={t("workspace.scripts.actions.run")}
+            selected={selectedView === "run"}
+            onPress={selectRun}
+            testID="explorer-execution-run-view"
+          >
+            {running ? <ThemedRunActivity running connected={connected} size={12} /> : null}
+          </ExecutionTab>
+          <ExecutionTab
+            label={t("workspace.tabs.fallback.terminal")}
+            selected={selectedView === "terminal"}
+            onPress={selectTerminal}
+            testID="explorer-execution-terminal-view"
+          />
+          <ToolbarButton
+            label={t("workspace.tabs.actions.newTerminal")}
+            compact={compact}
+            onPress={onCreateTerminal}
+            disabled={terminalDisabled}
+            testID="explorer-execution-new-terminal"
+          >
+            <ThemedPlus size={16} uniProps={extraMutedIconColorMapping} />
+          </ToolbarButton>
         </View>
-        <ExecutionTab
-          label={t("workspace.tabs.fallback.terminal")}
-          selected={selectedView === "terminal"}
-          onPress={selectTerminal}
-          testID="explorer-execution-terminal-view"
-        />
-        <ToolbarButton
-          label={t("workspace.tabs.actions.newTerminal")}
-          compact={compact}
-          onPress={onCreateTerminal}
-          disabled={terminalDisabled}
-          testID="explorer-execution-new-terminal"
-        >
-          <ThemedPlus size={16} uniProps={extraMutedIconColorMapping} />
-        </ToolbarButton>
       </ScrollView>
       <View style={styles.actions}>
         <ExecutionServiceButton {...props} />
-        <RunButton {...props} />
+        <View style={styles.runControl}>
+          <RunButton {...props} />
+          <ExecutionScriptPicker {...props} />
+        </View>
       </View>
     </View>
   );
@@ -193,7 +218,7 @@ function RunButton({ script, actions, connected, dispatch }: ExecutionControlsPr
       loading={pending}
       disabled={disabled}
       onPress={handlePress}
-      style={styles.actionButton}
+      style={styles.runButton}
       textStyle={styles.actionText}
       testID="explorer-execution-run"
     >
@@ -244,10 +269,11 @@ function ExecutionScriptPicker({
         compact={compact}
         testID="explorer-execution-script-picker"
         label={`${t("workspace.tabs.explorerSidebar.execution.chooseScript")}: ${script.scriptName}`}
+        style={styles.runCaret}
       >
-        <ThemedChevronDown size={12} uniProps={extraMutedIconColorMapping} />
+        <ThemedChevronDown size={14} uniProps={extraMutedIconColorMapping} />
       </ToolbarButton>
-      <DropdownMenuContent align="start" width={240}>
+      <DropdownMenuContent align="end" width={240}>
         {scripts.map((entry) => (
           <ScriptOption
             key={entry.scriptName}
@@ -351,14 +377,15 @@ const styles = StyleSheet.create((theme) => ({
     height: WORKSPACE_SECONDARY_HEADER_HEIGHT,
     flexDirection: "row",
     alignItems: "center",
-    paddingLeft: theme.spacing[1],
+    paddingLeft: theme.spacing[3],
     paddingRight: theme.spacing[2],
     borderBottomWidth: theme.borderWidth[1],
     borderBottomColor: theme.colors.border,
   },
   tabs: { flex: 1, minWidth: 0, alignSelf: "stretch" },
   tabTrack: { flexDirection: "row", alignItems: "center", height: "100%" },
-  tabAction: { alignSelf: "stretch", alignItems: "center", justifyContent: "center" },
+  // Web drops this scroller's content style (docs/unistyles.md), so a view we own centres the row.
+  tabRow: { flexDirection: "row", alignItems: "center" },
   actions: {
     flexDirection: "row",
     alignItems: "center",
@@ -367,34 +394,54 @@ const styles = StyleSheet.create((theme) => ({
     flexShrink: 0,
   },
   tab: {
-    position: "relative",
-    height: "100%",
+    minHeight: theme.spacing[6],
     flexDirection: "row",
     alignItems: "center",
     flexShrink: 0,
     gap: theme.spacing[1],
-    paddingHorizontal: theme.spacing[1],
+    marginRight: theme.spacing[0.5],
+    padding: theme.spacing[1],
+    borderRadius: theme.borderRadius.md,
   },
-  interaction: { backgroundColor: theme.colors.interactionHighlight },
+  tabHover: { backgroundColor: theme.colors.surfaceSidebarHover },
+  tabSelected: { backgroundColor: theme.colors.surfaceSidebarSelected },
   tabText: { fontSize: theme.fontSize.sm, color: theme.colors.foregroundMuted },
-  selectedText: { color: theme.colors.foreground },
-  tabIndicator: {
-    position: "absolute",
-    left: theme.spacing[1],
-    right: theme.spacing[1],
-    bottom: 0,
-    height: theme.borderWidth[2],
-    backgroundColor: theme.colors.foregroundMuted,
-  },
+  tabTextActive: { color: theme.colors.foreground },
   actionButton: {
     height: HEADER_CONTROL_HEIGHT,
     minHeight: HEADER_CONTROL_HEIGHT,
-    paddingHorizontal: theme.spacing[2],
+    paddingHorizontal: theme.spacing[1.5],
     paddingVertical: 0,
     borderRadius: theme.borderRadius.md,
     gap: theme.spacing[1],
   },
   actionText: { fontWeight: theme.fontWeight.normal },
+  // Run and its script menu share one border, like the git actions split button.
+  runControl: {
+    flexShrink: 0,
+    height: HEADER_CONTROL_HEIGHT,
+    flexDirection: "row",
+    alignItems: "stretch",
+    borderRadius: theme.borderRadius.md,
+    borderWidth: theme.borderWidth[1],
+    borderColor: theme.colors.borderAccent,
+    overflow: "hidden",
+  },
+  runButton: {
+    height: "100%",
+    minHeight: 0,
+    paddingHorizontal: theme.spacing[1.5],
+    paddingVertical: 0,
+    borderWidth: 0,
+    borderRadius: 0,
+    gap: theme.spacing[1],
+  },
+  runCaret: {
+    height: "100%",
+    borderRadius: 0,
+    borderLeftWidth: theme.borderWidth[1],
+    borderLeftColor: theme.colors.borderAccent,
+  },
   empty: {
     flex: 1,
     alignItems: "center",
