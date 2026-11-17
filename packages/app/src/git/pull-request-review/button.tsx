@@ -30,7 +30,10 @@ const usePullRequestReviewStore = create<PullRequestReviewState>((set) => ({
 
 const ThemedTextSearch = withUnistyles(TextSearch);
 const reviewIconColor = (theme: Theme) => ({ color: theme.colors.accent });
-const REVIEW_ICON = <ThemedTextSearch uniProps={reviewIconColor} />;
+const REVIEW_ICON_STYLE = { width: 14, height: 14 } as const;
+const REVIEW_ICON = (
+  <ThemedTextSearch size={14} uniProps={reviewIconColor} style={REVIEW_ICON_STYLE} />
+);
 
 export function WorkspaceReviewButton({
   serverId,

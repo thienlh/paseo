@@ -55,6 +55,8 @@ test("reviews local changes from the Explorer header without a Checks toolbar", 
       "rgb(32, 116, 74)",
     );
     await expect(review.locator("svg")).toHaveAttribute("stroke", "#20744A");
+    await expect(review.locator("svg")).toHaveCSS("width", "14px");
+    await expect(review.locator("svg")).toHaveCSS("height", "14px");
     await header.screenshot({ path: testInfo.outputPath("review-button-outline.png") });
     await expect(emptyState.getByTestId("checks-review-start")).toHaveCount(0);
     await expect(toolbar).toHaveCount(0);
