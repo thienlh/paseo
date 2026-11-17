@@ -155,6 +155,7 @@ export function PullRequestReviewButton({
 
 const styles = StyleSheet.create((theme) => ({
   button: {
+    fontSize: theme.fontSize.base,
     gap: theme.spacing[1],
     minHeight: HEADER_CONTROL_HEIGHT,
     height: HEADER_CONTROL_HEIGHT,
