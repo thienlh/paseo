@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Text, View } from "react-native";
-import { useFileLink } from "@/assistant-file-links";
+import { useAssistantFileLinkEnvironment } from "@/assistant-file-links";
+import { resolveWorkspaceFilePaths } from "@/workspace/file-open";
 import { PressHighlight } from "@/components/ui/press-highlight";
 import { StyleSheet } from "react-native-unistyles";
 import { DiffStat } from "@/components/diff-stat";
@@ -71,15 +72,27 @@ function useProgressiveCount(total: number): number {
 function FileChip({ change, workspaceRoot }: { change: TurnFileChange; workspaceRoot?: string }) {
   const path = displayChangedFilePath(change.filePath, workspaceRoot);
   const name = path.split("/").findLast(Boolean) ?? path;
-  const { onPress } = useFileLink({ href: path, text: path, sourceType: "inline-code" });
-  const [opened, setOpened] = useState(false);
+  const { onOpenWorkspaceFile: openWorkspaceFile, workspaceRoot: openWorkspaceRoot } =
+    useAssistantFileLinkEnvironment();
+  const [previewDismissed, setPreviewDismissed] = useState(false);
+  const resetPreviewDismissal = useCallback(() => setPreviewDismissed(false), []);
   const handlePress = useCallback(() => {
-    setOpened(true);
-    onPress();
-  }, [onPress]);
+    setPreviewDismissed(true);
+    // Edit results identify an exact file; assistant prose heuristics must not reject its name.
+    const absolutePath = openWorkspaceRoot
+      ? resolveWorkspaceFilePaths({
+          path: change.filePath,
+          workspaceRoot: openWorkspaceRoot,
+        })?.absolutePath
+      : undefined;
+    openWorkspaceFile?.(
+      { raw: change.filePath, path: absolutePath ?? change.filePath },
+      "preferred",
+    );
+  }, [change.filePath, openWorkspaceFile, openWorkspaceRoot]);
   return (
-    <HoverCard disabled={opened}>
-      <HoverCardTrigger>
+    <HoverCard disabled={previewDismissed}>
+      <HoverCardTrigger onPointerLeave={resetPreviewDismissal}>
         <PressHighlight
           style={styles.chip}
           testID="turn-file-change"

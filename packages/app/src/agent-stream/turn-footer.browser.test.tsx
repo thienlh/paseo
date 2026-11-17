@@ -2,11 +2,10 @@ import React, { act } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PortalProvider } from "@gorhom/portal";
 import { createRoot, type Root } from "react-dom/client";
-import { PortalProvider } from "@gorhom/portal";
 import type { AgentMetric } from "@getpaseo/protocol/agent-types";
 import { waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { FloatingPanelPortalHost } from "@/components/ui/floating-panel-portal";
 import { i18n } from "@/i18n/i18next";
 import type { TurnTiming } from "@/timeline/turn-time";
@@ -84,6 +83,7 @@ function renderCompletedFooter(
               supportsTimelineCursor={false}
               onForkAssistantTurn={forkAssistantTurn}
             />
+            <FloatingPanelPortalHost />
           </AssistantFileLinkResolverProvider>
         </QueryClientProvider>
       </PortalProvider>,
@@ -253,22 +253,44 @@ it("opens the fork menu with distinct, clearly labeled destinations", () => {
   );
 });
 
-it("opens the changed file when its chip is clicked", async () => {
-  const openWorkspaceFile = vi.fn();
-  renderCompletedFooter(
-    { completedAt: FRIDAY_NIGHT, durationMs: 1_000 },
-    [editedFile("edit-example", "src/example.ts"), reply],
-    openWorkspaceFile,
-  );
-  const chip = host.querySelector<HTMLElement>("[data-testid=turn-file-change]")!;
-  act(() => chip.click());
+it.each(["src/example.ts", "Dockerfile", "Makefile", "docs/my notes.md", "src/file.svg"])(
+  "opens the exact changed-file path when its chip is clicked (%s)",
+  async (filePath) => {
+    const openWorkspaceFile = vi.fn();
+    renderCompletedFooter(
+      { completedAt: FRIDAY_NIGHT, durationMs: 1_000 },
+      [editedFile("edit-example", filePath), reply],
+      openWorkspaceFile,
+    );
+    const chip = host.querySelector<HTMLElement>("[data-testid=turn-file-change]")!;
+    act(() => chip.click());
 
-  await waitFor(() =>
-    expect(openWorkspaceFile).toHaveBeenCalledWith(
-      expect.objectContaining({ path: "/repo/src/example.ts" }),
-      "preferred",
-    ),
-  );
+    await waitFor(() =>
+      expect(openWorkspaceFile).toHaveBeenCalledWith(
+        expect.objectContaining({ raw: filePath, path: `/repo/${filePath}` }),
+        "preferred",
+      ),
+    );
+  },
+);
+
+it("restores the changed-file preview after leaving a clicked chip", async () => {
+  renderCompletedFooter({ completedAt: FRIDAY_NIGHT, durationMs: 1_000 }, [
+    editedFile("edit-example", "src/example.ts"),
+    reply,
+  ]);
+  const chip = host.querySelector<HTMLElement>("[data-testid=turn-file-change]")!;
+  const preview = () => document.querySelector("[data-testid=turn-file-change-preview]");
+
+  await userEvent.hover(chip);
+  await waitFor(() => expect(preview()).not.toBeNull());
+
+  await userEvent.click(chip);
+  await waitFor(() => expect(preview()).toBeNull());
+
+  await userEvent.unhover(chip);
+  await userEvent.hover(chip);
+  await waitFor(() => expect(preview()).not.toBeNull());
 });
 
 it("keeps the duration on one line when changed files compete for a narrow footer", () => {

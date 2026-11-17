@@ -283,12 +283,19 @@ export function HoverCardTrigger({
   children,
   focusable = false,
   accessibilityLabel,
+  onPointerLeave,
 }: {
   children: ReactNode;
   focusable?: boolean;
   accessibilityLabel?: string;
+  onPointerLeave?: () => void;
 }): ReactNode {
   const ctx = useContext(HoverCardContext);
+  const scheduleClose = ctx?.scheduleClose;
+  const handlePointerLeave = useCallback(() => {
+    scheduleClose?.();
+    onPointerLeave?.();
+  }, [onPointerLeave, scheduleClose]);
   if (!ctx) return children;
   return (
     <View
@@ -298,7 +305,7 @@ export function HoverCardTrigger({
       accessibilityLabel={accessibilityLabel}
       collapsable={false}
       onPointerEnter={ctx.openNow}
-      onPointerLeave={ctx.scheduleClose}
+      onPointerLeave={handlePointerLeave}
     >
       {children}
     </View>
