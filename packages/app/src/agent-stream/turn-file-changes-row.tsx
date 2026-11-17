@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { Text, View } from "react-native";
+import { useFileLink } from "@/assistant-file-links";
+import { PressHighlight } from "@/components/ui/press-highlight";
 import { StyleSheet } from "react-native-unistyles";
 import { DiffStat } from "@/components/diff-stat";
 import { DiffViewer } from "@/components/diff-viewer";
@@ -69,16 +71,23 @@ function useProgressiveCount(total: number): number {
 function FileChip({ change, workspaceRoot }: { change: TurnFileChange; workspaceRoot?: string }) {
   const path = displayChangedFilePath(change.filePath, workspaceRoot);
   const name = path.split("/").findLast(Boolean) ?? path;
+  const { onPress } = useFileLink({ href: path, text: path, sourceType: "inline-code" });
   return (
     <HoverCard>
-      <HoverCardTrigger focusable accessibilityLabel={path}>
-        <View style={styles.chip} testID="turn-file-change">
+      <HoverCardTrigger>
+        <PressHighlight
+          style={styles.chip}
+          testID="turn-file-change"
+          accessibilityRole="link"
+          accessibilityLabel={path}
+          onPress={onPress}
+        >
           <MaterialFileIcon fileName={name} size={12} />
           <Text style={styles.name} numberOfLines={1}>
             {name}
           </Text>
           <DiffStat additions={change.additions} deletions={change.deletions} />
-        </View>
+        </PressHighlight>
       </HoverCardTrigger>
       <HoverCardContent placement="top" offset={8} style={styles.preview} accessibilityLabel={path}>
         <FileChangePreview change={change} path={path} />
