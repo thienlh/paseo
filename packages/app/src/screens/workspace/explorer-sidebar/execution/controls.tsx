@@ -1,7 +1,13 @@
 import { useCallback, useMemo, type ReactNode } from "react";
-import { Text, View, type PressableStateCallbackType } from "react-native";
+import { Text, View } from "react-native";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { PressHighlight } from "@/components/ui/press-highlight";
+import {
+  isToolbarLabelTriggerHighlighted,
+  toolbarLabelTriggerStyle,
+  toolbarLabelTriggerTextStyle,
+  type ToolbarLabelTriggerState,
+} from "@/components/ui/toolbar-label-trigger";
 import { isWeb } from "@/constants/platform";
 import { ChevronDown, ChevronUp, Play, Plus, Square, Globe } from "lucide-react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
@@ -54,28 +60,40 @@ interface ExecutionTabProps {
 function ExecutionTab({ label, selected, onPress, testID, children }: ExecutionTabProps) {
   const accessibilityState = useMemo(() => ({ selected }), [selected]);
   const tabStyle = useCallback(
-    ({ hovered, pressed }: PressableStateCallbackType & { hovered?: boolean }) => [
-      styles.tab,
-      (hovered || pressed) && styles.interaction,
+    (state: ToolbarLabelTriggerState) => [
+      toolbarLabelTriggerStyle(state),
+      styles.tabTrigger,
+      selected && styles.interaction,
     ],
-    [],
+    [selected],
   );
   return (
-    <PressHighlight
-      style={tabStyle}
-      highlightStyle={styles.interaction}
-      onPress={onPress}
-      accessibilityRole="tab"
-      accessibilityState={accessibilityState}
-      aria-selected={selected}
-      testID={testID}
-    >
-      {children}
-      <Text style={[styles.tabText, selected && styles.selectedText]} numberOfLines={1}>
-        {label}
-      </Text>
-      {selected ? <View pointerEvents="none" style={styles.tabIndicator} /> : null}
-    </PressHighlight>
+    <View style={styles.tab}>
+      <PressHighlight
+        style={tabStyle}
+        highlightStyle={styles.interaction}
+        onPress={onPress}
+        accessibilityRole="tab"
+        accessibilityState={accessibilityState}
+        aria-selected={selected}
+        testID={testID}
+      >
+        {(state) => (
+          <>
+            {children}
+            <Text
+              style={[
+                toolbarLabelTriggerTextStyle(isToolbarLabelTriggerHighlighted(state)),
+                selected && styles.selectedText,
+              ]}
+              numberOfLines={1}
+            >
+              {label}
+            </Text>
+          </>
+        )}
+      </PressHighlight>
+    </View>
   );
 }
 
@@ -155,15 +173,17 @@ export function ExecutionControls(props: ExecutionControlsProps) {
           onPress={selectTerminal}
           testID="explorer-execution-terminal-view"
         />
-        <ToolbarButton
-          label={t("workspace.tabs.actions.newTerminal")}
-          compact={compact}
-          onPress={onCreateTerminal}
-          disabled={terminalDisabled}
-          testID="explorer-execution-new-terminal"
-        >
-          <ThemedPlus size={16} uniProps={extraMutedIconColorMapping} />
-        </ToolbarButton>
+        <View style={styles.tabAction}>
+          <ToolbarButton
+            label={t("workspace.tabs.actions.newTerminal")}
+            compact={compact}
+            onPress={onCreateTerminal}
+            disabled={terminalDisabled}
+            testID="explorer-execution-new-terminal"
+          >
+            <ThemedPlus size={16} uniProps={extraMutedIconColorMapping} />
+          </ToolbarButton>
+        </View>
       </ScrollView>
       <View style={styles.actions}>
         <ExecutionServiceButton {...props} />
@@ -372,20 +392,10 @@ const styles = StyleSheet.create((theme) => ({
     flexDirection: "row",
     alignItems: "center",
     flexShrink: 0,
-    gap: theme.spacing[1],
-    paddingHorizontal: theme.spacing[1],
   },
+  tabTrigger: { flexShrink: 0 },
   interaction: { backgroundColor: theme.colors.interactionHighlight },
-  tabText: { fontSize: theme.fontSize.sm, color: theme.colors.foregroundMuted },
   selectedText: { color: theme.colors.foreground },
-  tabIndicator: {
-    position: "absolute",
-    left: theme.spacing[1],
-    right: theme.spacing[1],
-    bottom: 0,
-    height: theme.borderWidth[2],
-    backgroundColor: theme.colors.foregroundMuted,
-  },
   actionButton: {
     height: HEADER_CONTROL_HEIGHT,
     minHeight: HEADER_CONTROL_HEIGHT,
