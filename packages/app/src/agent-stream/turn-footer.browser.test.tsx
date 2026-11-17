@@ -1,5 +1,6 @@
 import React, { act } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { PortalProvider } from "@gorhom/portal";
 import { createRoot, type Root } from "react-dom/client";
 import { PortalProvider } from "@gorhom/portal";
 import type { AgentMetric } from "@getpaseo/protocol/agent-types";
@@ -68,22 +69,24 @@ function renderCompletedFooter(
 ): void {
   act(() =>
     root.render(
-      <QueryClientProvider client={new QueryClient()}>
-        <AssistantFileLinkResolverProvider
-          client={TEST_FILE_CLIENT}
-          workspaceRoot="/repo"
-          onOpenWorkspaceFile={onOpenWorkspaceFile}
-        >
-          <CompletedTurnFooterRow
-            strategy={createNativeStreamStrategy()}
-            items={items}
-            timing={timing}
-            startIndex={items.length - 1}
-            supportsTimelineCursor={false}
-            onForkAssistantTurn={forkAssistantTurn}
-          />
-        </AssistantFileLinkResolverProvider>
-      </QueryClientProvider>,
+      <PortalProvider>
+        <QueryClientProvider client={new QueryClient()}>
+          <AssistantFileLinkResolverProvider
+            client={TEST_FILE_CLIENT}
+            workspaceRoot="/repo"
+            onOpenWorkspaceFile={onOpenWorkspaceFile}
+          >
+            <CompletedTurnFooterRow
+              strategy={createNativeStreamStrategy()}
+              items={items}
+              timing={timing}
+              startIndex={items.length - 1}
+              supportsTimelineCursor={false}
+              onForkAssistantTurn={forkAssistantTurn}
+            />
+          </AssistantFileLinkResolverProvider>
+        </QueryClientProvider>
+      </PortalProvider>,
     ),
   );
 }
@@ -258,7 +261,6 @@ it("opens the changed file when its chip is clicked", async () => {
     openWorkspaceFile,
   );
   const chip = host.querySelector<HTMLElement>("[data-testid=turn-file-change]")!;
-
   act(() => chip.click());
 
   await waitFor(() =>
