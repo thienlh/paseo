@@ -167,16 +167,11 @@ describe("git-actions-policy", () => {
     await i18n.changeLanguage("en");
   });
 
-  it("shows only remote sync actions on the base branch", () => {
+  it("falls back to Archive on the base branch and keeps remote sync actions in the menu", () => {
     const actions = buildGitActions(createInput({ hasRemote: true }));
 
-    expect(actions.primary).toBeNull();
-    expect(actions.secondary.map((action) => action.id)).toEqual([
-      "pull",
-      "push",
-      "pull-and-push",
-      "archive-workspace",
-    ]);
+    expect(actions.primary?.id).toBe("archive-workspace");
+    expect(actions.secondary.map((action) => action.id)).toEqual(["pull", "push", "pull-and-push"]);
   });
 
   it("prioritizes pull when the branch is behind origin", () => {
@@ -537,10 +532,12 @@ describe("git-actions-policy", () => {
     );
   });
 
-  it("hides Git actions for a non-Git workspace", () => {
+  it("offers only Archive for a non-Git workspace", () => {
     const directory = buildGitActions(createInput({ isGit: false }));
 
-    expect(directory).toEqual({ primary: null, secondary: [], menu: [] });
+    expect(directory.primary?.id).toBe("archive-workspace");
+    expect(directory.secondary).toEqual([]);
+    expect(directory.menu).toEqual([]);
   });
 
   it("offers archive workspace for Git checkouts and worktrees", () => {
@@ -553,17 +550,17 @@ describe("git-actions-policy", () => {
     expect(worktree.secondary.some((action) => action.id === "archive-workspace")).toBe(true);
   });
 
-  it("does not promote archive to primary for an idle regular Git checkout", () => {
+  it("falls back to Archive for an idle regular Git checkout", () => {
     const actions = buildGitActions(createInput());
 
-    expect(actions.primary).toBeNull();
-    expect(actions.secondary.some((action) => action.id === "archive-workspace")).toBe(true);
+    expect(actions.primary?.id).toBe("archive-workspace");
+    expect(actions.secondary.some((action) => action.id === "archive-workspace")).toBe(false);
   });
 
-  it("keeps Archive in the menu for an idle Paseo-owned worktree", () => {
+  it("falls back to Archive for an idle Paseo-owned worktree", () => {
     const actions = buildGitActions(createInput({ isPaseoOwnedWorktree: true }));
 
-    expect(actions.primary).toBeNull();
+    expect(actions.primary?.id).toBe("archive-workspace");
   });
 
   it("promotes Merge PR when an open PR is mergeable and the branch is in sync", () => {

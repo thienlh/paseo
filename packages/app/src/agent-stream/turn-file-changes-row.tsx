@@ -5,7 +5,7 @@ import { resolveWorkspaceFilePaths } from "@/workspace/file-open";
 import { PressHighlight } from "@/components/ui/press-highlight";
 import { StyleSheet } from "react-native-unistyles";
 import { DiffStat } from "@/components/diff-stat";
-import { DiffViewer } from "@/components/diff-viewer";
+import { FileDiffPreview, fileDiffPreviewCardStyle } from "@/components/file-diff-preview";
 import { MaterialFileIcon } from "@/components/material-file-icon";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import type { StreamItem } from "@/types/stream";
@@ -20,7 +20,6 @@ import {
 
 // A turn that touched many files renders its chips over a few frames instead of in one commit.
 const CHIP_BATCH = 24;
-const PREVIEW_MAX_HEIGHT = 320;
 
 /**
  * Supplied by the stream, which knows which calls a grouped row or a folded turn stands for.
@@ -110,7 +109,7 @@ function FileChip({ change, workspaceRoot }: { change: TurnFileChange; workspace
       <HoverCardContent
         placement="top"
         offset={8}
-        style={styles.preview}
+        style={fileDiffPreviewCardStyle}
         accessibilityLabel={path}
         testID="turn-file-change-preview"
       >
@@ -127,15 +126,12 @@ function FileChangePreview({ change, path }: { change: TurnFileChange; path: str
     [change],
   );
   return (
-    <>
-      <View style={styles.previewHeader}>
-        <Text style={styles.previewPath} numberOfLines={1}>
-          {path}
-        </Text>
-        <DiffStat additions={change.additions} deletions={change.deletions} />
-      </View>
-      <DiffViewer diffLines={diffLines} maxHeight={PREVIEW_MAX_HEIGHT} />
-    </>
+    <FileDiffPreview
+      path={path}
+      diffLines={diffLines}
+      additions={change.additions}
+      deletions={change.deletions}
+    />
   );
 }
 
@@ -163,28 +159,6 @@ const styles = StyleSheet.create((theme) => ({
   name: {
     flexShrink: 1,
     color: theme.colors.foreground,
-    fontSize: theme.fontSize.sm,
-  },
-  preview: {
-    width: 520,
-    maxWidth: "90%",
-    gap: theme.spacing[2],
-    padding: theme.spacing[2],
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.lg,
-    backgroundColor: theme.colors.surface1,
-  },
-  previewHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[2],
-  },
-  previewPath: {
-    flex: 1,
-    minWidth: 0,
-    color: theme.colors.foregroundMuted,
-    fontFamily: theme.fontFamily.mono,
     fontSize: theme.fontSize.sm,
   },
 }));

@@ -238,6 +238,34 @@ it("restores the changed-file preview after leaving a clicked chip", async () =>
   await waitFor(() => expect(preview()).not.toBeNull());
 });
 
+it("separates the changed-file header from the diff surface", async () => {
+  renderCompletedFooter({ completedAt: FRIDAY_NIGHT, durationMs: 1_000 }, [
+    editedFile("edit-example", "src/example.ts"),
+    reply,
+  ]);
+  const chip = host.querySelector<HTMLElement>("[data-testid=turn-file-change]")!;
+
+  await userEvent.hover(chip);
+  await waitFor(() =>
+    expect(document.querySelector("[data-testid=file-diff-preview-body]")).not.toBeNull(),
+  );
+
+  const card = document.querySelector<HTMLElement>("[data-testid=turn-file-change-preview]")!;
+  const header = card.querySelector<HTMLElement>("[data-testid=file-diff-preview-header]")!;
+  const body = card.querySelector<HTMLElement>("[data-testid=file-diff-preview-body]")!;
+  const cardStyle = getComputedStyle(card);
+  const headerStyle = getComputedStyle(header);
+  const bodyStyle = getComputedStyle(body);
+
+  expect(cardStyle.paddingTop).toBe("0px");
+  expect(cardStyle.gap).toBe("0px");
+  expect(cardStyle.overflow).toBe("hidden");
+  expect(headerStyle.paddingLeft).toBe("12px");
+  expect(headerStyle.paddingTop).toBe("8px");
+  expect(headerStyle.borderBottomWidth).toBe("1px");
+  expect(headerStyle.backgroundColor).not.toBe(bodyStyle.backgroundColor);
+});
+
 it("keeps the duration on one line when changed files compete for a narrow footer", () => {
   host.style.width = "240px";
   const paths = [
