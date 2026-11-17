@@ -347,6 +347,7 @@ const styles = StyleSheet.create((theme) => ({
     overflow: "hidden",
   },
   splitButtonPrimary: {
+    fontSize: theme.fontSize.base,
     paddingHorizontal: {
       xs: theme.spacing[3],
       md: theme.spacing[2],
