@@ -31,10 +31,11 @@ afterEach(() => {
 });
 
 describe("RunningScriptMark", () => {
-  it("shows the running script name beside the activity bars", () => {
+  it("keeps the script name accessible without replacing visible workspace content", () => {
     const mark = mount(["run"]);
 
-    expect(mark.textContent).toContain("run");
+    expect(mark.getAttribute("aria-label")).toBe("run");
+    expect(mark.textContent).toBe("");
     expect(mark.querySelector("[data-testid=explorer-run-activity]")).not.toBeNull();
   });
 });

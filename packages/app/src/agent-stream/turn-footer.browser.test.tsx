@@ -1,11 +1,19 @@
 import React, { act } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { PortalProvider } from "@gorhom/portal";
 import { createRoot, type Root } from "react-dom/client";
+import { waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { userEvent } from "vitest/browser";
 import { i18n } from "@/i18n/i18next";
 import type { TurnTiming } from "@/timeline/turn-time";
 import type { StreamItem } from "@/types/stream";
+import { AssistantFileLinkResolverProvider, type InlinePathTarget } from "@/assistant-file-links";
+import type { OpenFileDisposition } from "@/workspace/file-open";
+import type { AssistantFileLinkDaemonClient } from "@/assistant-file-links/provider";
 import { createNativeStreamStrategy } from "./strategy-native";
 import { CompletedTurnFooterRow } from "./turn-footer";
+import { FloatingPanelPortalHost } from "@/components/ui/floating-panel-portal";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -45,17 +53,39 @@ function forkAssistantTurn() {
   return undefined;
 }
 
-function renderCompletedFooter(timing: TurnTiming, items: StreamItem[] = [reply]): void {
+const TEST_FILE_CLIENT = {
+  getDirectorySuggestions: async () => ({
+    entries: [{ path: "src/example.ts", kind: "file" }],
+    error: null,
+  }),
+} satisfies AssistantFileLinkDaemonClient;
+
+function renderCompletedFooter(
+  timing: TurnTiming,
+  items: StreamItem[] = [reply],
+  onOpenWorkspaceFile?: (target: InlinePathTarget, disposition: OpenFileDisposition) => void,
+): void {
   act(() =>
     root.render(
-      <CompletedTurnFooterRow
-        strategy={createNativeStreamStrategy()}
-        items={items}
-        timing={timing}
-        startIndex={items.length - 1}
-        supportsTimelineCursor={false}
-        onForkAssistantTurn={forkAssistantTurn}
-      />,
+      <PortalProvider>
+        <QueryClientProvider client={new QueryClient()}>
+          <AssistantFileLinkResolverProvider
+            client={TEST_FILE_CLIENT}
+            workspaceRoot="/repo"
+            onOpenWorkspaceFile={onOpenWorkspaceFile}
+          >
+            <CompletedTurnFooterRow
+              strategy={createNativeStreamStrategy()}
+              items={items}
+              timing={timing}
+              startIndex={items.length - 1}
+              supportsTimelineCursor={false}
+              onForkAssistantTurn={forkAssistantTurn}
+            />
+            <FloatingPanelPortalHost />
+          </AssistantFileLinkResolverProvider>
+        </QueryClientProvider>
+      </PortalProvider>,
     ),
   );
 }
@@ -166,6 +196,46 @@ it("opens the fork menu with distinct, clearly labeled destinations", () => {
   expect(newTab?.querySelector("svg")?.outerHTML).not.toBe(
     newWorkspace?.querySelector("svg")?.outerHTML,
   );
+});
+
+it.each(["src/example.ts", "Dockerfile", "Makefile", "docs/my notes.md", "src/file.svg"])(
+  "opens the exact changed-file path when its chip is clicked (%s)",
+  async (filePath) => {
+    const openWorkspaceFile = vi.fn();
+    renderCompletedFooter(
+      { completedAt: FRIDAY_NIGHT, durationMs: 1_000 },
+      [editedFile("edit-example", filePath), reply],
+      openWorkspaceFile,
+    );
+    const chip = host.querySelector<HTMLElement>("[data-testid=turn-file-change]")!;
+    act(() => chip.click());
+
+    await waitFor(() =>
+      expect(openWorkspaceFile).toHaveBeenCalledWith(
+        expect.objectContaining({ raw: filePath, path: `/repo/${filePath}` }),
+        "preferred",
+      ),
+    );
+  },
+);
+
+it("restores the changed-file preview after leaving a clicked chip", async () => {
+  renderCompletedFooter({ completedAt: FRIDAY_NIGHT, durationMs: 1_000 }, [
+    editedFile("edit-example", "src/example.ts"),
+    reply,
+  ]);
+  const chip = host.querySelector<HTMLElement>("[data-testid=turn-file-change]")!;
+  const preview = () => document.querySelector("[data-testid=turn-file-change-preview]");
+
+  await userEvent.hover(chip);
+  await waitFor(() => expect(preview()).not.toBeNull());
+
+  await userEvent.click(chip);
+  await waitFor(() => expect(preview()).toBeNull());
+
+  await userEvent.unhover(chip);
+  await userEvent.hover(chip);
+  await waitFor(() => expect(preview()).not.toBeNull());
 });
 
 it("keeps the duration on one line when changed files compete for a narrow footer", () => {

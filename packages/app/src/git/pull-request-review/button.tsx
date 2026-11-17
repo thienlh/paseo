@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { StyleSheet } from "react-native-unistyles";
+import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import { TextSearch } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { create } from "zustand";
@@ -16,6 +16,7 @@ import { useCheckoutStatusQuery } from "@/git/use-status-query";
 import { useCheckoutPrStatusQuery } from "@/git/use-pr-status-query";
 import { selectPullRequestReviewSubject, selectReviewSubject, type ReviewSubject } from "./context";
 import { startReviewChat } from "./start";
+import type { Theme } from "@/styles/theme";
 
 interface PullRequestReviewState {
   inFlight: boolean;
@@ -27,9 +28,12 @@ const usePullRequestReviewStore = create<PullRequestReviewState>((set) => ({
   setInFlight: (inFlight) => set({ inFlight }),
 }));
 
-function renderReviewIcon(color: string) {
-  return <TextSearch size={16} color={color} />;
-}
+const ThemedTextSearch = withUnistyles(TextSearch);
+const reviewIconColor = (theme: Theme) => ({ color: theme.colors.accent });
+const REVIEW_ICON_STYLE = { width: 14, height: 14 } as const;
+const REVIEW_ICON = (
+  <ThemedTextSearch size={14} uniProps={reviewIconColor} style={REVIEW_ICON_STYLE} />
+);
 
 export function WorkspaceReviewButton({
   serverId,
@@ -136,9 +140,9 @@ export function PullRequestReviewButton({
 
   return (
     <Button
-      variant="default"
+      variant="outline"
       size="sm"
-      leftIcon={renderReviewIcon}
+      leftIcon={REVIEW_ICON}
       loading={inFlight}
       disabled={inFlight}
       onPress={startReview}
@@ -154,6 +158,7 @@ export function PullRequestReviewButton({
 
 const styles = StyleSheet.create((theme) => ({
   button: {
+    fontSize: theme.fontSize.base,
     gap: theme.spacing[1],
     minHeight: HEADER_CONTROL_HEIGHT,
     height: HEADER_CONTROL_HEIGHT,
@@ -162,6 +167,7 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: theme.borderRadius.md,
   },
   buttonText: {
+    color: theme.colors.accent,
     fontSize: theme.fontSize.base,
     lineHeight: theme.fontSize.base * 1.5,
     fontWeight: theme.fontWeight.normal,

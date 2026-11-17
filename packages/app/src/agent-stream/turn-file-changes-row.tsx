@@ -1,5 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Text, View } from "react-native";
+import { useAssistantFileLinkEnvironment } from "@/assistant-file-links";
+import { resolveWorkspaceFilePaths } from "@/workspace/file-open";
+import { PressHighlight } from "@/components/ui/press-highlight";
 import { StyleSheet } from "react-native-unistyles";
 import { DiffStat } from "@/components/diff-stat";
 import { DiffViewer } from "@/components/diff-viewer";
@@ -69,18 +72,48 @@ function useProgressiveCount(total: number): number {
 function FileChip({ change, workspaceRoot }: { change: TurnFileChange; workspaceRoot?: string }) {
   const path = displayChangedFilePath(change.filePath, workspaceRoot);
   const name = path.split("/").findLast(Boolean) ?? path;
+  const { onOpenWorkspaceFile: openWorkspaceFile, workspaceRoot: openWorkspaceRoot } =
+    useAssistantFileLinkEnvironment();
+  const [previewDismissed, setPreviewDismissed] = useState(false);
+  const resetPreviewDismissal = useCallback(() => setPreviewDismissed(false), []);
+  const handlePress = useCallback(() => {
+    setPreviewDismissed(true);
+    // Edit results identify an exact file; assistant prose heuristics must not reject its name.
+    const absolutePath = openWorkspaceRoot
+      ? resolveWorkspaceFilePaths({
+          path: change.filePath,
+          workspaceRoot: openWorkspaceRoot,
+        })?.absolutePath
+      : undefined;
+    openWorkspaceFile?.(
+      { raw: change.filePath, path: absolutePath ?? change.filePath },
+      "preferred",
+    );
+  }, [change.filePath, openWorkspaceFile, openWorkspaceRoot]);
   return (
-    <HoverCard>
-      <HoverCardTrigger focusable accessibilityLabel={path}>
-        <View style={styles.chip} testID="turn-file-change">
+    <HoverCard disabled={previewDismissed}>
+      <HoverCardTrigger onPointerLeave={resetPreviewDismissal}>
+        <PressHighlight
+          style={styles.chip}
+          testID="turn-file-change"
+          accessibilityRole="link"
+          accessibilityLabel={path}
+          onPress={handlePress}
+        >
           <MaterialFileIcon fileName={name} size={12} />
           <Text style={styles.name} numberOfLines={1}>
             {name}
           </Text>
           <DiffStat additions={change.additions} deletions={change.deletions} />
-        </View>
+        </PressHighlight>
       </HoverCardTrigger>
-      <HoverCardContent placement="top" offset={8} style={styles.preview} accessibilityLabel={path}>
+      <HoverCardContent
+        placement="top"
+        offset={8}
+        style={styles.preview}
+        accessibilityLabel={path}
+        testID="turn-file-change-preview"
+      >
         <FileChangePreview change={change} path={path} />
       </HoverCardContent>
     </HoverCard>
