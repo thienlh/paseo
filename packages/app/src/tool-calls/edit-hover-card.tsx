@@ -1,15 +1,10 @@
 import { useMemo, type ReactNode } from "react";
-import { Text, View } from "react-native";
-import { StyleSheet } from "react-native-unistyles";
 import type { ToolCallDetail } from "@getpaseo/protocol/agent-types";
-import { DiffStat } from "@/components/diff-stat";
-import { DiffViewer } from "@/components/diff-viewer";
+import { FileDiffPreview, fileDiffPreviewCardStyle } from "@/components/file-diff-preview";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { highlightDiffLines } from "@/utils/diff-highlight";
 import { turnFileDiffLines } from "@/agent-stream/turn-file-changes";
 import { buildToolCallEditDiffStat } from "./edit-diff";
-
-const PREVIEW_MAX_HEIGHT = 320;
 
 export function ToolCallEditHoverCard({
   detail,
@@ -25,7 +20,12 @@ export function ToolCallEditHoverCard({
   return (
     <HoverCard>
       <HoverCardTrigger accessibilityLabel={path}>{children}</HoverCardTrigger>
-      <HoverCardContent placement="top" offset={8} style={styles.preview} accessibilityLabel={path}>
+      <HoverCardContent
+        placement="top"
+        offset={8}
+        style={fileDiffPreviewCardStyle}
+        accessibilityLabel={path}
+      >
         <EditPreview detail={detail} path={path} />
       </HoverCardContent>
     </HoverCard>
@@ -52,41 +52,11 @@ export function EditPreview({
           deletions: 0,
         };
   return (
-    <>
-      <View style={styles.previewHeader}>
-        <Text style={styles.previewPath} numberOfLines={1} ellipsizeMode="middle">
-          {path}
-        </Text>
-        {diffStat ? (
-          <DiffStat additions={diffStat.additions} deletions={diffStat.deletions} />
-        ) : null}
-      </View>
-      <DiffViewer diffLines={diffLines} maxHeight={PREVIEW_MAX_HEIGHT} />
-    </>
+    <FileDiffPreview
+      path={path}
+      diffLines={diffLines}
+      additions={diffStat?.additions}
+      deletions={diffStat?.deletions}
+    />
   );
 }
-
-const styles = StyleSheet.create((theme) => ({
-  preview: {
-    width: 520,
-    maxWidth: "90%",
-    gap: theme.spacing[2],
-    padding: theme.spacing[2],
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.lg,
-    backgroundColor: theme.colors.surface1,
-  },
-  previewHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[2],
-  },
-  previewPath: {
-    flex: 1,
-    minWidth: 0,
-    color: theme.colors.foregroundMuted,
-    fontFamily: theme.fontFamily.mono,
-    fontSize: theme.fontSize.sm,
-  },
-}));

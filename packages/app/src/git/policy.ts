@@ -137,10 +137,6 @@ export function narrowPullRequestState(state: string | null | undefined): "open"
 }
 
 export function buildGitActions(input: BuildGitActionsInput): GitActions {
-  if (!input.isGit) {
-    return { primary: null, secondary: [], menu: [] };
-  }
-
   const allActions = new Map<GitActionId, GitAction>();
 
   allActions.set("commit", {
@@ -246,6 +242,14 @@ export function buildGitActions(input: BuildGitActionsInput): GitActions {
     handler: input.runtime["archive-workspace"].handler,
   });
 
+  if (!input.isGit) {
+    return {
+      primary: allActions.get("archive-workspace") ?? null,
+      secondary: [],
+      menu: [],
+    };
+  }
+
   for (const id of ["continue-workspace", "fix-pr"] as const) {
     const label = i18n.t(`workspace.git.actions.${id === "fix-pr" ? "fixPr" : "continue"}`);
     allActions.set(id, {
@@ -345,7 +349,7 @@ function getPrimaryActionId(input: BuildGitActionsInput): GitActionId | null {
     return "pr";
   }
 
-  return null;
+  return "archive-workspace";
 }
 
 function getPullRequestActionIds(filter: {
