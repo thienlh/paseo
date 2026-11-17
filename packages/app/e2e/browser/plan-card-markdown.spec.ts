@@ -131,7 +131,7 @@ test("linked inline code keeps code typography and wraps long paths", async ({
       mockAssistantResponse:
         "Compare `ordinary_token`, `file.ts:12`, `https://example.com`. At the end of this line open `" +
         longPath +
-        "`.",
+        "`. Bare https://paseo.sh.",
     },
     initialPrompt: "Show inline code",
   });
@@ -147,13 +147,33 @@ test("linked inline code keeps code typography and wraps long paths", async ({
     });
     expect(measurements.codes).toHaveLength(4);
     const [plain, file, url, long] = measurements.codes;
+    for (const code of measurements.codes) {
+      expect(code.borderWidth).toBe("1px");
+      expect(code.borderRadius).toBe("6px");
+      expect(code.padding).toBe("1px 6px");
+      expect(code.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    }
     for (const linked of [file, url, long]) {
       expect(linked.fontSize).toBe(plain.fontSize);
       expect(linked.fontFamily).toBe(plain.fontFamily);
       expect(linked.backgroundColor).toBe(plain.backgroundColor);
       expect(linked.color).toBe(linked.anchorColor);
       expect(linked.color).not.toBe(plain.color);
+      expect(linked.anchorColor).toBe(file.anchorColor);
     }
+    const inlineHttpLink = message.getByRole("link", { name: "https://example.com", exact: true });
+    await expect(inlineHttpLink.locator("code")).toHaveCount(1);
+    await expect(inlineHttpLink.locator("svg")).toHaveCount(1);
+
+    const bareHttpLink = message.getByRole("link", { name: "https://paseo.sh", exact: true });
+    await expect(bareHttpLink.locator("code")).toHaveCount(0);
+    await expect(bareHttpLink.locator("svg")).toHaveCount(1);
+    await expect(bareHttpLink).toHaveCSS("overflow-wrap", "anywhere");
+    await expect(bareHttpLink).not.toHaveCSS("text-decoration-line", "underline");
+    await bareHttpLink.hover();
+    await expect(bareHttpLink).toHaveCSS("text-decoration-line", "underline");
+
+    await message.screenshot({ path: testInfo.outputPath("inline-code-style.png") });
     expect(long.lines).toBeGreaterThan(1);
     expect(long.right).toBeLessThanOrEqual(measurements.right + 1);
   } finally {
@@ -176,6 +196,9 @@ async function measureInlineCode(message: Locator) {
         fontSize: style.fontSize,
         fontFamily: style.fontFamily,
         backgroundColor: style.backgroundColor,
+        borderWidth: style.borderWidth,
+        borderRadius: style.borderRadius,
+        padding: style.padding,
         color: style.color,
         anchorColor: code.closest("a") ? getComputedStyle(code.closest("a")!).color : null,
         whiteSpace: style.whiteSpace,
