@@ -18,21 +18,6 @@ function workspaceRowTestId(workspaceId: string): string {
   return `sidebar-workspace-row-${getServerId()}:${workspaceId}`;
 }
 
-async function archiveWorkspaceFromSidebar(page: Page, workspaceId: string): Promise<void> {
-  const serverId = getServerId();
-  const row = page.getByTestId(workspaceRowTestId(workspaceId));
-  await expect(row).toBeVisible({ timeout: 30_000 });
-  await row.hover();
-
-  const kebab = page.getByTestId(`sidebar-workspace-kebab-${serverId}:${workspaceId}`);
-  await expect(kebab).toBeVisible({ timeout: 10_000 });
-  await kebab.click();
-
-  const archiveItem = page.getByTestId(`sidebar-workspace-menu-archive-${serverId}:${workspaceId}`);
-  await expect(archiveItem).toBeVisible({ timeout: 10_000 });
-  await archiveItem.click();
-}
-
 async function removeProjectFromSidebar(page: Page, projectViewKey: string): Promise<void> {
   const projectRow = page.getByTestId(`sidebar-project-row-${projectViewKey}`);
   await expect(projectRow).toBeVisible({ timeout: 30_000 });
@@ -172,9 +157,13 @@ test.describe("Project with no workspaces persists", () => {
         timeout: 30_000,
       });
       await workspaceRow.click();
-      await expect(page.getByTestId("changes-primary-cta")).toHaveCount(0);
-
-      await archiveWorkspaceFromSidebar(page, workspace.workspaceId);
+      await page.getByTestId("workspace-explorer-toggle").first().click();
+      const archiveAction = page
+        .getByTestId("changes-primary-cta")
+        .filter({ visible: true })
+        .first();
+      await expect(archiveAction).toHaveAttribute("aria-label", "Archive");
+      await archiveAction.click();
 
       // The workspace row goes away, but its project parent keeps the header
       // action for creating the next workspace.
