@@ -9,6 +9,8 @@ import {
   PLUGIN_THEME_PREFERENCE,
   REGISTERED_THEMES,
   themeContentMaxWidth,
+  resolveCodeLineHeight,
+  resolveContentLineHeight,
   THEME_TO_UNISTYLES,
   type DarkThemePreference,
   type Theme,
@@ -107,7 +109,8 @@ function scaleFontSize(
 export function applyAppearance(input: AppearanceInput): void {
   const ui = input.uiFontFamily.trim() || DEFAULT_UI_FONT_STACK;
   const mono = input.monoFontFamily.trim() || DEFAULT_MONO_FONT_STACK;
-  const diffLineHeight = Math.round(input.codeFontSize * 1.5); // couple to code size
+  const contentLineHeight = resolveContentLineHeight(input.contentFontSize);
+  const codeLineHeight = resolveCodeLineHeight(input.codeFontSize);
   const contentMaxWidth = themeContentMaxWidth(input.contentMaxWidth);
   const activeTheme = UnistylesRuntime.themeName;
   // Unistyles web emits after each registry patch. Updating the mounted theme
@@ -125,7 +128,12 @@ export function applyAppearance(input: AppearanceInput): void {
         input.contentFontSize,
         input.codeFontSize,
       );
-      const lineHeight = { ...t.lineHeight, diff: diffLineHeight };
+      const lineHeight = {
+        ...t.lineHeight,
+        content: contentLineHeight,
+        code: codeLineHeight,
+        diff: codeLineHeight,
+      };
       const syntax = resolveSyntaxColors(input.syntaxTheme, t.colorScheme);
       if (t.colorScheme === "light") {
         const colors = input.systemAccent
