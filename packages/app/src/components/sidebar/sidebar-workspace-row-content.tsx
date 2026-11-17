@@ -144,11 +144,10 @@ export const SidebarWorkspaceRowContent = memo(function SidebarWorkspaceRowConte
   const workspaceBranchTextStyle = useMemo(
     () => [
       styles.workspaceBranchText,
-      runningScriptNames.length > 0 && styles.workspaceBranchTextWithMark,
       isHovered && styles.workspaceBranchTextHovered,
       isCreating && styles.workspaceBranchTextCreating,
     ],
-    [isCreating, isHovered, runningScriptNames.length],
+    [isCreating, isHovered],
   );
 
   return (
@@ -186,12 +185,14 @@ export const SidebarWorkspaceRowContent = memo(function SidebarWorkspaceRowConte
                 >
                   {workspaceLabel}
                 </Text>
-                {runningScriptNames.length > 0 ? (
-                  <RunningScriptMark names={runningScriptNames} />
-                ) : null}
               </View>
             )}
-            <View style={sidebarWorkspaceRowStyles.rowRight}>{children}</View>
+            <View style={sidebarWorkspaceRowStyles.rowRight}>
+              {runningScriptNames.length > 0 ? (
+                <RunningScriptMark names={runningScriptNames} />
+              ) : null}
+              {children}
+            </View>
           </View>
           <WorkspaceMetaRow
             backdrop={backdrop}
@@ -602,11 +603,6 @@ const styles = StyleSheet.create((theme) => ({
     opacity: 0.76,
     flex: 1,
     minWidth: 0,
-  },
-  // A running script sits immediately after the name, so the title stops growing into that slot.
-  workspaceBranchTextWithMark: {
-    flexGrow: 0,
-    flexShrink: 1,
   },
   workspaceTitleEditorSlot: {
     height: TITLE_LINE_HEIGHT,

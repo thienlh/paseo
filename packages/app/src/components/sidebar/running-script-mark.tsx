@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
 import { RunActivity } from "@/screens/workspace/explorer-sidebar/execution/run-activity";
@@ -11,10 +11,7 @@ const runningColor = scriptToneColorMapping("running");
 
 const ThemedBars = withUnistyles(ActivityBars);
 
-/**
- * The running script, sitting on the title line: the same activity bars the execution control
- * uses, then the script's name. Several at once collapse to a count so the title keeps the row.
- */
+/** A compact running-script status that leaves the workspace title and meta row untouched. */
 export function RunningScriptMark({ names }: { names: readonly string[] }) {
   const { t } = useTranslation();
   const [only] = names;
@@ -27,11 +24,8 @@ export function RunningScriptMark({ names }: { names: readonly string[] }) {
   if (!only) return null;
 
   return (
-    <View style={styles.mark} testID="sidebar-running-script">
+    <View style={styles.mark} testID="sidebar-running-script" accessible accessibilityLabel={label}>
       <ThemedBars uniProps={runningColor} />
-      <Text style={styles.label} numberOfLines={1}>
-        {label}
-      </Text>
     </View>
   );
 }
@@ -40,19 +34,13 @@ function ActivityBars({ color }: { color?: string }) {
   return <RunActivity running connected color={color ?? "transparent"} size={MARK_SIZE} />;
 }
 
-const styles = StyleSheet.create((theme) => ({
+const styles = StyleSheet.create({
   mark: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing[1],
-    flexShrink: 1,
-    maxWidth: "46%",
+    justifyContent: "center",
+    width: MARK_SIZE,
     height: 20,
+    flexShrink: 0,
   },
-  label: {
-    color: runningColor(theme).color,
-    fontSize: theme.fontSize.sm,
-    lineHeight: 16,
-    flexShrink: 1,
-  },
-}));
+});
