@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Text, View } from "react-native";
 import { useFileLink } from "@/assistant-file-links";
 import { PressHighlight } from "@/components/ui/press-highlight";
@@ -72,15 +72,20 @@ function FileChip({ change, workspaceRoot }: { change: TurnFileChange; workspace
   const path = displayChangedFilePath(change.filePath, workspaceRoot);
   const name = path.split("/").findLast(Boolean) ?? path;
   const { onPress } = useFileLink({ href: path, text: path, sourceType: "inline-code" });
+  const [opened, setOpened] = useState(false);
+  const handlePress = useCallback(() => {
+    setOpened(true);
+    onPress();
+  }, [onPress]);
   return (
-    <HoverCard>
+    <HoverCard disabled={opened}>
       <HoverCardTrigger>
         <PressHighlight
           style={styles.chip}
           testID="turn-file-change"
           accessibilityRole="link"
           accessibilityLabel={path}
-          onPress={onPress}
+          onPress={handlePress}
         >
           <MaterialFileIcon fileName={name} size={12} />
           <Text style={styles.name} numberOfLines={1}>
@@ -89,7 +94,13 @@ function FileChip({ change, workspaceRoot }: { change: TurnFileChange; workspace
           <DiffStat additions={change.additions} deletions={change.deletions} />
         </PressHighlight>
       </HoverCardTrigger>
-      <HoverCardContent placement="top" offset={8} style={styles.preview} accessibilityLabel={path}>
+      <HoverCardContent
+        placement="top"
+        offset={8}
+        style={styles.preview}
+        accessibilityLabel={path}
+        testID="turn-file-change-preview"
+      >
         <FileChangePreview change={change} path={path} />
       </HoverCardContent>
     </HoverCard>
