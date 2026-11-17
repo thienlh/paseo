@@ -48,6 +48,11 @@ test("reviews local changes from the Explorer header without a Checks toolbar", 
     const review = header.getByTestId("checks-review-start");
     await expect(review).toBeVisible();
     await expect(review).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(review.getByText("Review", { exact: true })).toHaveCSS(
+      "color",
+      "rgb(32, 116, 74)",
+    );
+    await expect(review.locator("svg")).toHaveAttribute("stroke", "#20744A");
     await header.screenshot({ path: testInfo.outputPath("review-button-outline.png") });
     await expect(emptyState.getByTestId("checks-review-start")).toHaveCount(0);
     await expect(toolbar).toHaveCount(0);
