@@ -136,7 +136,7 @@ export function PullRequestReviewButton({
 
   return (
     <Button
-      variant="default"
+      variant="outline"
       size="sm"
       leftIcon={renderReviewIcon}
       loading={inFlight}

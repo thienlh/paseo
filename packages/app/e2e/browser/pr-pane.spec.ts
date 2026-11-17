@@ -26,7 +26,7 @@ const GITHUB_AUTH = hasGithubAuth();
 
 test("reviews local changes from the Explorer header without a Checks toolbar", async ({
   page,
-}) => {
+}, testInfo) => {
   const workspace = await seedWorkspace({ repoPrefix: "checks-empty-toolbar-" });
 
   try {
@@ -47,6 +47,8 @@ test("reviews local changes from the Explorer header without a Checks toolbar", 
     }
     const review = header.getByTestId("checks-review-start");
     await expect(review).toBeVisible();
+    await expect(review).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await header.screenshot({ path: testInfo.outputPath("review-button-outline.png") });
     await expect(emptyState.getByTestId("checks-review-start")).toHaveCount(0);
     await expect(toolbar).toHaveCount(0);
     await page.getByTestId("workspace-tab-changes_tree").filter({ visible: true }).click();
