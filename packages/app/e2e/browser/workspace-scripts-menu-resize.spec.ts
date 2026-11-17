@@ -33,6 +33,22 @@ async function sampleRunActivity(bar: import("@playwright/test").Locator): Promi
   });
 }
 
+async function readChrome(control: import("@playwright/test").Locator) {
+  return control.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      backgroundColor: style.backgroundColor,
+      borderRadius: style.borderTopLeftRadius,
+      height: element.getBoundingClientRect().height,
+    };
+  });
+}
+
+async function readHoverChrome(control: import("@playwright/test").Locator) {
+  await control.hover();
+  return readChrome(control);
+}
+
 test("Explorer execution retries a failed script start and retains its session through collapse, resize and reload", async ({
   page,
 }, testInfo) => {
@@ -133,7 +149,7 @@ test("Explorer execution retries a failed script start and retains its session t
       if (!control || !bar) throw new Error("Execution header control has no bounds");
       expect(control.x).toBeGreaterThanOrEqual(bar.x);
       expect(control.x + control.width).toBeLessThanOrEqual(bar.x + bar.width);
-      expect(control.y + control.height / 2).toBeCloseTo(
+      expect(control.y + control.height / 2, id).toBeCloseTo(
         actionBounds.y + actionBounds.height / 2,
         0,
       );
@@ -142,6 +158,24 @@ test("Explorer execution retries a failed script start and retains its session t
     const outputBounds = await body.getByTestId("terminal-surface").boundingBox();
     if (!headerBounds || !outputBounds) throw new Error("Execution output has no bounds");
     expect(outputBounds.y - (headerBounds.y + headerBounds.height)).toBeLessThanOrEqual(2);
+    const toolbarHover = await readHoverChrome(
+      header.getByTestId("explorer-execution-new-terminal"),
+    );
+    for (const id of [
+      "explorer-execution-run-view",
+      "explorer-execution-script-picker",
+      "explorer-execution-terminal-view",
+      "explorer-execution-new-terminal",
+    ]) {
+      const hover = await readHoverChrome(header.getByTestId(id));
+      expect(hover.backgroundColor).toBe(toolbarHover.backgroundColor);
+      expect(hover.borderRadius).toBe(toolbarHover.borderRadius);
+      expect(hover.height).toBeLessThan(headerBounds.height);
+    }
+    await page.mouse.move(0, 0);
+    const selectedRun = await readChrome(header.getByTestId("explorer-execution-run-view"));
+    expect(selectedRun.backgroundColor).toBe(toolbarHover.backgroundColor);
+    expect(selectedRun.borderRadius).toBe(toolbarHover.borderRadius);
     await expect(activityBar).toBeVisible();
     expect(new Set(await sampleRunActivity(activityBar)).size).toBeGreaterThan(1);
     await expect(explorer.getByTestId("file-explorer-tree-scroll")).toBeVisible();
@@ -191,6 +225,9 @@ test("Explorer execution retries a failed script start and retains its session t
       "aria-selected",
       "true",
     );
+    await header.getByTestId("explorer-execution-terminal-view").hover();
+    await header.screenshot({ path: testInfo.outputPath("execution-toolbar-hover-dark.png") });
+    await page.mouse.move(0, 0);
     await explorer.screenshot({ path: testInfo.outputPath("explorer-execution-dark.png") });
     await explorer.screenshot({
       path: path.resolve(__dirname, "../../../../.context/execution-toolbar-redesign.png"),
