@@ -13,6 +13,7 @@ import { decodeMarkdownImage, getMarkdownImageStatus } from "./image-decoding";
 import { describe, expect, it } from "vitest";
 import { darkTheme, lightTheme } from "@/styles/theme";
 import { isNative } from "@/constants/platform";
+import { mixHexColors } from "@/utils/color";
 import { createMarkdownStyles } from "./styles";
 import { isRecognizedLink, prepareMarkdownSource, PENDING_MARKDOWN_IMAGE } from "./source";
 import { normalizeMarkdownHtml } from "./html";
@@ -744,14 +745,15 @@ it.each([
     });
     expect(style.code).toMatchObject({
       color: theme.colors.foreground,
-      backgroundColor: theme.colors.surface1,
-      borderColor: theme.colors.surface3,
+      backgroundColor: "transparent",
+      borderColor: theme.colors.border,
     });
     expect(style.strong).toMatchObject({ fontWeight: theme.fontWeight.semibold });
     // Native links keep a persistent cue; web links underline on hover.
-    expect(style.link).toMatchObject({ color: theme.colors.foreground, underline: isNative });
+    const linkColor = mixHexColors(theme.colors.accent, theme.colors.foregroundMuted, 0.5);
+    expect(style.link).toMatchObject({ color: linkColor, underline: isNative });
     expect(style.linkVariants?.["^(?!https?://).+"]).toEqual({
-      color: theme.colors.foreground,
+      color: linkColor,
     });
     expect(style.thematicBreak?.color).toBe(theme.colors.border);
   },
@@ -1123,6 +1125,16 @@ it("replaces the native placeholder only after the resolved URL decodes", () => 
   ).toBe("ready");
   const prepared = prepareMarkdownSource("![image](shot.png)", undefined, { supportsSvg: false });
   expect(prepared.render(new Map([["shot.png", url]]))).toBe(`![image](<${url}>)`);
+});
+
+it("uses Paseo foreground and border tokens for neutral inline-code chips", () => {
+  const { markdownStyle } = createMarkdownStyles(darkTheme, { blockGap: 12 });
+
+  expect(markdownStyle.code).toMatchObject({
+    color: darkTheme.colors.foreground,
+    backgroundColor: "transparent",
+    borderColor: darkTheme.colors.border,
+  });
 });
 
 it("uses Conductor's default prose and code-block line heights", () => {

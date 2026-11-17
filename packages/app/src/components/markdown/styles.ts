@@ -1,6 +1,7 @@
 import type { MarkdownStyle } from "react-native-enriched-markdown";
 import type { Theme } from "@/styles/theme";
 import { isNative, isWeb } from "@/constants/platform";
+import { mixHexColors } from "@/utils/color";
 
 // iOS Safari needs the prefix to override the gesture host's selection suppression.
 const WEB_CONTAINER = { userSelect: "text", WebkitUserSelect: "text" } as const;
@@ -14,6 +15,7 @@ export function createMarkdownStyles(
   }: { compact?: boolean; muted?: boolean; blockGap: number },
 ): { markdownStyle: MarkdownStyle; selectionColor: string; containerStyle?: typeof WEB_CONTAINER } {
   const fontSize = compact ? theme.fontSize.base : theme.fontSize.content;
+  const linkColor = mixHexColors(theme.colors.accent, theme.colors.foregroundMuted, 0.5);
   // Every block is followed by the same gap; the library drops it after the last block.
   const block = { marginTop: 0, marginBottom: blockGap };
   const paragraph = {
@@ -65,19 +67,19 @@ export function createMarkdownStyles(
         },
       },
       // Native has no hover cue; web keeps prose quiet until the pointer is over a link.
-      link: { color: theme.colors.foreground, underline: isNative },
+      link: { color: linkColor, underline: isNative },
       strong: { fontWeight: theme.fontWeight.semibold },
       linkVariants: {
         "^(?!https?://).+": {
-          color: theme.colors.foreground,
+          color: linkColor,
         },
       },
       code: {
         fontFamily: theme.fontFamily.mono === "ui-monospace" && !isWeb ? "" : theme.fontFamily.mono,
         fontScale: theme.fontSize.code / fontSize,
         color: theme.colors.foreground,
-        backgroundColor: theme.colors.surface1,
-        borderColor: theme.colors.surface3,
+        backgroundColor: "transparent",
+        borderColor: theme.colors.border,
       },
       codeBlock: {
         ...paragraph,

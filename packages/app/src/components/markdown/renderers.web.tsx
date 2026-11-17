@@ -1,5 +1,13 @@
 import { Text } from "react-native";
-import { forwardRef, useCallback, useMemo, useState, type ComponentProps } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useMemo,
+  useState,
+  type ComponentProps,
+  type CSSProperties,
+} from "react";
+import { ExternalLink } from "lucide-react-native";
 import type {
   CodeBlockRendererProps,
   LinkRendererProps,
@@ -31,6 +39,10 @@ function WebCodeBlock({ code, language }: CodeBlockRendererProps) {
 
 // The library styles links inline, so a stylesheet :hover rule cannot underline them.
 const LINK_HOVER_STYLE = { textDecoration: "underline" } as const;
+const EXTERNAL_LINK_ICON_STYLE = {
+  marginLeft: 4,
+  verticalAlign: "-0.125em",
+} satisfies CSSProperties;
 
 function WebLink({ link, anchorProps, children }: LinkRendererProps) {
   const forgeShorthand = useForgeShorthand();
@@ -40,6 +52,8 @@ function WebLink({ link, anchorProps, children }: LinkRendererProps) {
     forgeUrl ? markdownLinkSource(forgeUrl) : markdownLinkSource(link.url, link.sourceType),
   );
   const tooltip = forgeUrl ?? tooltipPath;
+  const href = forgeUrl ?? anchorProps.href ?? link.url;
+  const hasExternalIcon = /^https?:\/\//i.test(href);
   const [hovered, setHovered] = useState(false);
   const handleMouseEnter = useCallback(() => setHovered(true), []);
   const handleMouseLeave = useCallback(() => setHovered(false), []);
@@ -63,12 +77,20 @@ function WebLink({ link, anchorProps, children }: LinkRendererProps) {
   const anchor = (
     <a
       {...copyAnchorProps}
-      href={forgeUrl ?? anchorProps.href}
+      href={href}
       style={anchorStyle}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {children}
+      {hasExternalIcon ? (
+        <ExternalLink
+          aria-hidden={true}
+          color="currentColor"
+          size={12}
+          style={EXTERNAL_LINK_ICON_STYLE}
+        />
+      ) : null}
     </a>
   );
   return (
