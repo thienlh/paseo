@@ -51,6 +51,8 @@ function pullRequest(checks: PrPaneCheck[]): PrPaneData {
     title: "Ship the widget",
     state: "open",
     url: "https://example.test/pull/42",
+    baseRefName: "main",
+    headRefName: "feature/widgets",
     reviewDecision: "pending",
     awaitingReviewers: [],
     checks,

@@ -1262,6 +1262,10 @@ const styles = StyleSheet.create((theme) => ({
     marginLeft: theme.spacing[1],
     opacity: 0,
   },
+  divider: {
+    height: theme.borderWidth[1],
+    backgroundColor: theme.colors.border,
+  },
   toolbar: {
     flexDirection: "row",
     alignItems: "center",

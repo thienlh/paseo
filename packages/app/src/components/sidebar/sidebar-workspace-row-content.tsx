@@ -509,9 +509,7 @@ export function SidebarWorkspaceTrailingActionOverlay({
         <TrailingActionScrim
           backdrop={scrimBackdrop}
           width={
-            onArchiveButtonPress && children
-              ? SCRIM_WIDTH + ARCHIVE_BUTTON_FOOTPRINT
-              : SCRIM_WIDTH
+            onArchiveButtonPress && children ? SCRIM_WIDTH + ARCHIVE_BUTTON_FOOTPRINT : SCRIM_WIDTH
           }
           testID="sidebar-workspace-trailing-scrim"
         />

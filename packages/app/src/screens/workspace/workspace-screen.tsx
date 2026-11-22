@@ -136,6 +136,7 @@ import {
 } from "@/stores/workspace-setup-store";
 import { useWorkspace } from "@/stores/session-store-hooks";
 import type { CheckoutStatusPayload } from "@/git/use-status-query";
+import { WorkspaceActions } from "@/git/workspace-actions";
 import { confirmDialog } from "@/utils/confirm-dialog";
 import { useArchiveAgent } from "@/hooks/use-archive-agent";
 import { useWorkspaceArchiveUndoRunning } from "@/workspace/archive-undo";
@@ -3258,7 +3259,11 @@ function WorkspaceScreenContent({
         ) : null}
         {workspaceDirectory ? (
           <>
-            <WorkspaceActions serverId={normalizedServerId} cwd={workspaceDirectory} />
+            <WorkspaceActions
+              serverId={normalizedServerId}
+              workspaceId={normalizedWorkspaceId}
+              cwd={workspaceDirectory}
+            />
             {workspaceActionsInBar ? null : explorerControls.headerAction}
           </>
         ) : null}

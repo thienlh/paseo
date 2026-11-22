@@ -2558,9 +2558,6 @@ const styles = StyleSheet.create((theme: Theme) => ({
     alignItems: "center",
     justifyContent: "center",
   },
-  voiceButtonRecording: {
-    marginHorizontal: toolbarSlot(COMPOSER_TOOLBAR_SHAPES.disc).marginHorizontal,
-  },
   sendButton: {
     minWidth: TOOLBAR_DISC_SIZE,
     height: TOOLBAR_DISC_SIZE,

@@ -142,7 +142,6 @@ export const TriangleAlertIcon = StubIcon;
 export const ArrowRightToLine = StubIcon;
 export const Columns2 = StubIcon;
 export const CopyX = StubIcon;
-export const Ellipsis = StubIcon;
 export const Maximize = StubIcon;
 export const Minimize = StubIcon;
 export const Rows2 = StubIcon;

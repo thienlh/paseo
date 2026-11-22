@@ -2017,6 +2017,26 @@ function buildShimmerTextStyle(input: {
   });
 }
 
+function expandableBadgePressHandlers({
+  isInteractive,
+  onToggle,
+  onPressIn,
+  onPressOut,
+}: {
+  isInteractive: boolean;
+  onToggle?: () => void;
+  onPressIn: () => void;
+  onPressOut: () => void;
+}) {
+  if (!isInteractive) return {};
+  return {
+    onPress: onToggle,
+    onPressIn,
+    onPressOut,
+    accessibilityRole: "button" as const,
+  };
+}
+
 export const ExpandableBadge = memo(function ExpandableBadge({
   label,
   labelAccessory,
@@ -2283,14 +2303,12 @@ export const ExpandableBadge = memo(function ExpandableBadge({
     iconNode,
   });
 
-  const pressHandlers = isInteractive
-    ? {
-        onPress: onToggle,
-        onPressIn: handlePressIn,
-        onPressOut: handlePressOut,
-        accessibilityRole: "button" as const,
-      }
-    : {};
+  const pressHandlers = expandableBadgePressHandlers({
+    isInteractive,
+    onToggle,
+    onPressIn: handlePressIn,
+    onPressOut: handlePressOut,
+  });
 
   return (
     <View
