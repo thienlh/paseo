@@ -22,7 +22,7 @@ import { buildToolCallEditDiffLines } from "@/tool-calls/edit-diff";
 import { hasMeaningfulToolCallDetail } from "@/utils/tool-call-detail-state";
 import { inlineUnistylesStyle } from "@/styles/unistyles-inline-style";
 import { CODE_SURFACE_DATASET } from "@/styles/code-surface";
-import { extensionFromPath, highlightToKeyedLines } from "@/utils/highlight-cache";
+import { highlightToKeyedLines } from "@/utils/highlight-cache";
 import { HighlightedLines } from "./highlighted-content";
 import { DiffViewer } from "./diff-viewer";
 import { getCodeInsets } from "./code-insets";
@@ -224,7 +224,7 @@ function ScrollableTextSection({
   startLine,
 }: ScrollableContentProps) {
   const keyedLines = useMemo(
-    () => (filePath ? highlightToKeyedLines(content, extensionFromPath(filePath)) : null),
+    () => highlightToKeyedLines(content, filePath ?? null),
     [content, filePath],
   );
   const body = (
@@ -349,6 +349,9 @@ function buildSearchSections(detail: SearchDetail, ds: DetailStyles): ReactNode[
         </Text>
       </View>,
     );
+  }
+  if (out.length === 0 && detail.query) {
+    return [<ScrollablePlainTextSection key="search-query" text={detail.query} ds={ds} />];
   }
   return out;
 }

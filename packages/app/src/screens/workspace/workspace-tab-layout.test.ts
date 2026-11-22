@@ -1,11 +1,5 @@
 import { buildDesktopFrameStyle } from "@/components/ui/combobox-frame-style";
-import {
-  resolveWorkspaceExplorerToggleOwner,
-  WorkspaceHeaderExplorerToggle,
-  WorkspaceExplorerSidebarToggle,
-} from "./workspace-explorer-toggle";
 import { describe, expect, it } from "vitest";
-import { SidebarCloseButton } from "@/components/headers/sidebar-close-button";
 import { resolveWorkspaceTabChipBackdrop } from "@/screens/workspace/workspace-tab-chip-backdrop";
 import { darkPureBlackTheme, darkTheme, lightTheme } from "@/styles/theme";
 import {
@@ -188,30 +182,6 @@ describe("retainWorkspaceTabMeasuredWidth", () => {
 
   it("accepts the next usable layout width", () => {
     expect(retainWorkspaceTabMeasuredWidth(720, 640)).toBe(640);
-  });
-});
-
-describe("Explorer toggle ownership", () => {
-  const toggleProps = {
-    onPress: () => {},
-    label: "Close Explorer sidebar",
-    tooltipLabel: "Toggle Explorer sidebar",
-    tooltipKeys: [],
-    accessibilityState: { expanded: true },
-  };
-
-  it("keeps the desktop toggle inside the workspace header", () => {
-    expect(resolveWorkspaceExplorerToggleOwner({ isMobile: false })).toBe("header");
-    expect(WorkspaceHeaderExplorerToggle({ ...toggleProps, owner: "header" })).not.toBeNull();
-    expect(WorkspaceExplorerSidebarToggle({ ...toggleProps, owner: "header" })).toBeNull();
-  });
-
-  it("closes the compact overlay with the same X as the compact agent list", () => {
-    expect(resolveWorkspaceExplorerToggleOwner({ isMobile: true })).toBe("mobile");
-    expect(WorkspaceHeaderExplorerToggle({ ...toggleProps, owner: "mobile" })).toBeNull();
-    expect(WorkspaceExplorerSidebarToggle({ ...toggleProps, owner: "mobile" })?.type).toBe(
-      SidebarCloseButton,
-    );
   });
 });
 

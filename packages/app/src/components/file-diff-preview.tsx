@@ -1,4 +1,4 @@
-import { Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 import { DiffStat } from "@/components/diff-stat";
 import { DiffViewer } from "@/components/diff-viewer";
@@ -29,9 +29,9 @@ export function FileDiffPreview({
           <DiffStat additions={additions} deletions={deletions} />
         ) : null}
       </View>
-      <View style={styles.body} testID="file-diff-preview-body">
-        <DiffViewer diffLines={diffLines} maxHeight={maxHeight} />
-      </View>
+      <ScrollView style={[styles.body, { maxHeight }]} testID="file-diff-preview-body">
+        <DiffViewer diffLines={diffLines} />
+      </ScrollView>
     </>
   );
 }

@@ -4,6 +4,7 @@ import { useStableEvent } from "@/hooks/use-stable-event";
 import { getAgentAttachmentPillContent } from "@/attachments/attachment-pill-content";
 import { AnsweredQuestionCard } from "@/components/answered-question-card";
 import { AssistantForkMenu, type AssistantForkTarget } from "@/components/assistant-fork-menu";
+import { TurnMetricsButton } from "@/components/turn-metrics";
 import { AttachmentLightbox, type ImageLightboxSource } from "@/components/attachment-lightbox";
 import {
   AttachmentFrame,
@@ -15,8 +16,12 @@ import { MaterialFileIcon } from "@/components/material-file-icon";
 import { ProviderImagePreview } from "@/components/provider-image-preview";
 import { splitProviderMessage } from "@/components/provider-image";
 import { useRetainedPanelActive } from "@/components/retained-panel";
-import { RewindMenu, type RewindMode } from "@/components/rewind/rewind-menu";
-import { useRewindAgentMutation } from "@/components/rewind/use-rewind-agent-mutation";
+import {
+  isRewindableMessage,
+  RewindMenu,
+  useRewindAgentMutation,
+  type RewindMode,
+} from "@/components/rewind";
 import { TaskListRow } from "@/components/task-list-row";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useIsCompactFormFactor } from "@/constants/layout";
@@ -36,7 +41,11 @@ import { useToolCallExpanded } from "@/tool-calls/expansion-context";
 import { useTargetAgentTitle } from "@/tool-calls/use-target-agent-title";
 import type { DaemonClient } from "@getpaseo/client/internal/daemon-client";
 import type { AgentMessage } from "@getpaseo/protocol/agent-message";
-import type { AgentCapabilityFlags, ToolCallDetail } from "@getpaseo/protocol/agent-types";
+import type {
+  AgentCapabilityFlags,
+  AgentMetric,
+  ToolCallDetail,
+} from "@getpaseo/protocol/agent-types";
 import type { AgentAttachment } from "@getpaseo/protocol/messages";
 import MaskedView from "@react-native-masked-view/masked-view";
 import {
@@ -555,7 +564,7 @@ export const UserMessage = memo(function UserMessage({
             <Text style={userMessageStylesheet.timestampText} testID="user-message-timestamp">
               {formattedTimestamp}
             </Text>
-            {capabilities && messageId ? (
+            {capabilities && isRewindableMessage(messageId, message) ? (
               <RewindMenu
                 capabilities={capabilities}
                 isPending={rewindMutation.isPending}
@@ -581,6 +590,8 @@ interface AssistantTurnFooterProps {
   completedAt?: Date;
   durationMs?: number | null;
   onFork?: (target: AssistantForkTarget) => Promise<void> | void;
+  /** What the provider reported about the turn. Without any, the footer has no stats button. */
+  metrics?: AgentMetric[];
 }
 
 const assistantTurnFooterStylesheet = StyleSheet.create((theme) => ({
@@ -624,6 +635,7 @@ export const AssistantTurnFooter = memo(function AssistantTurnFooter({
   completedAt,
   durationMs,
   onFork,
+  metrics,
 }: AssistantTurnFooterProps) {
   const { t } = useTranslation();
   const durationLabel = useMemo(
@@ -643,6 +655,7 @@ export const AssistantTurnFooter = memo(function AssistantTurnFooter({
     [onFork],
   );
   const canFork = Boolean(onFork);
+  const hasMetrics = metrics !== undefined && metrics.length > 0;
 
   return (
     <View style={assistantTurnFooterStylesheet.container}>
@@ -655,7 +668,7 @@ export const AssistantTurnFooter = memo(function AssistantTurnFooter({
           {timingLabel}
         </Text>
       ) : null}
-      {getContent || canFork ? (
+      {getContent || canFork || hasMetrics ? (
         <View style={assistantTurnFooterStylesheet.actions}>
           {getContent ? (
             <TurnCopyButton
@@ -664,6 +677,7 @@ export const AssistantTurnFooter = memo(function AssistantTurnFooter({
             />
           ) : null}
           {canFork ? <AssistantForkMenu onFork={handleFork} /> : null}
+          {hasMetrics ? <TurnMetricsButton metrics={metrics} /> : null}
         </View>
       ) : null}
     </View>
@@ -898,17 +912,6 @@ const expandableBadgeStylesheet = StyleSheet.create((theme) => ({
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  togglePressable: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexShrink: 1,
-    minWidth: 0,
-    overflow: "hidden",
-  },
-  toggleFill: {
-    flex: 1,
-    alignSelf: "stretch",
   },
   labelRow: {
     flex: 1,
@@ -2014,70 +2017,24 @@ function buildShimmerTextStyle(input: {
   });
 }
 
-function secondaryLabelMonospaceStyle(monospace: boolean) {
-  return monospace ? expandableBadgeStylesheet.secondaryLabelMonospace : null;
-}
-
-function isBadgeActive(isHovered: boolean, isExpanded: boolean): boolean {
-  return isHovered || isExpanded;
-}
-
-function shouldShowBadgeChevron(input: {
+function expandableBadgePressHandlers({
+  isInteractive,
+  onToggle,
+  onPressIn,
+  onPressOut,
+}: {
   isInteractive: boolean;
-  isHovered: boolean;
-  isExpanded: boolean;
-}): boolean {
-  return input.isInteractive && (input.isHovered || input.isExpanded);
-}
-
-function resolvePressableStyle(input: {
-  borderlessWhenExpanded: boolean;
-  isExpanded: boolean;
-  isInteractive: boolean;
-  isPressed: boolean;
-}): StyleProp<ViewStyle> {
-  return [
-    expandableBadgeStylesheet.pressable,
-    input.isPressed && input.isInteractive ? expandableBadgeStylesheet.pressablePressed : null,
-    input.isExpanded && expandableBadgeStylesheet.pressableExpanded,
-    input.isExpanded &&
-      (input.borderlessWhenExpanded
-        ? expandableBadgeStylesheet.pressableExpandedDetached
-        : expandableBadgeStylesheet.pressableExpandedAttached),
-  ];
-}
-
-function resolveLabelStyle(input: { isActive: boolean; isLoading: boolean }): StyleProp<TextStyle> {
-  return [
-    expandableBadgeStylesheet.label,
-    input.isActive ? expandableBadgeStylesheet.labelActive : null,
-    input.isLoading ? expandableBadgeStylesheet.labelLoading : null,
-  ];
-}
-
-function resolveShimmerSecondaryTextStyle(input: {
-  monospace: boolean;
-  shimmerStyle: StyleProp<TextStyle>;
-}): StyleProp<TextStyle> {
-  return [
-    expandableBadgeStylesheet.secondaryLabel,
-    secondaryLabelMonospaceStyle(input.monospace),
-    expandableBadgeStylesheet.shimmerSecondaryText,
-    input.shimmerStyle,
-  ];
-}
-
-function resolveSecondaryLabelStyle(input: {
-  isActive: boolean;
-  isError: boolean;
-  monospace: boolean;
-}): StyleProp<TextStyle> {
-  return [
-    expandableBadgeStylesheet.secondaryLabel,
-    secondaryLabelMonospaceStyle(input.monospace),
-    input.isActive ? expandableBadgeStylesheet.secondaryLabelActive : null,
-    input.isError ? expandableBadgeStylesheet.secondaryLabelError : null,
-  ];
+  onToggle?: () => void;
+  onPressIn: () => void;
+  onPressOut: () => void;
+}) {
+  if (!isInteractive) return {};
+  return {
+    onPress: onToggle,
+    onPressIn,
+    onPressOut,
+    accessibilityRole: "button" as const,
+  };
 }
 
 export const ExpandableBadge = memo(function ExpandableBadge({
@@ -2261,7 +2218,15 @@ export const ExpandableBadge = memo(function ExpandableBadge({
   );
 
   const pressableStyle = useMemo(
-    () => resolvePressableStyle({ borderlessWhenExpanded, isExpanded, isInteractive, isPressed }),
+    () => [
+      expandableBadgeStylesheet.pressable,
+      isPressed && isInteractive ? expandableBadgeStylesheet.pressablePressed : null,
+      isExpanded && expandableBadgeStylesheet.pressableExpanded,
+      isExpanded &&
+        (borderlessWhenExpanded
+          ? expandableBadgeStylesheet.pressableExpandedDetached
+          : expandableBadgeStylesheet.pressableExpandedAttached),
+    ],
     [borderlessWhenExpanded, isExpanded, isInteractive, isPressed],
   );
 
@@ -2278,15 +2243,24 @@ export const ExpandableBadge = memo(function ExpandableBadge({
     [isExpanded, isInteractive],
   );
 
-  const isActive = isBadgeActive(isHovered, isExpanded);
+  const isActive = isHovered || isExpanded;
 
   const labelStyle = useMemo(
-    () => resolveLabelStyle({ isActive, isLoading }),
+    () => [
+      expandableBadgeStylesheet.label,
+      isActive && expandableBadgeStylesheet.labelActive,
+      isLoading && expandableBadgeStylesheet.labelLoading,
+    ],
     [isActive, isLoading],
   );
 
   const secondaryLabelStyle = useMemo(
-    () => resolveSecondaryLabelStyle({ isActive, isError, monospace: secondaryLabelMonospace }),
+    () => [
+      expandableBadgeStylesheet.secondaryLabel,
+      secondaryLabelMonospace && expandableBadgeStylesheet.secondaryLabelMonospace,
+      isActive && expandableBadgeStylesheet.secondaryLabelActive,
+      isError && expandableBadgeStylesheet.secondaryLabelError,
+    ],
     [isActive, isError, secondaryLabelMonospace],
   );
 
@@ -2301,11 +2275,12 @@ export const ExpandableBadge = memo(function ExpandableBadge({
   );
 
   const shimmerSecondaryTextStyle = useMemo(
-    () =>
-      resolveShimmerSecondaryTextStyle({
-        monospace: secondaryLabelMonospace,
-        shimmerStyle: shimmerSecondaryStyle,
-      }),
+    () => [
+      expandableBadgeStylesheet.secondaryLabel,
+      secondaryLabelMonospace && expandableBadgeStylesheet.secondaryLabelMonospace,
+      expandableBadgeStylesheet.shimmerSecondaryText,
+      shimmerSecondaryStyle,
+    ],
     [secondaryLabelMonospace, shimmerSecondaryStyle],
   );
 
@@ -2323,19 +2298,18 @@ export const ExpandableBadge = memo(function ExpandableBadge({
   const ThemedIcon = useMemo(() => (icon ? withUnistyles(icon) : null), [icon]);
   const iconNode = renderExpandableBadgeIcon({ isError, isActive, ThemedIcon });
   const iconSlotNode = renderExpandableBadgeIconSlot({
-    showChevron: shouldShowBadgeChevron({ isInteractive, isHovered, isExpanded }),
+    showChevron: isInteractive && (isHovered || isExpanded),
     chevronStyle,
     iconNode,
   });
 
-  const pressHandlers = isInteractive
-    ? {
-        onPress: onToggle,
-        onPressIn: handlePressIn,
-        onPressOut: handlePressOut,
-        accessibilityRole: "button" as const,
-      }
-    : {};
+  const pressHandlers = expandableBadgePressHandlers({
+    isInteractive,
+    onToggle,
+    onPressIn: handlePressIn,
+    onPressOut: handlePressOut,
+  });
+
   return (
     <View
       style={containerStyle}

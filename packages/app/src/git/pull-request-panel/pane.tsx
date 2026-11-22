@@ -620,13 +620,13 @@ export function PullRequestPane({
               />
             ))
           : null}
+        {reviewSection ? (
+          <>
+            <View style={styles.divider} />
+            {reviewSection}
+          </>
+        ) : null}
       </View>
-      {reviewSection ? (
-        <>
-          <View style={styles.divider} />
-          {reviewSection}
-        </>
-      ) : null}
     </PullRequestPaneSplit>
   );
 }
@@ -1263,7 +1263,7 @@ const styles = StyleSheet.create((theme) => ({
     opacity: 0,
   },
   divider: {
-    height: 1,
+    height: theme.borderWidth[1],
     backgroundColor: theme.colors.border,
   },
   toolbar: {

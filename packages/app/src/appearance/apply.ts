@@ -8,6 +8,7 @@ import {
   PLUGIN_THEME_NAMES,
   PLUGIN_THEME_PREFERENCE,
   REGISTERED_THEMES,
+  themeContentMaxWidth,
   resolveCodeLineHeight,
   resolveContentLineHeight,
   THEME_TO_UNISTYLES,
@@ -60,7 +61,7 @@ export interface AppearanceInput {
   uiBaseFontSize: number; // already clamped
   contentFontSize: number; // already clamped
   codeFontSize: number; // already clamped
-  contentMaxWidth: number; // already clamped, default resolved
+  contentMaxWidth: number | undefined; // undefined fills the available width
   syntaxTheme: SyntaxThemeId;
   /** macOS system accent. Null keeps each theme's own accent. */
   systemAccent?: string | null;
@@ -110,6 +111,7 @@ export function applyAppearance(input: AppearanceInput): void {
   const mono = input.monoFontFamily.trim() || DEFAULT_MONO_FONT_STACK;
   const contentLineHeight = resolveContentLineHeight(input.contentFontSize);
   const codeLineHeight = resolveCodeLineHeight(input.codeFontSize);
+  const contentMaxWidth = themeContentMaxWidth(input.contentMaxWidth);
   const activeTheme = UnistylesRuntime.themeName;
   // Unistyles web emits after each registry patch. Updating the mounted theme
   // first ensures subscribers receive its new numeric tokens in this render;
@@ -142,7 +144,7 @@ export function applyAppearance(input: AppearanceInput): void {
           fontFamily,
           fontSize,
           lineHeight,
-          contentMaxWidth: input.contentMaxWidth,
+          contentMaxWidth,
           colors,
         };
       }
@@ -154,7 +156,7 @@ export function applyAppearance(input: AppearanceInput): void {
         fontFamily,
         fontSize,
         lineHeight,
-        contentMaxWidth: input.contentMaxWidth,
+        contentMaxWidth,
         colors,
       };
     });

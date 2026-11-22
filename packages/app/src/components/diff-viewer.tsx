@@ -29,7 +29,6 @@ const foregroundMutedMapping = (theme: Theme) => ({ color: theme.colors.foregrou
 
 interface DiffViewerProps {
   diffLines: DiffLine[];
-  maxHeight?: number;
   emptyLabel?: string;
   fillAvailableHeight?: boolean;
 }
@@ -378,7 +377,6 @@ function UnmodifiedGroupRow({
 export function DiffViewer({
   diffLines,
   emptyLabel,
-  maxHeight,
   fillAvailableHeight = false,
 }: DiffViewerProps) {
   const { t } = useTranslation();
@@ -403,12 +401,8 @@ export function DiffViewer({
   }, []);
 
   const outerScrollStyle = React.useMemo(
-    () => [
-      styles.verticalScroll,
-      maxHeight !== undefined && inlineUnistylesStyle({ maxHeight }),
-      fillAvailableHeight && styles.fillHeight,
-    ],
-    [maxHeight, fillAvailableHeight],
+    () => [styles.verticalScroll, fillAvailableHeight && styles.fillHeight],
+    [fillAvailableHeight],
   );
   const linesContainerStyle = React.useMemo(
     () => [
@@ -468,8 +462,7 @@ export function DiffViewer({
   );
 
   // Capped tool details own vertical scrolling outside the diff.
-  // Hover previews still pass maxHeight and scroll inside this view.
-  if (!fillAvailableHeight && maxHeight === undefined) return horizontalContent;
+  if (!fillAvailableHeight) return horizontalContent;
 
   return (
     <ScrollView

@@ -1,5 +1,5 @@
 import { isLanguageSupported, type HighlightToken } from "@getpaseo/highlight";
-import { extensionFromPath, tokenizeToLines } from "@/utils/highlight-cache";
+import { tokenizeToLines } from "@/utils/highlight-cache";
 import type { DiffLine } from "@/utils/tool-call-parsers";
 
 export function diffLineCode(line: DiffLine): string {
@@ -14,7 +14,7 @@ export function diffLineCode(line: DiffLine): string {
 }
 
 // Attach syntax-highlight tokens to each diff line. Language comes from the file
-// path (extension only). We reconstruct the old and new document text from the
+// path. We reconstruct the old and new document text from the
 // diff lines by position — counting context/remove into "old" and context/add
 // into "new" — so this works regardless of whether the source diff carried real
 // `@@ -n,m +n,m @@` line ranges (Codex emits bare `@@`). Each document is
@@ -25,8 +25,10 @@ export function highlightDiffLines(
   diffLines: DiffLine[],
   filePath: string | null | undefined,
 ): DiffLine[] {
-  const ext = extensionFromPath(filePath);
-  if (!ext || diffLines.length === 0 || !isLanguageSupported(`x.${ext}`)) {
+  // Gate on real grammar support: an unsupported language would tokenize to a
+  // single style-less token per line, which would shadow the word-level change
+  // segments the diff already computes. Better to keep those.
+  if (!filePath || diffLines.length === 0 || !isLanguageSupported(filePath)) {
     return diffLines;
   }
 
@@ -53,8 +55,8 @@ export function highlightDiffLines(
     return { oldIndex: -1, newIndex: -1 };
   });
 
-  const oldTokens = oldCode.length > 0 ? tokenizeToLines(oldCode.join("\n"), ext) : null;
-  const newTokens = newCode.length > 0 ? tokenizeToLines(newCode.join("\n"), ext) : null;
+  const oldTokens = oldCode.length > 0 ? tokenizeToLines(oldCode.join("\n"), filePath) : null;
+  const newTokens = newCode.length > 0 ? tokenizeToLines(newCode.join("\n"), filePath) : null;
   if (!oldTokens && !newTokens) {
     return diffLines;
   }

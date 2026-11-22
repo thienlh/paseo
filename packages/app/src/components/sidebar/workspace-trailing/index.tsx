@@ -48,13 +48,13 @@ export function hasSidebarWorkspaceTrailing({
 export function SidebarWorkspaceTrailingContent({
   workspace,
   trailing,
-  selected,
   backdrop,
+  selected,
 }: {
   workspace: SidebarWorkspaceEntry;
   trailing: SidebarWorkspaceTrailing;
-  selected: boolean;
   backdrop: SidebarSurfaceBackdrop;
+  selected: boolean;
 }) {
   if (trailing === "diff" && workspace.diffStat && hasVisibleDiffStat(workspace)) {
     return (

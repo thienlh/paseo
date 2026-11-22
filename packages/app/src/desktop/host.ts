@@ -181,6 +181,8 @@ export interface DesktopAccentBridge {
 export interface DesktopHostBridge {
   platform?: string;
   windowChromeMode?: string;
+  browserHostLabel?: string;
+  browserHostInstanceId?: string;
   accent?: DesktopAccentBridge;
   invoke?: DesktopInvokeBridge["invoke"];
   getPendingOpenProject?: () => Promise<string | null>;

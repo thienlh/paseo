@@ -13,11 +13,10 @@ interface PullRequestPaneSplitProps {
    * Exactly three children, in order:
    * 1. the overview (the PR's header and checks), which scrolls in its own region;
    * 2. the Activity disclosure row, docked to the bottom of the pane while collapsed;
-   * 3. the Activity timeline, filling the space below the separator while open;
-   * 4. optional Review content, which stays visible when Activity collapses.
+   * 3. the Activity timeline, filling the space below the separator while open.
    *
-   * Slots are children because `react-perf/jsx-no-jsx-as-prop` rejects JSX in a prop. Pass the
-   * first three unconditionally, the way `TreeRail` takes its slots.
+   * Slots are children because `react-perf/jsx-no-jsx-as-prop` rejects JSX in a prop. Pass all
+   * three unconditionally, the way `TreeRail` takes its slots.
    */
   children: ReactNode;
   activityOpen: boolean;
@@ -29,7 +28,7 @@ interface PullRequestPaneSplitProps {
  * back by docking its header to the bottom.
  */
 export function PullRequestPaneSplit({ children, activityOpen }: PullRequestPaneSplitProps) {
-  const [overview, activityHeader, activityTimeline, afterActivity] = Children.toArray(children);
+  const [overview, activityHeader, activityTimeline] = Children.toArray(children);
   const insets = useSafeAreaInsets();
   const [overviewShare, setOverviewShare] = useState(DEFAULT_OVERVIEW_SHARE);
   // The pointer's share while a drag is in progress. The saved share is decided once, when the
@@ -81,21 +80,6 @@ export function PullRequestPaneSplit({ children, activityOpen }: PullRequestPane
         : styles.overviewFill,
     [activityOpen, drawnShare],
   );
-  let activityContent: ReactNode = null;
-  if (activityOpen) {
-    activityContent = (
-      <ScrollView style={styles.activityScroll} showsVerticalScrollIndicator={false}>
-        {activityTimeline}
-        {afterActivity}
-      </ScrollView>
-    );
-  } else if (afterActivity) {
-    activityContent = (
-      <ScrollView style={styles.activityScroll} showsVerticalScrollIndicator={false}>
-        {afterActivity}
-      </ScrollView>
-    );
-  }
 
   return (
     <View style={rootStyle} testID="pr-pane">
@@ -126,7 +110,11 @@ export function PullRequestPaneSplit({ children, activityOpen }: PullRequestPane
         {/* The header keeps one slot in both states, so toggling it does not remount the row
             and drop keyboard focus. Only the timeline mounts and unmounts. */}
         {activityHeader}
-        {activityContent}
+        {activityOpen ? (
+          <ScrollView style={styles.activityScroll} showsVerticalScrollIndicator={false}>
+            {activityTimeline}
+          </ScrollView>
+        ) : null}
       </View>
     </View>
   );

@@ -24,6 +24,8 @@ const SNAP_POINTS = ["60%", "95%"];
 const ThemedPlug = withUnistyles(Plug);
 const ThemedWrench = withUnistyles(Wrench);
 const foregroundMapping = (theme: Theme) => ({ color: theme.colors.foreground });
+const headerIcon = <ThemedWrench size={ICON_SIZE.md} uniProps={foregroundMapping} />;
+const mcpHeaderIcon = <ThemedPlug size={ICON_SIZE.md} uniProps={foregroundMapping} />;
 
 export function OverviewToolCallGroupSheet({
   visible,
@@ -43,11 +45,7 @@ export function OverviewToolCallGroupSheet({
     () => ({
       title: summary,
       titleTestID: "tool-call-group-sheet-summary",
-      leading: mcp ? (
-        <ThemedPlug size={ICON_SIZE.md} uniProps={foregroundMapping} />
-      ) : (
-        <ThemedWrench size={ICON_SIZE.md} uniProps={foregroundMapping} />
-      ),
+      leading: mcp ? mcpHeaderIcon : headerIcon,
     }),
     [mcp, summary],
   );

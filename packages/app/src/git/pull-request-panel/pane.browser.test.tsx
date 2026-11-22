@@ -1,4 +1,4 @@
-import React, { act, type ReactNode } from "react";
+import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { within } from "@testing-library/dom";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
@@ -52,7 +52,7 @@ function pullRequest(checks: PrPaneCheck[]): PrPaneData {
     state: "open",
     url: "https://example.test/pull/42",
     baseRefName: "main",
-    headRefName: "feature/widget",
+    headRefName: "feature/widgets",
     reviewDecision: "pending",
     awaitingReviewers: [],
     checks,
@@ -65,25 +65,19 @@ const HOME_INDICATOR_INSETS = { top: 0, right: 0, bottom: 34, left: 0 };
 
 const NO_INSETS = { top: 0, right: 0, bottom: 0, left: 0 };
 
-function renderPane(data: PrPaneData, insets = NO_INSETS, reviewSection?: ReactNode) {
+function renderPane(data: PrPaneData, insets = NO_INSETS) {
   act(() =>
     root?.render(
       <SafeAreaInsetsContext.Provider value={insets}>
         <ToastApiProvider api={silentToasts}>
-          <PullRequestPane
-            serverId="server-1"
-            cwd="/repo"
-            data={data}
-            activityLoading={false}
-            reviewSection={reviewSection}
-          />
+          <PullRequestPane serverId="server-1" cwd="/repo" data={data} activityLoading={false} />
         </ToastApiProvider>
       </SafeAreaInsetsContext.Provider>,
     ),
   );
 }
 
-function mountPane(data: PrPaneData, insets = NO_INSETS, reviewSection?: ReactNode) {
+function mountPane(data: PrPaneData, insets = NO_INSETS) {
   container = document.createElement("div");
   container.style.height = `${PANE_HEIGHT}px`;
   container.style.width = "600px";
@@ -91,7 +85,7 @@ function mountPane(data: PrPaneData, insets = NO_INSETS, reviewSection?: ReactNo
   container.style.flexDirection = "column";
   document.body.appendChild(container);
   root = createRoot(container);
-  renderPane(data, insets, reviewSection);
+  renderPane(data, insets);
   const pane = container.querySelector<HTMLElement>('[data-testid="pr-pane"]');
   if (!pane) throw new Error("The pull request pane did not render");
   return pane;
@@ -158,15 +152,6 @@ describe("pull request pane layout", () => {
     const rows = within(pane).getAllByTestId("pr-pane-check-row");
     expect(rows).toHaveLength(10);
     expect(rows.every(isOnScreen)).toBe(true);
-  });
-
-  it("keeps Review visible when Activity collapses", () => {
-    const reviewText = "Review details stay visible";
-    const pane = mountPane(pullRequest(successfulChecks(1)), NO_INSETS, <div>{reviewText}</div>);
-
-    act(() => activityHeader(pane).click());
-
-    expect(within(pane).getByText(reviewText).textContent).toBe(reviewText);
   });
 
   it("keeps keyboard focus on the Activity header while it collapses and expands", () => {

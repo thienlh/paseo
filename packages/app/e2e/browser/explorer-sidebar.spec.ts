@@ -20,6 +20,20 @@ function explorerSidebar(page: Parameters<typeof ensureExplorerSidebar>[0]) {
   return page.getByTestId("workspace-explorer-sidebar").filter({ visible: true });
 }
 
+const LAYOUT_VIEWPORTS = {
+  compact: { width: 390, height: 844 },
+  wide: { width: 1280, height: 900 },
+};
+
+// The previous layout stays on screen for a few renders after the resize. Wait for the shell to
+// switch so the next step reads the layout it resized to.
+async function resizeToLayout(
+  page: Parameters<typeof ensureExplorerSidebar>[0],
+  layout: keyof typeof LAYOUT_VIEWPORTS,
+) {
+  await page.setViewportSize(LAYOUT_VIEWPORTS[layout]);
+  await expect(page.getByTestId(`${layout}-shell`)).toBeVisible();
+}
 test("moves a terminal into Explorer execution while keeping its supporting view visible", async ({
   page,
 }) => {
@@ -48,21 +62,6 @@ test("moves a terminal into Explorer execution while keeping its supporting view
     await workspace.cleanup();
   }
 });
-
-const LAYOUT_VIEWPORTS = {
-  compact: { width: 390, height: 844 },
-  wide: { width: 1280, height: 900 },
-};
-
-// The previous layout stays on screen for a few renders after the resize. Wait for the shell to
-// switch so the next step reads the layout it resized to.
-async function resizeToLayout(
-  page: Parameters<typeof ensureExplorerSidebar>[0],
-  layout: keyof typeof LAYOUT_VIEWPORTS,
-) {
-  await page.setViewportSize(LAYOUT_VIEWPORTS[layout]);
-  await expect(page.getByTestId(`${layout}-shell`)).toBeVisible();
-}
 
 async function expectExplorerActiveTabForeground(
   page: Parameters<typeof ensureExplorerSidebar>[0],
@@ -538,6 +537,40 @@ test("compact file sheets cover Explorer and return to its retained file list", 
     await expect(page.getByText("Explorer sheet marker", { exact: true })).toHaveCount(0);
     await expect(explorer.getByTestId("file-explorer-tree-scroll")).toBeVisible();
     expect(await host!.evaluate((node) => node.isConnected)).toBe(true);
+  } finally {
+    await workspace.cleanup();
+  }
+});
+
+async function toggleCommentInMainEditor(page: Parameters<typeof ensureExplorerSidebar>[0]) {
+  const editor = page.getByLabel("Source editor for comment.cs").getByRole("textbox");
+  await expect(editor).toBeVisible();
+  await editor.press(process.platform === "darwin" ? "Meta+Slash" : "Control+Slash");
+  await expect(editor).toHaveText("// public class Example {}");
+}
+
+test("keeps the comment shortcut in the editor beside an Explorer agent", async ({ page }) => {
+  const workspace = await seedMockAgentWorkspace({
+    repoPrefix: "explorer-comment-shortcut-",
+    title: "Chat beside the editor",
+    model: "ten-second-stream",
+  });
+  try {
+    await writeFile(`${workspace.cwd}/comment.cs`, "public class Example {}");
+    await openAgentRoute(page, workspace);
+    await expect(
+      page.getByRole("button", { name: "Select model (Ten second stream)" }),
+    ).toBeVisible();
+    await ensureExplorerSidebar(page);
+    await dragTabIntoExplorer(page, `agent_${workspace.agentId}`);
+    await expect(
+      explorerSidebar(page).getByRole("button", { name: "Select model (Ten second stream)" }),
+    ).toBeVisible();
+    await openFilesPanel(page);
+    await openFileFromExplorer(page, "comment.cs");
+    await explorerSidebar(page).getByTestId(`workspace-tab-agent_${workspace.agentId}`).click();
+    await toggleCommentInMainEditor(page);
+    await expect(page.getByPlaceholder(/Search (all )?models/)).toBeHidden();
   } finally {
     await workspace.cleanup();
   }
